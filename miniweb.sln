@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniweb", "MiniWeb.vcproj", "{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		DebugMinimum = DebugMinimum
+		Minimum = Minimum
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug.ActiveCfg = Debug|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug.Build.0 = Debug|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMinimum.ActiveCfg = DebugMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMinimum.Build.0 = DebugMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Minimum.ActiveCfg = ReleaseMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Minimum.Build.0 = ReleaseMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release.ActiveCfg = Release|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
