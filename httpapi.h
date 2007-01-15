@@ -16,7 +16,7 @@
 #include <time.h>
 
 #define VER_MAJOR 0
-#define VER_MINOR 7
+#define VER_MINOR 8
 
 #ifndef min
 #define min(x,y) (x>y?y:x)
