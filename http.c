@@ -96,8 +96,6 @@ int mwServerStart(HttpParam* hp)
 		DBG("Error initializing Winsock\n");
 		return -1;
 	}
-	hp->bKillWebserver=FALSE;
-	hp->bWebserverRunning=TRUE;
 
 	{
 		int i;
@@ -121,6 +119,9 @@ int mwServerStart(HttpParam* hp)
 	if (!(hp->listenSocket=_mwStartListening(hp))) return -1;
 
 	hp->stats.startTime=time(NULL);
+	hp->bKillWebserver=FALSE;
+	hp->bWebserverRunning=TRUE;
+
 #ifndef NOTHREAD
 	if (ThreadCreate(&hp->tidHttpThread,_mwHttpThread,(void*)hp)) {
 		DBG("Error creating server thread\n");
@@ -218,6 +219,7 @@ SOCKET _mwStartListening(HttpParam* hp)
     listenSocket=socket(AF_INET,SOCK_STREAM,0);
     if (listenSocket<0) return 0;
 
+#if 0
     // allow reuse of port number
     {
       int iOptVal=1;
@@ -225,6 +227,7 @@ SOCKET _mwStartListening(HttpParam* hp)
                      (char*)&iOptVal,sizeof(iOptVal));
       if (iRc<0) return 0;
     }
+#endif
 
     // bind it to the http port
     {
@@ -783,10 +786,10 @@ int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 ////////////////////////////////////////////////////////////////////////////
 void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
-	if (phsSocket->fd) {
+	if (phsSocket->fd > 0) {
 		close(phsSocket->fd);
-		phsSocket->fd = 0;
 	}
+	phsSocket->fd = 0;
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
 		free(phsSocket->ptr);
 		phsSocket->ptr=NULL;
@@ -946,7 +949,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		if (hfp.pchExt) hfp.pchExt++;
 	}
 
-	if (phsSocket->fd <= 0) {
+	if (phsSocket->fd < 0) {
 		char *p;
 		int i;
 		if (stat(hfp.cFilePath,&st) < 0 || !(st.st_mode & S_IFDIR)) {
@@ -961,10 +964,10 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		for (i=0; defaultPages[i]; i++) {
 			strcpy(p,defaultPages[i]);
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
-			if (phsSocket->fd>=0) break;
+			if (phsSocket->fd > 0) break;
 		}
 
-		if (phsSocket->fd < 0 && (hp->flags & FLAG_DIR_LISTING)) {
+		if (phsSocket->fd <= 0 && (hp->flags & FLAG_DIR_LISTING)) {
 			SETFLAG(phsSocket,FLAG_DATA_RAW);
 			if (!hfp.fTailSlash) {
 				p=phsSocket->request.pucPath;
@@ -984,22 +987,23 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			return _mwStartSendRawData(hp, phsSocket);
 		}
 		phsSocket->response.fileType = HTTPFILETYPE_HTML;
+	} else {
+		phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
+		if (phsSocket->response.iContentLength <= 0) {
+			phsSocket->request.iStartByte = 0;
+		}
+		if (phsSocket->request.iStartByte) {
+			lseek(phsSocket->fd, phsSocket->request.iStartByte, SEEK_SET);
+		}
+		if (!phsSocket->response.fileType && hfp.pchExt) {
+			phsSocket->response.fileType=_mwGetContentType(hfp.pchExt);
+		}
+		// mark if substitution needed
+		if (hp->pfnSubst && (phsSocket->response.fileType==HTTPFILETYPE_HTML ||phsSocket->response.fileType==HTTPFILETYPE_JS)) {
+			SETFLAG(phsSocket,FLAG_SUBST);
+		}
 	}
-	phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
-	if (phsSocket->response.iContentLength <= 0) {
-		phsSocket->request.iStartByte = 0;
-	}
-	if (phsSocket->request.iStartByte) {
-		lseek(phsSocket->fd, phsSocket->request.iStartByte, SEEK_SET);
-	}
-	if (!phsSocket->response.fileType && hfp.pchExt) {
-		phsSocket->response.fileType=_mwGetContentType(hfp.pchExt);
-	}
-	
-	// mark if substitution needed
-	if (hp->pfnSubst && (phsSocket->response.fileType==HTTPFILETYPE_HTML ||phsSocket->response.fileType==HTTPFILETYPE_JS)) {
-		SETFLAG(phsSocket,FLAG_SUBST);
-	}
+
 
 	SYSLOG(LOG_INFO,"File/requested size: %d/%d\n",st.st_size,phsSocket->response.iContentLength);
 
@@ -1043,7 +1047,10 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 
 	// used all buffered data - load next chunk of file
 	phsSocket->pucData=phsSocket->buffer;
-	iBytesRead=read(phsSocket->fd,phsSocket->buffer,HTTP_BUFFER_SIZE);
+	if (phsSocket->fd > 0)
+		iBytesRead=read(phsSocket->fd,phsSocket->buffer,HTTP_BUFFER_SIZE);
+	else
+		iBytesRead=0;
 	if (iBytesRead<=0) {
 		// finished with a file
 		int iRemainBytes=phsSocket->response.iContentLength-phsSocket->response.iSentBytes;
@@ -1057,7 +1064,7 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 		} else {
 			DBG("Closing file (fd=%d)\n",phsSocket->fd);
 			hp->stats.fileSentBytes+=phsSocket->response.iSentBytes;
-			close(phsSocket->fd);
+			if (phsSocket->fd > 0) close(phsSocket->fd);
 			phsSocket->fd = 0;
 			return 1;
 		}

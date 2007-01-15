@@ -317,6 +317,7 @@ int main(int argc,char* argv[])
 			(httpParam+i)->maxReqPerConn=99;
 			(httpParam+i)->pchWebPath="webroot";
 			(httpParam+i)->pxUrlHandler=urlHandlerList;
+			(httpParam+i)->flags=FLAG_DIR_LISTING;
 		}
 	}
 
@@ -355,7 +356,7 @@ int main(int argc,char* argv[])
 						pchCounterFile="counters.dat";
 					break;
 				case 'd':
-					(httpParam+inst)->flags |= FLAG_DIR_LISTING;
+					(httpParam+inst)->flags &= ~FLAG_DIR_LISTING;
 					break;
 				}
 			}

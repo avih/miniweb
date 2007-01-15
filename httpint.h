@@ -17,7 +17,7 @@
 // HTTP messages/part messages
 #define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: MiniWeb\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\nLast-Modified: "
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+128)&(-4))
-#define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: MiniWeb\r\nConnection: Keep-Alive\r\nContent-length: 180\r\nContent-Type: text/html\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><i>MediaCoder built-in HTTPd</i></body></html>"
+#define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: MiniWeb\r\nConnection: Keep-Alive\r\nContent-length: 180\r\nContent-Type: text/html\r\n\r\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><i>MiniWeb - the tiny HTTPd written by Stanley Huang</i></body></html>"
 #define HTTPBODY_REDIRECT "<html><head><meta http-equiv=\"refresh\" content=\"0; URL=%s\"></head><body></body></html>"
 #define HTTPTYPE_HTML "text/html"
 #define HTTPTYPE_XML "text/xml"

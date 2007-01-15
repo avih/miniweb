@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <io.h>
 #include "httppil.h"
 
 #ifndef WIN32
@@ -196,7 +197,7 @@ int ReadDir(char* pchDir, char* pchFileNameBuf)
 
 int IsFileExist(char* filename)
 {
-	int fd=open(filename,O_RDONLY);
+	int fd = open(filename,O_RDONLY);
 	if (fd>0) {
 		close(fd);
 		return 1;
