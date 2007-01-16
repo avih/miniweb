@@ -27,7 +27,7 @@ char* contentTypeTable[]={
 	HTTPTYPE_MPA,HTTPTYPE_MPEG,HTTPTYPE_AVI,HTTPTYPE_QUICKTIME,HTTPTYPE_QUICKTIME,HTTPTYPE_JS,HTTPTYPE_OCTET,HTTPTYPE_STREAM
 };
 
-char* defaultPages[]={"index.htm","index.html","default.htm",NULL};
+char* defaultPages[]={"index.htm","index.html","default.htm"};
 
 FILE *fpLog=NULL;
 
@@ -961,7 +961,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		
 		//requesting for directory, first try opening default pages
 		*(p++)=SLASH;
-		for (i=0; defaultPages[i]; i++) {
+		for (i=0; i<sizeof(defaultPages)/sizeof(defaultPages[0]); i++) {
 			strcpy(p,defaultPages[i]);
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
 			if (phsSocket->fd > 0) break;
@@ -987,7 +987,8 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			return _mwStartSendRawData(hp, phsSocket);
 		}
 		phsSocket->response.fileType = HTTPFILETYPE_HTML;
-	} else {
+	}
+	if (phsSocket->fd > 0) {
 		phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
 		if (phsSocket->response.iContentLength <= 0) {
 			phsSocket->request.iStartByte = 0;
