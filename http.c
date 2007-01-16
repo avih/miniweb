@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-
+#include <io.h>
 #include "httppil.h"
 #include "httpapi.h"
 #include "httpint.h"
