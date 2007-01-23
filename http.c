@@ -275,6 +275,9 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->iDataLength=0;
 	phsSocket->response.iBufferSize=HTTP_BUFFER_SIZE;
 	phsSocket->ptr=NULL;
+#if HTTPPOST
+	phsSocket->request.pucPayload = 0;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -448,17 +451,15 @@ void* _mwHttpThread(HttpParam *hp)
 		}
 	}
 
-	{
-		phsSocketCur=hp->phsSocketHead;
-		while (phsSocketCur) {
-			HttpSocket *phsSocketNext;
-			phsSocketCur->flags=FLAG_CONN_CLOSE;
-			_mwCloseSocket(hp, phsSocketCur);
-			phsSocketNext=phsSocketCur->next;
-			free(phsSocketCur);
-			phsSocketCur=phsSocketNext;
+	for (phsSocketCur=hp->phsSocketHead; phsSocketCur;) {
+		HttpSocket *phsSocketNext;
+		phsSocketCur->flags=FLAG_CONN_CLOSE;
+		_mwCloseSocket(hp, phsSocketCur);
+		phsSocketNext=phsSocketCur->next;
+		free(phsSocketCur);
+		phsSocketCur=phsSocketNext;
 	}
-	}
+	hp->phsSocketHead = 0;
 
 	// clear state vars
 	hp->bKillWebserver=FALSE;
