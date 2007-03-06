@@ -2,31 +2,52 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniweb", "MiniWeb.vcproj", "{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "7zDec", "7zDec\7zDec.vcproj", "{F0501927-6FD9-41A0-98C5-7A2D0491D47D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_DLL|Win32 = Debug_DLL|Win32
 		Debug|Win32 = Debug|Win32
 		DebugMin|Win32 = DebugMin|Win32
-		DebugMinimum|Win32 = DebugMinimum|Win32
-		Minimum|Win32 = Minimum|Win32
+		Release_DLL|Win32 = Release_DLL|Win32
+		Release_Static|Win32 = Release_Static|Win32
 		Release|Win32 = Release|Win32
 		ReleaseMin|Win32 = ReleaseMin|Win32
 		VOD Server|Win32 = VOD Server|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug_DLL|Win32.ActiveCfg = DebugMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug_DLL|Win32.Build.0 = DebugMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug|Win32.ActiveCfg = Debug|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug|Win32.Build.0 = Debug|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMin|Win32.ActiveCfg = DebugMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMin|Win32.Build.0 = DebugMin|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMinimum|Win32.ActiveCfg = DebugMin|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.DebugMinimum|Win32.Build.0 = DebugMin|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Minimum|Win32.ActiveCfg = DebugMin|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Minimum|Win32.Build.0 = DebugMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_DLL|Win32.ActiveCfg = ReleaseMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_DLL|Win32.Build.0 = ReleaseMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Static|Win32.ActiveCfg = ReleaseMin|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Static|Win32.Build.0 = ReleaseMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.ActiveCfg = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.Build.0 = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.ReleaseMin|Win32.ActiveCfg = ReleaseMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.ReleaseMin|Win32.Build.0 = ReleaseMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.ActiveCfg = VOD Server|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.Build.0 = VOD Server|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug_DLL|Win32.ActiveCfg = Debug_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug_DLL|Win32.Build.0 = Debug_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug|Win32.Build.0 = Debug|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.DebugMin|Win32.ActiveCfg = Debug_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.DebugMin|Win32.Build.0 = Debug_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release_DLL|Win32.ActiveCfg = Release_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release_DLL|Win32.Build.0 = Release_DLL|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release_Static|Win32.ActiveCfg = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release_Static|Win32.Build.0 = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release|Win32.ActiveCfg = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Release|Win32.Build.0 = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.ReleaseMin|Win32.ActiveCfg = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.ReleaseMin|Win32.Build.0 = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD Server|Win32.ActiveCfg = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD Server|Win32.Build.0 = Release_Static|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

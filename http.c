@@ -15,6 +15,9 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "httpint.h"
+#ifdef _7Z
+#include "7zDec/7zInc.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 // global variables
@@ -115,6 +118,9 @@ int mwServerStart(HttpParam* hp)
 		hp->pfnFileUpload=DefaultWebFileUploadCallback;
 #endif
 */
+#ifdef _7Z
+	hp->szctx = SzInit();
+#endif
 
 	if (!(hp->listenSocket=_mwStartListening(hp))) return -1;
 
@@ -155,6 +161,11 @@ int mwServerShutdown(HttpParam* hp)
 	}
 
 	UninitSocket();
+
+#ifdef _7Z
+	SzUninit(hp->szctx);
+#endif
+
 	DBG("Webserver shutdown complete\n");
 	return 0;
 }
@@ -166,7 +177,9 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 
 	hfp->pchExt=NULL;
 	hfp->fTailSlash=0;
-	if (hfp->pchRootPath) {
+	if (*s == '~') {
+		s++;
+	} else if (hfp->pchRootPath) {
 		p+=_mwStrCopy(hfp->cFilePath,hfp->pchRootPath);
 		if (*(p-1)!=SLASH) {
 			*p=SLASH;
@@ -611,17 +624,18 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
 				}
 				if (ret & FLAG_DATA_RAW) {
+					SETFLAG(phsSocket, FLAG_DATA_RAW);
 					phsSocket->pucData=up.pucBuffer;
 					phsSocket->iDataLength=up.iDataBytes;
 					phsSocket->response.iContentLength=up.iContentBytes>0?up.iContentBytes:up.iDataBytes;
 					DBG("URL handler: raw data)\n");
 				} else if (ret & FLAG_DATA_FILE) {
-					phsSocket->flags|=FLAG_DATA_FILE;
+					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					if (up.pucBuffer[0])
 						phsSocket->request.pucPath=up.pucBuffer;
 					DBG("URL handler: file\n");
 				} else if (ret & FLAG_DATA_FD) {
-					phsSocket->flags |= FLAG_DATA_FILE;
+					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					DBG("URL handler: file descriptor\n");
 				}
 				break;
@@ -749,11 +763,11 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		CLRFLAG(phsSocket,FLAG_RECEIVING)
 		SETFLAG(phsSocket,FLAG_SENDING);
 		hp->stats.reqGetCount++;
-		if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
+		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW)) {
+			return _mwStartSendRawData(hp, phsSocket);
+		} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 			// send requested page
 			return _mwStartSendFile(hp,phsSocket);
-		} else if (ISFLAGSET(phsSocket,FLAG_DATA_RAW)) {
-			return _mwStartSendRawData(hp, phsSocket);
 		}
 	}
 	SYSLOG(LOG_INFO,"Error occurred (might be a bug)\n");
@@ -875,7 +889,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 				cFileName,cFileName,st.st_size);
 			s=strrchr(cFileName,'.');
 			if (s) {
-				int filetype=_mwGetContentType(++s);
+				int filetype=mwGetContentType(++s);
 				if (filetype!=HTTPFILETYPE_OCTET)
 					p+=_mwStrCopy(p,contentTypeTable[filetype]);
 				else
@@ -900,15 +914,12 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 void _mwSend404Page(HttpSocket* phsSocket)
 {
 	int bytes,offset=0;
-	char *p=HTTP404_HEADER;
-
+	char hdr[128];
+	int hdrsize = _snprintf(hdr, sizeof(hdr), HTTP404_HEADER, sizeof(HTTP404_BODY) - 1);
 	SYSLOG(LOG_INFO,"[%d] Http file not found\n",phsSocket->socket);
-	// send file not found header
-	do {
-		bytes=send(phsSocket->socket, p+offset,sizeof(HTTP404_HEADER)-1-offset,0);
-		if (bytes<=0) break;
-		offset+=bytes;
-	} while (offset<sizeof(HTTP404_HEADER)-1);
+	// send 404 page
+	send(phsSocket->socket, hdr, hdrsize, 0);
+	send(phsSocket->socket, HTTP404_BODY, sizeof(HTTP404_BODY)-1, 0);
 }
 
 #ifdef WIN32
@@ -944,16 +955,40 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		mwGetLocalFileName(&hfp);
 		// open file
 		phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
-	} else {
+	} else if (phsSocket->fd > 0) {
 		strcpy(hfp.cFilePath, phsSocket->request.pucPath);
 		hfp.pchExt = strrchr(hfp.cFilePath, '.');
 		if (hfp.pchExt) hfp.pchExt++;
+	} else {
+		_mwSend404Page(phsSocket);
+		return -1;
 	}
 
 	if (phsSocket->fd < 0) {
 		char *p;
 		int i;
 		if (stat(hfp.cFilePath,&st) < 0 || !(st.st_mode & S_IFDIR)) {
+#if _7Z
+			char* szfile = 0;
+			char *p = strstr(hfp.cFilePath, ".7z/");
+			if (p) {
+				p += 3;
+				*p = 0;
+				szfile = p + 1;
+			}
+			if (szfile) {
+				int len = SzExtractContent(hp->szctx, hfp.cFilePath, szfile, &phsSocket->pucData);
+				if (len > 0) {
+					p = strrchr(szfile, '.');
+					SETFLAG(phsSocket,FLAG_DATA_RAW);
+					phsSocket->response.fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
+					phsSocket->response.iContentLength = len;
+					phsSocket->iDataLength = len;
+					return _mwStartSendRawData(hp, phsSocket); 
+				}
+			}
+			if (p) *p = SLASH;
+#endif
 			// file/dir not found
 			_mwSend404Page(phsSocket);
 			return -1;
@@ -998,7 +1033,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			lseek(phsSocket->fd, phsSocket->request.iStartByte, SEEK_SET);
 		}
 		if (!phsSocket->response.fileType && hfp.pchExt) {
-			phsSocket->response.fileType=_mwGetContentType(hfp.pchExt);
+			phsSocket->response.fileType=mwGetContentType(hfp.pchExt);
 		}
 		// mark if substitution needed
 		if (hp->pfnSubst && (phsSocket->response.fileType==HTTPFILETYPE_HTML ||phsSocket->response.fileType==HTTPFILETYPE_JS)) {
@@ -1335,7 +1370,7 @@ void _mwDecodeString(char* pchString)
   } while (!bEnd);
 } // end of _mwDecodeString
 
-int _mwGetContentType(char *pchExtname)
+int mwGetContentType(char *pchExtname)
 {
 	// check type of file requested
 	if (pchExtname[1]=='\0') {

@@ -11,6 +11,7 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "revision.h"
+#include "7zDec/7zInc.h"
 
 int uhMpd(UrlHandlerParam* param);
 int ehMpd(MW_EVENT msg, void* arg);
@@ -20,9 +21,13 @@ int uhVod(UrlHandlerParam* param);
 int uhVodStream(UrlHandlerParam* param);
 int ehVod(MW_EVENT msg, void* arg);
 int uhTest(UrlHandlerParam* param);
+int uh7Zip(UrlHandlerParam* param);
 
 UrlHandler urlHandlerList[]={
-	{"~stats",uhStats,NULL},
+	{"stats",uhStats,NULL},
+#ifdef _7Z
+	//{"7z",uh7Zip,NULL},
+#endif
 #ifdef _MPD
 	{"mplayer/",uhMpd,ehMpd},
 #endif
@@ -117,6 +122,43 @@ int uhStats(UrlHandlerParam* param)
 	param->fileType=HTTPFILETYPE_HTML;
 	return ret;
 }
+
+#ifdef _7Z
+
+int uh7Zip(UrlHandlerParam* param)
+{
+	HttpRequest *req=&param->hs->request;
+	HttpParam *hp= (HttpParam*)param->hp;
+	char *path;
+	char *filename;
+	void *content;
+	int len;
+	char *p = strchr(req->pucPath, '/');
+	if (p) p = strchr(p + 1, '/');
+	if (!p) return 0;
+	filename = p + 1;
+	*p = 0;
+	path = (char*)malloc(strlen(req->pucPath) + strlen(hp->pchWebPath) + 5);
+	sprintf(path, "%s/%s.7z", hp->pchWebPath, req->pucPath);
+	*p = '/';
+	
+	if (!IsFileExist(path)) {
+		free(path);
+		return 0;
+	}
+	
+	len = SzExtractContent(hp->szctx, path, filename, &content);
+	free(path);
+	if (len < 0) return 0;
+
+	p = strrchr(filename, '.');
+	param->fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
+	param->iDataBytes = len;
+	param->pucBuffer = content;
+	return FLAG_DATA_RAW;
+}
+
+#endif
 
 #define TOTAL_COUNTERS 8
 static unsigned long counter[TOTAL_COUNTERS];

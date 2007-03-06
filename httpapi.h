@@ -251,6 +251,7 @@ typedef struct _httpParam {
 	time_t tmAuthExpireTime;
 	pthread_t tidHttpThread;
 	HttpStats stats;
+	void* szctx;
 } HttpParam;
 
 typedef struct {
@@ -323,6 +324,7 @@ int mwGetLocalFileName(HttpFilePath* hfp);
 char* mwGetVarValue(HttpVariables* vars, char *varname);
 int mwGetVarValueInt(HttpVariables* vars, char *varname, int defval);
 int mwParseQueryString(UrlHandlerParam* up);
+int mwGetContentType(char *pchExtname);
 
 #ifdef __cplusplus
 }
