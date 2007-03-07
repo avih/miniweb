@@ -977,12 +977,16 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 				szfile = p + 1;
 			}
 			if (szfile) {
-				int len = SzExtractContent(hp->szctx, hfp.cFilePath, szfile, &phsSocket->pucData);
+				char* data;
+				int len = SzExtractContent(hp->szctx, hfp.cFilePath, szfile, &data);
 				if (len > 0) {
 					p = strrchr(szfile, '.');
 					SETFLAG(phsSocket,FLAG_DATA_RAW);
-					phsSocket->response.fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
+					phsSocket->pucData = (char*)malloc(len);
+					memcpy(phsSocket->pucData, data, len);
+					phsSocket->ptr = phsSocket->pucData;
 					phsSocket->response.iContentLength = len;
+					phsSocket->response.fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
 					phsSocket->iDataLength = len;
 					return _mwStartSendRawData(hp, phsSocket); 
 				}
