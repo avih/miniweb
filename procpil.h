@@ -24,6 +24,7 @@ typedef struct {
 	int fdStderrRead;
 	int fdStdinWrite;
 	intptr_t hproc;
+	int pid;
 	char *buffer;
 	int iBufferSize;
 	unsigned int flags;

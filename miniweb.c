@@ -310,12 +310,31 @@ int DefaultWebFileUploadCallback(char *pchFilename,
   return 0;
 }
 
+void Shutdown()
+{
+	//shutdown server
+	{
+		saveWebCounter();
+		if (nInst>1) {
+			int i;
+			for (i=0;i<nInst;i++) {
+				printf("Shutting down instance %d\n",i);
+				mwServerShutdown(&httpParam[i]);
+			}
+		} else {
+			mwServerShutdown(&httpParam[0]);
+		}
+		fclose(fpLog);
+	}
+}
+
 int MiniWebQuit(int arg) {
 	int i;
 	if (arg) printf("\nCaught signal (%d). MiniWeb shutting down...\n",arg);
 	for (i=0;i<nInst;i++) {
 		(httpParam+i)->bKillWebserver=1;
 	}
+	Shutdown();
 	return 0;
 }
 
@@ -462,21 +481,7 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	//shutdown server
-	{
-		saveWebCounter();
-		if (nInst>1) {
-			int i;
-			for (i=0;i<nInst;i++) {
-				printf("Shutting down instance %d\n",i);
-				mwServerShutdown(&httpParam[i]);
-			}
-		} else {
-			mwServerShutdown(&httpParam[0]);
-		}
-		fclose(fpLog);
-	}
-	UninitSocket();
+	Shutdown();
 	return 0;
 }
 ////////////////////////////// END OF FILE //////////////////////////////
