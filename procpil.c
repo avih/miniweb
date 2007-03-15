@@ -150,11 +150,23 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 		fdStderrOld = dup(2);
 		dup2(fdStderrWrite, 2);
 	}
+#ifdef WIN32
 	if (param->env) {
 		param->hproc = spawnvpe( P_NOWAIT, exe, tokens, param->env);
 	} else {
 		param->hproc = spawnvp( P_NOWAIT, exe, tokens);
 	}
+#else
+	pid = fork();
+	if (pid == -1) return -1;
+	if (pid == 0) { /* chid process */
+		if (execv(exe, tokens)<0) {
+			printf("Error starting specified program\n");
+		}
+		return 0;
+	}
+	param->pid=pid;
+#endif
 	free(exe);
 	free(tokens);
 	if (fdStdinRead) close(fdStdinRead);
