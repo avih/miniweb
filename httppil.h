@@ -22,6 +22,7 @@
 #define strdup _strdup
 #define dup2 _dup2
 #define dup2 _dup2
+#define snprintf _snprintf
 #else
 #include <unistd.h>
 #include <netinet/in.h>

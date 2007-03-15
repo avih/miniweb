@@ -26,7 +26,7 @@ endif
 
 ifdef MPD
 DEFINES+= -D_MPD
-HTTPOBJ+= mpd.o
+HTTPOBJ+= mpd.o procpil.o
 endif
 
 ifdef VOD

@@ -1,20 +1,13 @@
 #include <stdio.h>
 #include <fcntl.h>
-#include <io.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <process.h>
 #include "httppil.h"
 #include "procpil.h"
 
 #define SHELL_BUFFER_SIZE 256
-#ifdef WIN32
-#define read _read
-#define open _open
-#define close _close
-#endif
 
 int ShellRead(SHELL_PARAM* param)
 {
@@ -158,9 +151,9 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 		_dup2(fdStderrWrite, 2);
 	}
 	if (param->env) {
-		param->hproc = _spawnvpe( _P_NOWAIT, exe, tokens, param->env);
+		param->hproc = _spawnvpe( P_NOWAIT, exe, tokens, param->env);
 	} else {
-		param->hproc = _spawnvp( _P_NOWAIT, exe, tokens);
+		param->hproc = _spawnvp( P_NOWAIT, exe, tokens);
 	}
 	free(exe);
 	free(tokens);

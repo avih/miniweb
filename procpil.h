@@ -1,3 +1,11 @@
+#ifdef WIN32
+#include <process.h>
+#else
+#define O_NOINHERIT 0
+#define O_BINARY 0
+#define P_NOWAIT 0
+#endif
+
 #define READ_FD 0
 #define WRITE_FD 1
 

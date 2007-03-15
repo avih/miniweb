@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <io.h>
 #include "httppil.h"
 
 #ifndef WIN32
