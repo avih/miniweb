@@ -151,15 +151,15 @@ int mwServerShutdown(HttpParam* hp)
 	// signal webserver thread to quit
 	hp->bKillWebserver=TRUE;
   
-	// and wait for thread to exit
-	for (i=0;hp->bWebserverRunning && i<10;i++) msleep(100);
-
 	for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
 		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
 			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, hp);
 	}
 
-	UninitSocket();
+	if (hp->listenSocket) closesocket(hp->listenSocket);
+
+	// and wait for thread to exit
+	for (i=0;hp->bWebserverRunning && i<10;i++) msleep(100);
 
 #ifdef _7Z
 	SzUninit(hp->szctx);

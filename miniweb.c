@@ -326,24 +326,21 @@ void Shutdown()
 		}
 		fclose(fpLog);
 	}
+	UninitSocket();
 }
 
 int MiniWebQuit(int arg) {
 	static int quitting = 0;
-	int i;
 	if (quitting) return 0;
 	quitting = 1;
 	if (arg) printf("\nCaught signal (%d). MiniWeb shutting down...\n",arg);
-	for (i=0;i<nInst;i++) {
-		(httpParam+i)->bKillWebserver=1;
-	}
 	Shutdown();
 	return 0;
 }
 
 int main(int argc,char* argv[])
 {
-	printf("MiniWeb %d.%d.%d (C)2005 Written by Stanley Huang\n\n",VER_MAJOR,VER_MINOR,BUILD_NO);
+	printf("MiniWeb %d.%d.%d (C)2005-07 Written by Stanley Huang\n\n",VER_MAJOR,VER_MINOR,BUILD_NO);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
