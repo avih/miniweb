@@ -68,7 +68,11 @@ int ShellSetPriority(SHELL_PARAM* param, int iPriority)
 int MakePipe(int* readpipe, int* writepipe, int bufsize, BOOL inheritRead, BOOL inheritWrite)
 {
 	int fdpipe[2];
+#ifdef WIN32
 	if (pipe(fdpipe, bufsize, O_NOINHERIT|O_BINARY)) return -1;
+#else
+	if (pipe(fdpipe)) return -1;
+#endif
 	if (inheritRead) {
 		*readpipe = dup(fdpipe[READ_FD]);
 		close(fdpipe[READ_FD]);
@@ -157,15 +161,15 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 		param->hproc = spawnvp( P_NOWAIT, exe, tokens);
 	}
 #else
-	pid = fork();
-	if (pid == -1) return -1;
-	if (pid == 0) { /* chid process */
+	param->pid = fork();
+	if (param->pid == -1) return -1;
+	if (param->pid == 0) { /* chid process */
+		printf("MPlayer: %s\n", exe);
 		if (execv(exe, tokens)<0) {
 			printf("Error starting specified program\n");
 		}
 		return 0;
 	}
-	param->pid=pid;
 #endif
 	free(exe);
 	free(tokens);

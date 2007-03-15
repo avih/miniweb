@@ -329,7 +329,10 @@ void Shutdown()
 }
 
 int MiniWebQuit(int arg) {
+	static int quitting = 0;
 	int i;
+	if (quitting) return 0;
+	quitting = 1;
 	if (arg) printf("\nCaught signal (%d). MiniWeb shutting down...\n",arg);
 	for (i=0;i<nInst;i++) {
 		(httpParam+i)->bKillWebserver=1;

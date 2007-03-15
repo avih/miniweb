@@ -40,7 +40,11 @@ int mpOpen(char* pchFilename)
 {
 	char buf[512];
 	mpClose();
+#ifdef WIN32
 	sprintf(buf,"mplayer -slave -quiet %s",pchFilename);
+#else
+	sprintf(buf,"/usr/bin/mplayer -slave -quiet %s",pchFilename);
+#endif
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	if (ShellExec(&mpx, buf)) return -1;
 	mpState=1;
