@@ -36,14 +36,14 @@ void mpClose()
 	}
 }
 
-int mpOpen(char* pchFilename)
+int mpOpen(char* pchFilename, char* opts)
 {
 	char buf[512];
 	mpClose();
 #ifdef WIN32
-	sprintf(buf,"mplayer -slave -quiet %s",pchFilename);
+	sprintf(buf,"mplayer %s -slave -quiet %s",pchFilename, opts);
 #else
-	sprintf(buf,"/usr/bin/mplayer -slave -quiet %s",pchFilename);
+	sprintf(buf,"/usr/bin/mplayer %s -slave -quiet %s",pchFilename, opts);
 #endif
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	if (ShellExec(&mpx, buf)) return -1;
@@ -67,9 +67,15 @@ int ehMpd(MW_EVENT event, void* arg)
 int uhMpd(UrlHandlerParam* param)
 {
 	char *cmd=param->pucRequest;
-	if (!strncmp(cmd,"open=",5)) {
-		if (!mpOpen(cmd+5)) {
-			char *p = 0;
+	if (!strncmp(cmd,"open",4)) {
+		char *opts = NULL;
+		char *filename = NULL;
+		if (mwParseQueryString(param) > 0) {
+			filename = mwGetVarValue(param->pxVars, "file");
+			opts = mwGetVarValue(param->pxVars, "opts");
+		}
+		if (!mpOpen(filename, opts)) {
+			char *p = NULL;
 			int n;
 			int offset = 0;
 			while (offset < param->iDataBytes) {

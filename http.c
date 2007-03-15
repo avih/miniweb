@@ -1207,7 +1207,7 @@ void _mwRedirect(HttpSocket* phsSocket, char* pchPath)
 
 	// build redirect message
 	SYSLOG(LOG_INFO,"[%d] Http redirection to %s\n",phsSocket->socket,pchPath);
-	path = (pchPath == phsSocket->pucData) ? strdup(pchPath) : pchPath;
+	path = (pchPath == phsSocket->pucData) ? strdup(pchPath) : (char*)pchPath;
 	phsSocket->iDataLength=sprintf(phsSocket->pucData,HTTPBODY_REDIRECT,path);
 	phsSocket->response.iContentLength=phsSocket->iDataLength;
 	if (path != pchPath) free(path);
