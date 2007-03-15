@@ -21,7 +21,10 @@
 #define write _write
 #define strdup _strdup
 #define dup2 _dup2
-#define dup2 _dup2
+#define dup _dup
+#define pipe _pipe
+#define spawnvpe _spawnvpe
+#define spawnvp _spawnvp
 #define snprintf _snprintf
 #else
 #include <unistd.h>

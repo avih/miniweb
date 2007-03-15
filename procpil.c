@@ -68,16 +68,16 @@ int ShellSetPriority(SHELL_PARAM* param, int iPriority)
 int MakePipe(int* readpipe, int* writepipe, int bufsize, BOOL inheritRead, BOOL inheritWrite)
 {
 	int fdpipe[2];
-	if (_pipe(fdpipe, bufsize, O_NOINHERIT|O_BINARY)) return -1;
+	if (pipe(fdpipe, bufsize, O_NOINHERIT|O_BINARY)) return -1;
 	if (inheritRead) {
-		*readpipe = _dup(fdpipe[READ_FD]);
-		_close(fdpipe[READ_FD]);
+		*readpipe = dup(fdpipe[READ_FD]);
+		close(fdpipe[READ_FD]);
 	} else {
 		*readpipe = fdpipe[READ_FD];
 	}
 	if (inheritWrite) {
-		*writepipe = _dup(fdpipe[WRITE_FD]);
-		_close(fdpipe[WRITE_FD]);
+		*writepipe = dup(fdpipe[WRITE_FD]);
+		close(fdpipe[WRITE_FD]);
 	} else {
 		*writepipe = fdpipe[WRITE_FD];
 	}
@@ -125,44 +125,44 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 	tokens = Tokenize(commandLine, ' ');
 	if (tokens[0][0] == '\"') {
 		char *p;
-		exe = _strdup(tokens[0] + 1);
+		exe = strdup(tokens[0] + 1);
 		p = strrchr(exe, '\"');
 		if (p) *p = 0;
 	} else {
-		exe = _strdup(tokens[0]);
+		exe = strdup(tokens[0]);
 	}
 	if (param->flags & SF_REDIRECT_STDIN) {
 		MakePipe(&fdStdinRead, &param->fdStdinWrite, 16384, FALSE, FALSE);
-		fdStdinOld = _dup(0);
-		_dup2(fdStdinRead, 0);
+		fdStdinOld = dup(0);
+		dup2(fdStdinRead, 0);
 	}
 	if (param->flags & SF_REDIRECT_STDOUT) {
 		MakePipe(&param->fdStdoutRead, &fdStdinWrite, 16384, FALSE, FALSE);
-		fdStdoutOld = _dup(1);
-		_dup2(fdStdinWrite, 1);
+		fdStdoutOld = dup(1);
+		dup2(fdStdinWrite, 1);
 		if ((param->flags & SF_REDIRECT_OUTPUT) == SF_REDIRECT_OUTPUT) {
-			fdStderrOld = _dup(2);
-			_dup2(fdStdinWrite, 2);
+			fdStderrOld = dup(2);
+			dup2(fdStdinWrite, 2);
 		}
 	}
 	if (param->flags & SF_REDIRECT_STDERR) {
 		MakePipe(&param->fdStdoutRead, &fdStderrWrite, 16384, FALSE, FALSE);
-		fdStderrOld = _dup(2);
-		_dup2(fdStderrWrite, 2);
+		fdStderrOld = dup(2);
+		dup2(fdStderrWrite, 2);
 	}
 	if (param->env) {
-		param->hproc = _spawnvpe( P_NOWAIT, exe, tokens, param->env);
+		param->hproc = spawnvpe( P_NOWAIT, exe, tokens, param->env);
 	} else {
-		param->hproc = _spawnvp( P_NOWAIT, exe, tokens);
+		param->hproc = spawnvp( P_NOWAIT, exe, tokens);
 	}
 	free(exe);
 	free(tokens);
-	if (fdStdinRead) _close(fdStdinRead);
-	if (fdStdinOld) _dup2( fdStdinOld, 0);
-	if (fdStdinWrite) _close(fdStdinWrite);
-	if (fdStdoutOld) _dup2( fdStdoutOld, 1 );
-	if (fdStderrWrite) _close(fdStderrWrite);
-	if (fdStderrOld) _dup2( fdStderrOld, 2 );
+	if (fdStdinRead) close(fdStdinRead);
+	if (fdStdinOld) dup2( fdStdinOld, 0);
+	if (fdStdinWrite) close(fdStdinWrite);
+	if (fdStdoutOld) dup2( fdStdoutOld, 1 );
+	if (fdStderrWrite) close(fdStderrWrite);
+	if (fdStderrOld) dup2( fdStderrOld, 2 );
 	if (param->hproc < 0) {
 		param->hproc = 0;
 		ShellClean(param);
