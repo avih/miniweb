@@ -74,10 +74,19 @@ int uhMpd(UrlHandlerParam* param)
 				offset += n;
 				if (p = strstr(param->pucBuffer, "Starting playback...")) break;
 			}
+			mpCommand("get_time_length");
+			while (offset < param->iDataBytes) {
+				n = mpRead(param->pucBuffer + offset, param->iDataBytes - offset);
+				if (n <= 0) break;
+				offset += n;
+				if (p = strstr(param->pucBuffer, "ANS_LENGTH=")) break;
+			}
 			if (!p) mpState = 0;
 		}
 	} else if (!strncmp(cmd,"command=",8)) {
-		strcpy(param->pucBuffer,(mpCommand(cmd+8)>0)?"OK":"Error");
+		mpCommand(cmd+8);
+		if (mpRead(param->pucBuffer, param->iDataBytes) <= 0)
+			strcpy(param->pucBuffer, "Error");
 	} else {
 		return 0;
 	}
