@@ -24,6 +24,9 @@ int mpCommand(char* cmd)
 	ret=sprintf(p,"%s\n",cmd);
 	ret=write(mpx.fdStdinWrite,p,ret);
 	free(p);
+	if (!strcmp(cmd, "quit")) {
+		ShellClean(&mpx);
+	}
 	return ret;
 }
 
@@ -45,6 +48,7 @@ int mpOpen(char* pchFilename, char* opts)
 #else
 	sprintf(buf,"/usr/bin/mplayer %s -slave -quiet %s",pchFilename, opts);
 #endif
+	printf("MPlayer command line:\n%s\n", buf);
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	if (ShellExec(&mpx, buf)) return -1;
 	mpState=1;
