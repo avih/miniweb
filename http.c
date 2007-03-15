@@ -573,7 +573,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 					*p = 0;
 					if ((up->pxVars + i)->name) {
 						(up->pxVars + i)->value = s;
-						_mwDecodeString(s);
+						mwDecodeString(s);
 					} else {
 						(up->pxVars + i)->name = s;
 						(up->pxVars + i)->value = p;
@@ -1337,7 +1337,7 @@ __inline char _mwDecodeCharacter(char* s)
 // This function converts URLd characters back to ascii. For example
 // %3A is '.'
 ////////////////////////////////////////////////////////////////////////////
-void _mwDecodeString(char* pchString)
+void mwDecodeString(char* pchString)
 {
   int bEnd=FALSE;
   char* pchInput=pchString;
@@ -1371,7 +1371,7 @@ void _mwDecodeString(char* pchString)
     }
     pchOutput++;
   } while (!bEnd);
-} // end of _mwDecodeString
+} // end of mwDecodeString
 
 int mwGetContentType(char *pchExtname)
 {

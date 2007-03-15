@@ -109,7 +109,6 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket);
 int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket);
 void* _mwHttpThread(HttpParam* hp);
 int _mwGetToken(char* pchBuffer,int iTokenNumber,char** ppchToken); 
-void _mwDecodeString(char* s);
 __inline char _mwDecodeCharacter(char* pchEncodedChar);
 int _mwLoadFileChunk(HttpParam *hp, HttpSocket* phsSocket);
 OCTET* _mwFindMultipartBoundary(OCTET *poHaystack, int iHaystackSize, 

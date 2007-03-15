@@ -72,7 +72,9 @@ int uhMpd(UrlHandlerParam* param)
 		char *filename = NULL;
 		if (mwParseQueryString(param) > 0) {
 			filename = mwGetVarValue(param->pxVars, "file");
+			if (filename) mwDecodeString(filename);
 			opts = mwGetVarValue(param->pxVars, "opts");
+			if (opts) mwDecodeString(opts);
 		}
 		if (!mpOpen(filename, opts)) {
 			char *p = NULL;
