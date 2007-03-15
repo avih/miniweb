@@ -8,14 +8,13 @@ static SHELL_PARAM mpx;
 
 int mpRead(char* buf, int bufsize)
 {
-	int bytes=0;
-#ifdef WIN32
-	ReadFile((HANDLE)mpx.fdRead,buf,bufsize-1,&bytes,NULL);
-#else
-	bytes=read(mpx.fdRead,buf,bufsize-1);
-#endif
-	*(buf+bytes)=0;
-	return bytes;
+	int n;
+	mpx.buffer = buf;
+	mpx.iBufferSize = bufsize;
+	n = ShellRead(&mpx);
+	if (n < 0) return -1;
+	buf[n] = 0;
+	return n;
 }
 
 int mpCommand(char* cmd)
@@ -23,11 +22,7 @@ int mpCommand(char* cmd)
 	int ret,bytes=0;
 	char* p=malloc(strlen(cmd)+2);
 	ret=sprintf(p,"%s\n",cmd);
-#ifdef WIN32
-	WriteFile((HANDLE)mpx.fdWrite,p,ret,&bytes,NULL);
-#else
-	ret=write(mpx.fdWrite,p,ret);
-#endif
+	ret=write(mpx.fdStdinWrite,p,ret);
 	free(p);
 	return ret;
 }
@@ -43,18 +38,11 @@ void mpClose()
 
 int mpOpen(char* pchFilename)
 {
-	char cmd[256];
-
+	char buf[512];
 	mpClose();
-#ifdef WIN32
-	sprintf(cmd,"mplayer.exe -slave -quiet %s",pchFilename);
-#else
-	sprintf(cmd,"/cygdrive/c/mplayer/mplayer -slave -quiet %s",pchFilename);
-#endif
-	mpx.pchCommandLine=cmd;
-	mpx.flags = SHELL_REDIRECT_STDIN;
-	if (ShellExec(&mpx)) return -1;
-	msleep(1000);
+	sprintf(buf,"mplayer -slave -quiet %s",pchFilename);
+	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
+	if (ShellExec(&mpx, buf)) return -1;
 	mpState=1;
 	return 0;
 }
@@ -76,8 +64,17 @@ int uhMpd(UrlHandlerParam* param)
 {
 	char *cmd=param->pucRequest;
 	if (!strncmp(cmd,"open=",5)) {
-		if (mpOpen(cmd+5) || !(mpRead(param->pucBuffer,param->iDataBytes))) {
-			strcpy(param->pucBuffer,"Failed to launch MPlayer");
+		if (!mpOpen(cmd+5)) {
+			char *p = 0;
+			int n;
+			int offset = 0;
+			while (offset < param->iDataBytes) {
+				n = mpRead(param->pucBuffer + offset, param->iDataBytes - offset);
+				if (n <= 0) break;
+				offset += n;
+				if (p = strstr(param->pucBuffer, "Starting playback...")) break;
+			}
+			if (!p) mpState = 0;
 		}
 	} else if (!strncmp(cmd,"command=",8)) {
 		strcpy(param->pucBuffer,(mpCommand(cmd+8)>0)?"OK":"Error");

@@ -161,6 +161,7 @@
 				OutputFile="Debug/7zDec.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/7zDec.pdb"
 				SubSystem="1"

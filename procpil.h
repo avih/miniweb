@@ -1,24 +1,23 @@
-#define SHELL_ALLOC 0x1
-#define SHELL_SHOW_WINDOW 0x2
-#define SHELL_REDIRECT_STDIN 0x4
-#define SHELL_REDIRECT_STDOUT 0x8
+#define READ_FD 0
+#define WRITE_FD 1
+
+#define SF_ALLOC 0x1
+#define SF_LOOP_READ 0x2
+#define SF_REDIRECT_STDIN 0x1000
+#define SF_REDIRECT_STDOUT 0x2000
+#define SF_REDIRECT_STDERR 0x4000
+#define SF_REDIRECT_OUTPUT (0x8000 | SF_REDIRECT_STDOUT)
 
 typedef struct {
-	char *pchCommandLine;
 	char *pchCurDir;
 	char *pchPath;
-#ifdef WIN32
-	HANDLE fdRead;
-	HANDLE fdWrite;
-	PROCESS_INFORMATION piProcInfo;
-#else
-	int fdRead;
-	int fdWrite;
-	int pid;
-#endif
+	char** env;
+	int fdStdoutRead;
+	int fdStderrRead;
+	int fdStdinWrite;
+	intptr_t hproc;
 	char *buffer;
 	int iBufferSize;
-	int iDelimiter;
 	unsigned int flags;
 }SHELL_PARAM;
 
@@ -28,7 +27,7 @@ extern "C" {
 int ShellRead(SHELL_PARAM* param);
 void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
-int ShellExec(SHELL_PARAM* param);
+int ShellExec(SHELL_PARAM* param, char* commandLine);
 int ShellTerminate(SHELL_PARAM* param);
 int ShellSetPriority(SHELL_PARAM* param, int iPriority);
 #ifdef __cplusplus

@@ -12,6 +12,16 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
+
+#define read _read
+#define open _open
+#define close _close
+#define lseek _lseek
+#define read _read
+#define write _write
+#define strdup _strdup
+#define dup2 _dup2
+#define dup2 _dup2
 #else
 #include <unistd.h>
 #include <netinet/in.h>

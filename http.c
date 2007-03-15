@@ -913,7 +913,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 
 void _mwSend404Page(HttpSocket* phsSocket)
 {
-	int bytes,offset=0;
+	int offset=0;
 	char hdr[128];
 	int hdrsize = _snprintf(hdr, sizeof(hdr), HTTP404_HEADER, sizeof(HTTP404_BODY) - 1);
 	SYSLOG(LOG_INFO,"[%d] Http file not found\n",phsSocket->socket);
