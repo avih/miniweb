@@ -12,14 +12,15 @@
 #include "httpapi.h"
 #include "revision.h"
 #include "7zDec/7zInc.h"
+#include "httpxml.h"
 
 int uhMpd(UrlHandlerParam* param);
-int ehMpd(MW_EVENT msg, void* arg);
+int ehMpd(MW_EVENT msg, int argi, void* argp);
 int uhStats(UrlHandlerParam* param);
-int uhWebCounter(UrlHandlerParam* param);
 int uhVod(UrlHandlerParam* param);
+int uhLib(UrlHandlerParam* param);
 int uhVodStream(UrlHandlerParam* param);
-int ehVod(MW_EVENT msg, void* arg);
+int ehVod(MW_EVENT msg, int argi, void* argp);
 int uhTest(UrlHandlerParam* param);
 int uh7Zip(UrlHandlerParam* param);
 
@@ -29,11 +30,12 @@ UrlHandler urlHandlerList[]={
 	//{"7z",uh7Zip,NULL},
 #endif
 #ifdef _MPD
-	{"mplayer/",uhMpd,ehMpd},
+	{"run",uhMpd,ehMpd},
 #endif
 #ifdef _VOD
-	{"vod/",uhVod,ehVod},
-	{"vodstream.avi",uhVodStream,NULL},
+	{"vodstream",uhVodStream,NULL},
+	{"vodlib",uhLib,0},
+	{"vodman",uhVod,ehVod},
 #endif
 	{NULL},
 	{NULL},
@@ -41,11 +43,6 @@ UrlHandler urlHandlerList[]={
 
 HttpParam *httpParam;
 int nInst=0;
-
-const char *pageHead="<html><body class='body'><table border=1 cellpadding=0 cellspacing=0 width=280 class='body'>";
-const char *pageCellBegin="<tr><td width=140>%s</td><td width=140>";
-const char *pageCellEnd="</td></tr>";
-const char *pageTail="</body></html>";
 
 extern FILE *fpLog;
 
@@ -55,9 +52,11 @@ extern FILE *fpLog;
 int uhStats(UrlHandlerParam* param)
 {
 	unsigned char *p;
-	char buf[30];
+	char buf[128];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;
+	HTTP_XML_NODE node;
+	int bufsize = param->iDataBytes;
 	int ret=FLAG_DATA_RAW;
 
 	mwGetHttpDateTime(time(NULL),buf);
@@ -68,58 +67,83 @@ int uhStats(UrlHandlerParam* param)
 	}
 		
 	p=param->pucBuffer;
-	//generate page
-	p+=sprintf(p,pageHead);
+	
+	//generate XML
+	mwWriteXmlHeader(&p, &bufsize, 10, 0, 0);
 
-	p+=sprintf(p,pageCellBegin,"Your IP address:");
-	p+=sprintf(p,"%d.%d.%d.%d%s",
-		req->ipAddr.caddr[3],
+	mwWriteXmlString(&p, &bufsize, 0, "<ServerStats>");
+
+	sprintf(buf, "%d.%d.%d.%d", req->ipAddr.caddr[3],
 		req->ipAddr.caddr[2],
 		req->ipAddr.caddr[1],
-		req->ipAddr.caddr[0],
-		pageCellEnd);
+		req->ipAddr.caddr[0]);
 
-	p+=sprintf(p,pageCellBegin,"Current time:");
-	p+=sprintf(p,"%s%s",buf,pageCellEnd);
+	node.indent = 1;
+	node.fmt = "%s";
+	node.name = "ClientIP";
+	node.value = buf;
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Server uptime:",time(NULL)-stats->startTime);
-	p+=sprintf(p,"%d sec(s)%s",time(NULL)-stats->startTime,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "UpTime";
+	node.value = (void*)(time(NULL)-stats->startTime);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Connected clients:");
-	p+=sprintf(p,"%d%s",stats->clientCount,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "ConnectedClients";
+	node.value = (void*)(stats->clientCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Maximum clients:");
-	p+=sprintf(p,"%d%s",stats->clientCountMax,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "MaxClients";
+	node.value = (void*)(stats->clientCountMax);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Requests:");
-	p+=sprintf(p,"%d%s",stats->reqCount,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "Requests";
+	node.value = (void*)(stats->reqCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Files sent:");
-	p+=sprintf(p,"%d%s",stats->fileSentCount,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "FileSent";
+	node.value = (void*)(stats->fileSentCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,pageCellBegin,"Bytes sent:");
-	p+=sprintf(p,"%d bytes%s</table>",stats->fileSentBytes,pageCellEnd);
+	node.fmt = "%d";
+	node.name = "ByteSent";
+	node.value = (void*)(stats->fileSentBytes);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	p+=sprintf(p,"<br>Connected peers:<hr>");
+	node.fmt = "%d";
+	node.name = "ConnectedClients";
+	node.value = (void*)(stats->clientCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
+
+	mwWriteXmlString(&p, &bufsize, 1, "<Clients>");
+
 	{
 		HttpSocket *phsSocketCur;
 		time_t curtime=time(NULL);
 		for (phsSocketCur=((HttpParam*)param->hp)->phsSocketHead; phsSocketCur; phsSocketCur=phsSocketCur->next) {
 			IP ip=phsSocketCur->request.ipAddr;
-			p+=sprintf(p,"<br>Socket %d: %d.%d.%d.%d / Reqs: %d / Expire in %d ",
-				phsSocketCur->socket,ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0],phsSocketCur->iRequestCount,phsSocketCur->tmExpirationTime-curtime);
+			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\"/>",
+				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0],phsSocketCur->iRequestCount,phsSocketCur->tmExpirationTime-curtime);
+			mwWriteXmlString(&p, &bufsize, 2, buf);
+			/*
 			if (phsSocketCur->request.pucPath)
 				p+=sprintf(p,"(%d/%d)",phsSocketCur->response.iSentBytes,phsSocketCur->response.iContentLength);
 			else
 				p+=sprintf(p,"(idle)");
+			*/
 		}
 	}
-
-	p+=sprintf(p,pageTail);
+	
+	mwWriteXmlString(&p, &bufsize, 1, "</Clients>");
+	mwWriteXmlString(&p, &bufsize, 0, "</ServerStats>");
 
 	//return data to server
 	param->iDataBytes=(int)p-(int)(param->pucBuffer);
-	param->fileType=HTTPFILETYPE_HTML;
+	param->fileType=HTTPFILETYPE_XML;
 	return ret;
 }
 
@@ -160,35 +184,6 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
-#define TOTAL_COUNTERS 8
-static unsigned long counter[TOTAL_COUNTERS];
-char *pchCounterFile=NULL;
-
-void saveWebCounter()
-{
-	int fd;
-	if (!pchCounterFile) return;
-	printf("Saving counter data...\n");
-	fd=open(pchCounterFile,O_WRONLY|O_CREAT);
-	if (fd<=0) return;
-	write(fd,counter,sizeof(counter));
-	close(fd);
-}
-
-int loadWebCounter()
-{
-	int fd;
-	memset(&counter,0,sizeof(counter));
-	if (!pchCounterFile) return -1;
-	fd=open(pchCounterFile,O_RDONLY);
-	if (fd<=0) {
-		return -1;
-	}
-	read(fd,counter,sizeof(counter));
-	close(fd);
-	return 0;
-}
-
 int itoc(int num, char *pbuf, int type)
 {
 	static const char *chNum[]={"零","一","二","三","四","五","六","七","八","九"};
@@ -221,52 +216,6 @@ int itoc(int num, char *pbuf, int type)
 		unit=2;
 	}
 	return (int)(p-pbuf);
-}
-
-int uhWebCounter(UrlHandlerParam* param)
-{
-	static int visitCount=0;
-	int idx,mode=0;
-	char *p;
-	
-	p=strchr(param->pucRequest,'&');
-	if (p) {
-		*(p++)=0;
-		if (GETDWORD(p)==DEFDWORD('m','o','d','e')) {
-			mode=atoi(p+5);
-		}
-	}
-	p=strchr(param->pucRequest,'=');
-	if (p) *p=0;
-	idx=atoi(param->pucRequest);
-	if (idx>=TOTAL_COUNTERS) return 0;
-	counter[idx]++;
-	if (p) counter[idx]=atoi(p+1);
-	p=param->pucBuffer;
-	if ((mode & 4)==0) {
-		p+=sprintf(p,"document.write('");
-	}
-	switch (mode & 3) {
-	case 0:
-		p+=sprintf(p,"%d",counter[idx]);
-		break;
-	case 1:
-		p+=itoc(counter[idx],p,0);
-		break;
-	case 2:
-		p+=itoc(counter[idx],p,1);
-		break;
-	}
-	if ((mode & 4)==0) {
-		p+=sprintf(p,"');");
-	}
-	param->iDataBytes=(int)p-(int)param->pucBuffer;
-
-	param->fileType=HTTPFILETYPE_TEXT;
-	if (((++visitCount) & 0xf)==0) {
-		saveWebCounter();
-	}
-	return FLAG_DATA_RAW;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -313,19 +262,12 @@ int DefaultWebFileUploadCallback(char *pchFilename,
 void Shutdown()
 {
 	//shutdown server
-	{
-		saveWebCounter();
-		if (nInst>1) {
-			int i;
-			for (i=0;i<nInst;i++) {
-				printf("Shutting down instance %d\n",i);
-				mwServerShutdown(&httpParam[i]);
-			}
-		} else {
-			mwServerShutdown(&httpParam[0]);
-		}
-		fclose(fpLog);
+	int i;
+	for (i=0;i<nInst;i++) {
+		printf("Shutting down instance %d\n",i);
+		mwServerShutdown(&httpParam[i]);
 	}
+	fclose(fpLog);
 	UninitSocket();
 }
 
@@ -410,17 +352,18 @@ int main(int argc,char* argv[])
 				case 'k':
 					if ((++i)<argc) (httpParam+inst)->maxReqPerConn=atoi(argv[i]);
 					break;
-				case 'c':
-					if ((i<argc-1 && argv[i+1][0]!='-'))	
-						pchCounterFile=argv[++i];
-					else
-						pchCounterFile="counters.dat";
-					break;
 				case 'd':
 					(httpParam+inst)->flags &= ~FLAG_DIR_LISTING;
 					break;
 				}
 			}
+		}
+	}
+	{
+		int i;
+		for (i = 0; urlHandlerList[i].pchUrlPrefix; i++) {
+			if (urlHandlerList[i].pfnEventHandler)
+				urlHandlerList[i].pfnEventHandler(MW_PARSE_ARGS, argc, argv);
 		}
 	}
 
@@ -434,16 +377,6 @@ int main(int argc,char* argv[])
 			else
 				(httpParam+i)->httpPort=port++;
 		}
-	}
-
-	if (pchCounterFile) {
-		int i;
-		//load counter values from file
-		loadWebCounter();
-		printf("Counter enabled (%s)\n",pchCounterFile);
-		for (i=0;urlHandlerList[i].pchUrlPrefix;i++);
-		urlHandlerList[i].pchUrlPrefix="counter/";
-		urlHandlerList[i].pfnUrlHandler=&uhWebCounter;
 	}
 
 	InitSocket();

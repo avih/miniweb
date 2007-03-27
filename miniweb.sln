@@ -11,6 +11,7 @@ Global
 		Release|Win32 = Release|Win32
 		ReleaseMin|Win32 = ReleaseMin|Win32
 		VOD Server|Win32 = VOD Server|Win32
+		VOD_Debug|Win32 = VOD_Debug|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -21,8 +22,10 @@ Global
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.Build.0 = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.ReleaseMin|Win32.ActiveCfg = ReleaseMin|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.ReleaseMin|Win32.Build.0 = ReleaseMin|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.ActiveCfg = VOD Server|Win32
-		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.Build.0 = VOD Server|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.ActiveCfg = VOD_Release|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD Server|Win32.Build.0 = VOD_Release|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD_Debug|Win32.ActiveCfg = VOD_Debug|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.VOD_Debug|Win32.Build.0 = VOD_Debug|Win32
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug|Win32.ActiveCfg = Debug_DLL|Win32
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.Debug|Win32.Build.0 = Debug_DLL|Win32
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.DebugMin|Win32.ActiveCfg = Debug_DLL|Win32
@@ -33,6 +36,8 @@ Global
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.ReleaseMin|Win32.Build.0 = Release_Static|Win32
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD Server|Win32.ActiveCfg = Release_Static|Win32
 		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD Server|Win32.Build.0 = Release_Static|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD_Debug|Win32.ActiveCfg = Debug|Win32
+		{F0501927-6FD9-41A0-98C5-7A2D0491D47D}.VOD_Debug|Win32.Build.0 = Debug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

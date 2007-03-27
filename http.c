@@ -103,7 +103,7 @@ int mwServerStart(HttpParam* hp)
 		int i;
 		for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
 			if ((hp->pxUrlHandler+i)->pfnEventHandler &&
-				(hp->pxUrlHandler+i)->pfnEventHandler(MW_INIT, hp)) {
+				(hp->pxUrlHandler+i)->pfnEventHandler(MW_INIT, 0, hp)) {
 				//remove the URL handler
 				(hp->pxUrlHandler+i)->pfnUrlHandler=NULL;
 			}
@@ -153,7 +153,7 @@ int mwServerShutdown(HttpParam* hp)
   
 	for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
 		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
-			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, hp);
+			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, 0, hp);
 	}
 
 	if (hp->listenSocket) closesocket(hp->listenSocket);
@@ -1355,14 +1355,8 @@ void mwDecodeString(char* pchString)
         pchInput+=3;
       }
       break;
-/*
     case '+':
       *pchOutput=' ';
-      pchInput++;
-      break;
-*/
-    case '+':
-      *pchOutput = ' ';
       pchInput++;
       break;
     case '\0':

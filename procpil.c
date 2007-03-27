@@ -156,9 +156,9 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 	}
 #ifdef WIN32
 	if (param->env) {
-		param->hproc = spawnvpe( P_NOWAIT, exe, tokens, param->env);
+		param->hproc = _spawnvpe( P_NOWAIT, exe, tokens, param->env);
 	} else {
-		param->hproc = spawnvp( P_NOWAIT, exe, tokens);
+		param->hproc = _spawnvp( P_NOWAIT, exe, tokens);
 	}
 #else
 	param->pid = fork();

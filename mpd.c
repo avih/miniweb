@@ -6,6 +6,12 @@
 int mpState=0;
 static SHELL_PARAM mpx;
 
+void __stdcall mpThread()
+{
+	SHELL_PARAM sp;
+
+}
+
 int mpRead(char* buf, int bufsize)
 {
 	int n;
@@ -19,11 +25,8 @@ int mpRead(char* buf, int bufsize)
 
 int mpCommand(char* cmd)
 {
-	int ret,bytes=0;
-	char* p=malloc(strlen(cmd)+2);
-	ret=sprintf(p,"%s\n",cmd);
-	ret=write(mpx.fdStdinWrite,p,ret);
-	free(p);
+	int ret=write(mpx.fdStdinWrite,cmd,strlen(cmd));
+	write(mpx.fdStdinWrite,"\n",1);
 	if (!strcmp(cmd, "quit")) {
 		ShellClean(&mpx);
 	}
@@ -44,7 +47,7 @@ int mpOpen(char* pchFilename, char* opts)
 	char buf[512];
 	mpClose();
 #ifdef WIN32
-	sprintf(buf,"mplayer %s -slave -quiet %s",pchFilename, opts);
+	sprintf(buf,"mplayer \"%s\" -slave -quiet %s",pchFilename, opts);
 #else
 	sprintf(buf,"/usr/bin/mplayer %s -slave -quiet %s",pchFilename, opts);
 #endif
@@ -55,7 +58,7 @@ int mpOpen(char* pchFilename, char* opts)
 	return 0;
 }
 
-int ehMpd(MW_EVENT event, void* arg)
+int ehMpd(MW_EVENT event, int argi, void* argp)
 {
 	switch (event) {
 	case MW_INIT:
@@ -70,17 +73,15 @@ int ehMpd(MW_EVENT event, void* arg)
 
 int uhMpd(UrlHandlerParam* param)
 {
-	char *cmd=param->pucRequest;
-	if (!strncmp(cmd,"open",4)) {
-		char *opts = NULL;
-		char *filename = NULL;
-		if (mwParseQueryString(param) > 0) {
-			filename = mwGetVarValue(param->pxVars, "file");
-			if (filename) mwDecodeString(filename);
-			opts = mwGetVarValue(param->pxVars, "opts");
-			if (opts) mwDecodeString(opts);
-		}
-		if (!mpOpen(filename, opts)) {
+	char *action;
+	mwParseQueryString(param);
+	action = mwGetVarValue(param->pxVars, "action");
+	if (!strcmp(action, "exec")) {
+		char *filename = mwGetVarValue(param->pxVars, "file");
+		char *args = mwGetVarValue(param->pxVars, "args");
+		if (filename) mwDecodeString(filename);
+		if (args) mwDecodeString(args);
+		if (!mpOpen(filename, args)) {
 			char *p = NULL;
 			int n;
 			int offset = 0;
@@ -99,10 +100,13 @@ int uhMpd(UrlHandlerParam* param)
 			}
 			if (!p) mpState = 0;
 		}
-	} else if (!strncmp(cmd,"command=",8)) {
-		mpCommand(cmd+8);
-		if (mpRead(param->pucBuffer, param->iDataBytes) <= 0)
-			strcpy(param->pucBuffer, "Error");
+	} else if (!strcmp(action, "command")) {
+		char *cmd = mwGetVarValue(param->pxVars, "command");
+		if (cmd) {
+			mpCommand(cmd);
+			if (mpRead(param->pucBuffer, param->iDataBytes) <= 0)
+				strcpy(param->pucBuffer, "Error");
+		}
 	} else {
 		return 0;
 	}

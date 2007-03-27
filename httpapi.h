@@ -164,9 +164,10 @@ typedef int (*PFNFILEUPLOADCALLBACK)(char*, OCTET, OCTET*, DWORD);
 typedef enum {
 	MW_INIT = 0,
 	MW_UNINIT,
+	MW_PARSE_ARGS,
 } MW_EVENT;
 
-typedef int (*MW_EVENT_HANDLER)(MW_EVENT msg, void* arg);
+typedef int (*MW_EVENT_HANDLER)(MW_EVENT msg, int argi, void* argp);
 
 typedef struct {
 	time_t startTime;
