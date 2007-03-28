@@ -414,7 +414,7 @@ int uhVodStream(UrlHandlerParam* param)
 	char* file;
 	mwParseQueryString(param);
 	session = mwGetVarValueInt(param->pxVars, "session", 0);
-	file = mwGetVarValue(param->pxVars, "file");
+	file = mwGetVarValue(param->pxVars, "file", 0);
 	id = mwGetVarValueInt(param->pxVars, "id" , -1);
 	if (!file) {
 		CLIP_INFO* clip = GetClipByHash(id, 0);
@@ -488,14 +488,14 @@ int uhLib(UrlHandlerParam* param)
 
 	mwParseQueryString(param);
 
-	mwWriteXmlHeader(&pbuf, &bufsize, 10, "gb2312", mwGetVarValue(param->pxVars, "xsl"));
+	mwWriteXmlHeader(&pbuf, &bufsize, 10, "gb2312", mwGetVarValue(param->pxVars, "xsl", 0));
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
-	id = mwGetVarValue(param->pxVars, "id");
+	id = mwGetVarValue(param->pxVars, "id", 0);
 
 	if (!strcmp(param->pucRequest, "/category")) {
 		int catid = id ? atoi(id) : -1;
 		int hash = mwGetVarValueInt(param->pxVars, "hash", -1);
-		char* name = mwGetVarValue(param->pxVars, "name");
+		char* name = mwGetVarValue(param->pxVars, "name", 0);
 		CATEGORY_INFO* cat;
 		int i = 0;
 		for (cat = &cats; cat; cat = cat->next, i++) {
@@ -516,7 +516,7 @@ int uhLib(UrlHandlerParam* param)
 	} else if (!strcmp(param->pucRequest, "/title")) {
 		int hash = id ? atoi(id) : -1;
 		int chars = mwGetVarValueInt(param->pxVars, "chars", 0);
-		char* catname = mwGetVarValue(param->pxVars, "category");
+		char* catname = mwGetVarValue(param->pxVars, "category", 0);
 		int catid = mwGetVarValueInt(param->pxVars, "catid", -1);
 		int i = 0;
 		BOOL matched = 0;
@@ -598,14 +598,15 @@ int uhVod(UrlHandlerParam* param)
 	param->fileType=HTTPFILETYPE_XML;
 	node.indent = 1;
 	node.fmt = "%s";
+	node.flags = 0;
 	mwWriteXmlHeader(&pbuf, &bufsize, 10, 0, 0);
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
 
 	mwParseQueryString(param);
 	
 	session = mwGetVarValueInt(param->pxVars, "session", 0);
-	arg = mwGetVarValue(param->pxVars, "arg");
-	id = mwGetVarValue(param->pxVars, "id");
+	arg = mwGetVarValue(param->pxVars, "arg", 0);
+	id = mwGetVarValue(param->pxVars, "id", 0);
 	switch (GETDWORD(param->pucRequest + 1)) {
 	case DEFDWORD('n','o','p',0):
 		strcpy(pbuf,"state=OK");

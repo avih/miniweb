@@ -58,7 +58,8 @@ int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr)
 		*pbuf += len;
 		bufsize -= len;
 	}
-	snprintf(fmt, sizeof(fmt), ">%s</%%s>\n", node->fmt);
+	snprintf(fmt, sizeof(fmt), ">%s%s%s</%%s>\n",
+		(node->flags & XN_CDATA) ? "<![CDATA[" : "", node->fmt, (node->flags & XN_CDATA) ? "]]>" : "");
 	len = snprintf(*pbuf, bufsize, fmt, node->value, node->name);
 	*pbuf += len;
 	bufsize -= len;

@@ -43,13 +43,15 @@ const char *dayNames="Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
 const char *monthNames="Jan\0Feb\0Mar\0Apr\0May\0Jun\0Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
 const char *httpDateTimeFormat="%s, %02d %s %02d %02d:%02d:%02d GMT";
 
-char* mwGetVarValue(HttpVariables* vars, char *varname)
+char* mwGetVarValue(HttpVariables* vars, char *varname, int index)
 {
 	int i;
+	int count = 0;
 	if (vars && varname) {
 		for (i=0; (vars+i)->name; i++) {
-			if (!strcmp((vars+i)->name,varname))
-				return (vars+i)->value;
+			if (!strcmp((vars+i)->name,varname)) {
+				if (index == count++) return (vars+i)->value;
+			}
 		}
 	}
 	return NULL;

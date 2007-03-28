@@ -4,13 +4,24 @@
 #include "procpil.h"
 #include "httpxml.h"
 
-int mpState=0;
+typedef enum {
+	MP_IDLE = 0,
+	MP_LOADING,
+	MP_PLAYING,
+	MP_PAUSED,
+} MP_STATES;
+
+static char* states[] = {"idle", "loading", "playing", "paused"};
+
+MP_STATES mpState = MP_IDLE;
+int mpPos = 0;
 static SHELL_PARAM mpx;
+pthread_t mpThreadHandle = 0;
 
 int mpRead(char* buf, int bufsize)
 {
 	int n;
-	if (!mpx.fdStdoutRead) return 0;
+	if (mpState == MP_IDLE || !mpx.fdStdoutRead) return 0;
 	mpx.buffer = buf;
 	mpx.iBufferSize = bufsize;
 	n = ShellRead(&mpx);
@@ -31,10 +42,13 @@ int mpCommand(char* cmd)
 
 void mpClose()
 {
-	if (mpState) {
-		mpCommand("quit");
-		ShellWait(&mpx,1);
+	mpPos = -1;
+	if (mpState != MP_IDLE) {
+		if (mpCommand("quit") > 0) ShellWait(&mpx,1000);
 		ShellClean(&mpx);
+		mpState = MP_IDLE;
+		ThreadKill(mpThreadHandle);
+		mpThreadHandle = 0;
 	}
 }
 
@@ -49,8 +63,8 @@ int mpOpen(char* pchFilename, char* opts)
 #endif
 	printf("MPlayer command line:\n%s\n", buf);
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
+	mpState = MP_LOADING;
 	if (ShellExec(&mpx, buf)) return -1;
-	mpState=1;
 	return 0;
 }
 
@@ -67,7 +81,7 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 	return 0;
 }
 
-void mpThread()
+void* mpThread(void* arg)
 {
 	char *p = NULL;
 	char buf[1024];
@@ -76,19 +90,30 @@ void mpThread()
 	while (offset < sizeof(buf)) {
 		n = mpRead(buf + offset, sizeof(buf) - offset);
 		if (n <= 0) break;
-		buf[offset + n] = 0;
-		printf("%s", buf + offset);
 		offset += n;
+		buf[offset] = 0;
 		if (p = strstr(buf, "Starting playback...")) break;
 	}
-	mpCommand("get_time_length");
-	while (offset < sizeof(buf)) {
-		n = mpRead(buf + offset, sizeof(buf) - offset);
-		if (n <= 0) break;
-		offset += n;
-		if (p = strstr(buf, "ANS_LENGTH=")) break;
-	}
-	if (!p) mpState = 0;
+	mpState = MP_PLAYING;
+	while (mpCommand("get_time_pos") <= 0) msleep(500);
+	do {
+		offset = 0;
+		while (offset < sizeof(buf)) {
+			n = mpRead(buf + offset, sizeof(buf) - offset);
+			if (n <= 0) break;
+			offset += n;
+			buf[offset] = 0;
+			if (p = strstr(buf, "ANS_TIME_POSITION=")) {
+				mpPos = atoi(p + 18);
+				break;
+			}
+		}
+		do {
+			msleep(500);
+		} while (mpState == MP_PAUSED);
+	} while (mpCommand("get_time_pos") > 0);
+	mpClose();
+	return 0;
 }
 
 int uhMpd(UrlHandlerParam* param)
@@ -99,42 +124,99 @@ int uhMpd(UrlHandlerParam* param)
 	HTTP_XML_NODE node;
 
 	mwParseQueryString(param);
-	action = mwGetVarValue(param->pxVars, "action");
+	action = mwGetVarValue(param->pxVars, "action", 0);
 
-	mwWriteXmlHeader(&pbuf, &bufsize, 10, "utf-8", mwGetVarValue(param->pxVars, "xsl"));
+	mwWriteXmlHeader(&pbuf, &bufsize, 10, "utf-8", mwGetVarValue(param->pxVars, "xsl", 0));
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
 
 	node.indent = 1;
 	node.name = "state";
 	node.fmt = "%s";
+	node.flags = 0;
 
-	if (!strcmp(action, "open")) {
-		char *filename = mwGetVarValue(param->pxVars, "stream");
-		char *args = mwGetVarValue(param->pxVars, "arg");
+	if (!action) {
+	} else 	if (!strcmp(action, "open")) {
+		char *filename = mwGetVarValue(param->pxVars, "stream", 0);
+		char *args = mwGetVarValue(param->pxVars, "arg", 0);
+		int bytes;
 		if (filename) mwDecodeString(filename);
 		if (args) mwDecodeString(args);
+
+		mpClose();
+
 		node.value = mpOpen(filename, args) ? "error" : "OK";
-		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
-	} else if (!strcmp(action, "command")) {
-		char *cmd = mwGetVarValue(param->pxVars, "arg");
-		if (cmd) {
-			int bytes;
-			mpCommand(cmd);
-			if ((bytes = mpRead(param->pucBuffer, param->iDataBytes)) > 0) {
-				node.value = "OK";
-				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
-				node.name = "bytes";
-				node.fmt = "%d";
-				node.value = (void*)bytes;
-				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
-				node.name = "result";
-				node.fmt = "%s";
-				node.value = param->pucBuffer;
-				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+		bytes = _snprintf(pbuf, bufsize,  "  <console><![CDATA[");
+		pbuf += bytes;
+		bufsize -= bytes;
+
+		for (bytes = 0;;) {
+			int n = mpRead(pbuf + bytes, bufsize - bytes);
+			if (n > 0) {
+				bytes += n;
+				pbuf[bytes] = 0;
+				if (strstr(pbuf, "\nPlaying ")) break;
 			} else {
-				node.value = "error";
+				
+			}
+		}
+		pbuf += bytes;
+		bufsize -= bytes;
+
+		ThreadCreate(&mpThreadHandle, mpThread, 0);
+
+		bytes = _snprintf(pbuf, bufsize,  "]]>\n  </console>");
+		pbuf += bytes;
+		bufsize -= bytes;
+
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+	} else if (!strcmp(action, "query")) {
+		int i;
+		char* info;
+		for (i = 0; info = mwGetVarValue(param->pxVars, "info", i); i++) {
+			if (!strcmp(info, "pos")) {
+				node.name = "pos";
+				node.fmt = "%d";
+				node.value = (void*)mpPos;
+				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+			} else if (!strcmp(info, "state")) {
+				node.name = "state";
+				node.fmt = "%s";
+				node.value = states[mpState];
 				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 			}
+		}
+	} else if (!strcmp(action, "pause")) {
+		mpState = (mpState == MP_PLAYING ? MP_PAUSED : MP_PLAYING);
+		mpCommand("pause");
+	} else if (!strcmp(action, "seek")) {
+		char buf[32];
+		char *args = mwGetVarValue(param->pxVars, "arg", 0);
+		if (args) {
+			_snprintf(buf, sizeof(buf), "seek %s", args);
+			mpCommand(buf);
+		}
+	} else if (!strcmp(action, "command")) {
+		char *cmd = mwGetVarValue(param->pxVars, "arg", 0);
+		if (cmd) {
+			int bytes;
+			bytes = _snprintf(pbuf, bufsize,  "  <console><![CDATA[");
+			pbuf += bytes;
+			bufsize -= bytes;
+			
+			if (mpCommand(cmd) > 0 && (bytes = mpRead(pbuf, bufsize)) > 0) {
+				node.value = "OK";
+			} else {
+				node.value = "error";
+			}
+			pbuf += bytes;
+			bufsize -= bytes;
+
+			bytes = _snprintf(pbuf, bufsize,  "]]>\n  </console>");
+			pbuf += bytes;
+			bufsize -= bytes;
+
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+
 		}
 	} else {
 		return 0;

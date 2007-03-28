@@ -1,3 +1,5 @@
+#define XN_CDATA 1
+
 typedef struct {
 	char* name;
 	char* fmt;

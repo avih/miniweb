@@ -322,7 +322,7 @@ int DefaultWebFileUploadCallback(char *pchFilename,
 
 int mwGetHttpDateTime(time_t tm, char *buf);
 int mwGetLocalFileName(HttpFilePath* hfp);
-char* mwGetVarValue(HttpVariables* vars, char *varname);
+char* mwGetVarValue(HttpVariables* vars, char *varname, int index);
 int mwGetVarValueInt(HttpVariables* vars, char *varname, int defval);
 int mwParseQueryString(UrlHandlerParam* up);
 int mwGetContentType(char *pchExtname);
