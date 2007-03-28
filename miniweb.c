@@ -51,7 +51,7 @@ extern FILE *fpLog;
 //////////////////////////////////////////////////////////////////////////
 int uhStats(UrlHandlerParam* param)
 {
-	unsigned char *p;
+	char *p;
 	char buf[128];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;

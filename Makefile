@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-O2 -march=pentium2 -fomit-frame-pointer
-HTTPOBJ = httppil.o http.o
-HEADERS = httpint.h httpapi.h
+HTTPOBJ = httppil.o http.o httpxml.o
+HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
 TARGET = miniweb
 endif
@@ -31,7 +31,7 @@ endif
 
 ifdef VOD
 DEFINES+= -D_VOD
-HTTPOBJ+= vod.o
+HTTPOBJ+= vod.o crc32.o
 endif
 
 ifdef WINDIR
@@ -45,6 +45,8 @@ LDFLAGS = -lpthread
 endif
 OS="Linux"
 endif
+
+LDFLAGS += -s
 
 all: $(HTTPOBJ) miniweb.o
 	@echo Building for $(OS)
