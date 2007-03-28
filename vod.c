@@ -287,7 +287,7 @@ int AddClip(char* filename)
 		} else if ((p = strchr(s, ' ')) || (p = strchr(s, '-'))) {
 			*p = 0;
 			cat = FindCategory(s);
-			s = p + 1;
+			for (s = p + 1; *s == ' ' || *s == '-'; s++);
 			p = strrchr(s, '.');
 			if (p) *p = 0;
 			pinfo->title = FilterDup(s);
