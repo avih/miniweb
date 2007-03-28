@@ -30,7 +30,7 @@ UrlHandler urlHandlerList[]={
 	//{"7z",uh7Zip,NULL},
 #endif
 #ifdef _MPD
-	{"run",uhMpd,ehMpd},
+	{"mpd",uhMpd,ehMpd},
 #endif
 #ifdef _VOD
 	{"vodstream",uhVodStream,NULL},

@@ -3,6 +3,7 @@ typedef struct {
 	char* fmt;
 	void* value;
 	int indent;
+	int flags;
 } HTTP_XML_NODE;
 
 int mwWriteXmlHeader(char** pbuf, int* pbufsize, int ver, char* charset, char* xsl);

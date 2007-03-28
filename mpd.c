@@ -2,19 +2,15 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "procpil.h"
+#include "httpxml.h"
 
 int mpState=0;
 static SHELL_PARAM mpx;
 
-void __stdcall mpThread()
-{
-	SHELL_PARAM sp;
-
-}
-
 int mpRead(char* buf, int bufsize)
 {
 	int n;
+	if (!mpx.fdStdoutRead) return 0;
 	mpx.buffer = buf;
 	mpx.iBufferSize = bufsize;
 	n = ShellRead(&mpx);
@@ -71,47 +67,83 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 	return 0;
 }
 
+void mpThread()
+{
+	char *p = NULL;
+	char buf[1024];
+	int n;
+	int offset = 0;
+	while (offset < sizeof(buf)) {
+		n = mpRead(buf + offset, sizeof(buf) - offset);
+		if (n <= 0) break;
+		buf[offset + n] = 0;
+		printf("%s", buf + offset);
+		offset += n;
+		if (p = strstr(buf, "Starting playback...")) break;
+	}
+	mpCommand("get_time_length");
+	while (offset < sizeof(buf)) {
+		n = mpRead(buf + offset, sizeof(buf) - offset);
+		if (n <= 0) break;
+		offset += n;
+		if (p = strstr(buf, "ANS_LENGTH=")) break;
+	}
+	if (!p) mpState = 0;
+}
+
 int uhMpd(UrlHandlerParam* param)
 {
 	char *action;
+	char *pbuf = param->pucBuffer;
+	int bufsize = param->iDataBytes;
+	HTTP_XML_NODE node;
+
 	mwParseQueryString(param);
 	action = mwGetVarValue(param->pxVars, "action");
-	if (!strcmp(action, "exec")) {
-		char *filename = mwGetVarValue(param->pxVars, "file");
-		char *args = mwGetVarValue(param->pxVars, "args");
+
+	mwWriteXmlHeader(&pbuf, &bufsize, 10, "utf-8", mwGetVarValue(param->pxVars, "xsl"));
+	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
+
+	node.indent = 1;
+	node.name = "state";
+	node.fmt = "%s";
+
+	if (!strcmp(action, "open")) {
+		char *filename = mwGetVarValue(param->pxVars, "stream");
+		char *args = mwGetVarValue(param->pxVars, "arg");
 		if (filename) mwDecodeString(filename);
 		if (args) mwDecodeString(args);
-		if (!mpOpen(filename, args)) {
-			char *p = NULL;
-			int n;
-			int offset = 0;
-			while (offset < param->iDataBytes) {
-				n = mpRead(param->pucBuffer + offset, param->iDataBytes - offset);
-				if (n <= 0) break;
-				offset += n;
-				if (p = strstr(param->pucBuffer, "Starting playback...")) break;
-			}
-			mpCommand("get_time_length");
-			while (offset < param->iDataBytes) {
-				n = mpRead(param->pucBuffer + offset, param->iDataBytes - offset);
-				if (n <= 0) break;
-				offset += n;
-				if (p = strstr(param->pucBuffer, "ANS_LENGTH=")) break;
-			}
-			if (!p) mpState = 0;
-		}
+		node.value = mpOpen(filename, args) ? "error" : "OK";
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 	} else if (!strcmp(action, "command")) {
-		char *cmd = mwGetVarValue(param->pxVars, "command");
+		char *cmd = mwGetVarValue(param->pxVars, "arg");
 		if (cmd) {
+			int bytes;
 			mpCommand(cmd);
-			if (mpRead(param->pucBuffer, param->iDataBytes) <= 0)
-				strcpy(param->pucBuffer, "Error");
+			if ((bytes = mpRead(param->pucBuffer, param->iDataBytes)) > 0) {
+				node.value = "OK";
+				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+				node.name = "bytes";
+				node.fmt = "%d";
+				node.value = (void*)bytes;
+				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+				node.name = "result";
+				node.fmt = "%s";
+				node.value = param->pucBuffer;
+				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+			} else {
+				node.value = "error";
+				mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+			}
 		}
 	} else {
 		return 0;
 	}
-	param->iDataBytes=strlen(param->pucBuffer);
-	param->fileType=HTTPFILETYPE_TEXT;
+
+	mwWriteXmlString(&pbuf, &bufsize, 0, "</response>");
+
+	param->iDataBytes=(int)(pbuf-param->pucBuffer);
+	param->fileType=HTTPFILETYPE_XML;
 	return FLAG_DATA_RAW;
 }
 
