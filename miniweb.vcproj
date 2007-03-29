@@ -440,7 +440,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HTTPPOST;_VOD;_MPD;_7Z;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HTTPPOST;_VOD;_MPD;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -460,7 +460,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="WSock32.Lib 7zDec.lib"
+				AdditionalDependencies="WSock32.Lib"
 				OutputFile="miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
