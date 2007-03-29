@@ -199,14 +199,14 @@ int uhMpd(UrlHandlerParam* param)
 		char buf[32];
 		char *args = mwGetVarValue(param->pxVars, "arg", 0);
 		if (args) {
-			_snprintf(buf, sizeof(buf), "seek %s", args);
+			snprintf(buf, sizeof(buf), "seek %s", args);
 			mpCommand(buf);
 		}
 	} else if (!strcmp(action, "command")) {
 		char *cmd = mwGetVarValue(param->pxVars, "arg", 0);
 		if (cmd) {
 			int bytes;
-			bytes = _snprintf(pbuf, bufsize,  "  <console><![CDATA[");
+			bytes = snprintf(pbuf, bufsize,  "  <console><![CDATA[");
 			pbuf += bytes;
 			bufsize -= bytes;
 			
@@ -218,7 +218,7 @@ int uhMpd(UrlHandlerParam* param)
 			pbuf += bytes;
 			bufsize -= bytes;
 
-			bytes = _snprintf(pbuf, bufsize,  "]]>\n  </console>");
+			bytes = snprintf(pbuf, bufsize,  "]]>\n  </console>");
 			pbuf += bytes;
 			bufsize -= bytes;
 

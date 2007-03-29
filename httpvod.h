@@ -34,3 +34,4 @@ typedef struct _CATEGORY_INFO {
 	CLIP_INFO* clips;
 	struct _CATEGORY_INFO* next;
 } CATEGORY_INFO;
+
