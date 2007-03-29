@@ -1,35 +1,15 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "httpxml.h"
+#include "httpvod.h"
 #include "crc32.h"
 
 #define MAX_SESSIONS 2
 #define PRE_ALLOC_UNIT 16
 #define LOOP_VIDEO "vodloop.mp4"
 
-typedef struct _PL_ENTRY {
-	struct _PL_ENTRY *next;
-	void* data;
-	int datalen;
-} PL_ENTRY;
-
-typedef enum {
-	ACT_NOTHING=0,
-	ACT_SKIP,
-} VOD_CLIENT_ACTIONS;
-
-typedef int (*PL_ENUM_CALLBACK)(PL_ENTRY *entry, void *arg);
-	
-PL_ENTRY* plAddEntry(PL_ENTRY **hdr, void* data, int datalen);
-PL_ENTRY* plFindEntry(PL_ENTRY *hdr, void* data, int datalen);
-PL_ENTRY* plGetEntry(PL_ENTRY **hdr);
-void* plDelEntry(PL_ENTRY **hdr, void* data);
-PL_ENTRY* plPinEntry(PL_ENTRY **hdr, void* data);
-int plEnumEntries(PL_ENTRY *hdr, PL_ENUM_CALLBACK pfnEnumCallback, 
-						   void *arg, int from, int count);
-
 static PL_ENTRY* plhdr[MAX_SESSIONS];
-static int listindex=0,listcount=0;
+static int listcount=0;
 static int playcount=0;
 static char vodbuf[256];
 static unsigned long* hashmap;
@@ -37,27 +17,6 @@ static unsigned long* hashmap;
 #define MAX_CHARS 30
 static int charsinfo[MAX_CHARS + 1];
 static char *vodroot=NULL;
-
-static char *htmlbuf=NULL;
-
-typedef struct _CLIP_INFO {
-	char* filename;
-	char* title;
-	int chars;
-	int flags;
-	int hash;
-	struct _CLIP_INFO* next;
-} CLIP_INFO;
-
-typedef struct _CATEGORY_INFO {
-	char* name;
-	int count;
-	int flags;
-	int hash;
-	CLIP_INFO* clips;
-	struct _CATEGORY_INFO* next;
-} CATEGORY_INFO;
-
 static char** filelist = NULL;
 static int filecount = 0;
 static CATEGORY_INFO cats;
@@ -426,33 +385,6 @@ int uhVodStream(UrlHandlerParam* param)
 		snprintf(param->pucBuffer, param->iDataBytes, "~%s/%s", vodroot, file);
 	}
 	return 0;
-	/*
-	DBG("Session: %d\n", session);
-	if (param->hs->request.iStartByte==0 && time(NULL) - prevtime > 3) {
-		prevtime = (int)time(NULL);
-		while ((code=(int)plGetEntry(&plhdr[session]))) {
-			char keyword[16];
-			sprintf(keyword,"%05d",code);
-			if (vodlist[code]) break;
-			DBG("[vod] %d not available\n",code);
-		}
-		if (vodlist[code]) {
-			lastplayed->next=malloc(sizeof(PL_ENTRY));
-			lastplayed=lastplayed->next;
-			lastplayed->data=(void*)code;
-			lastplayed->next=NULL;
-			playcount++;
-			playingcode = code;
-		}
-	}
-	if (!playingcode) {
-		sprintf(param->pucBuffer,LOOP_VIDEO);
-	} else {
-		sprintf(param->pucBuffer,"%s", vodlist[playingcode]);
-	}
-	DBG("[vod] stream: %s\n",param->pucBuffer);
-	return FLAG_DATA_FILE;
-	*/
 }
 
 void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
@@ -502,13 +434,13 @@ int uhLib(UrlHandlerParam* param)
 			if ((hash >= 0 && hash != cat->hash) || (name && strcmp(name, cat->name)) || (catid >= 0 && catid != i))
 				continue;
 
-			snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
+			_snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			snprintf(buf, sizeof(buf), "<name>%s</name>", cat->name);
+			_snprintf(buf, sizeof(buf), "<name>%s</name>", cat->name);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
+			_snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
 			mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
@@ -527,17 +459,17 @@ int uhLib(UrlHandlerParam* param)
 			for (info = cat->clips; info; info = info->next) {
 				if ((hash >= 0 && hash != info->hash) || (chars && info->chars != chars)) continue;
 				if (!matched) {
-					snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
+					_snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
 					mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 					matched = 1;
 				}
-				snprintf(buf, sizeof(buf), "<item id=\"%02d\">", info->hash);
+				_snprintf(buf, sizeof(buf), "<item id=\"%02d\">", info->hash);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
-				snprintf(buf, sizeof(buf), "<name>%s</name>", info->title);
+				_snprintf(buf, sizeof(buf), "<name>%s</name>", info->title);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
-				snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
+				_snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
 				mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
@@ -616,18 +548,15 @@ int uhVod(UrlHandlerParam* param)
 		strcpy(pbuf,"Play next");
 		param->iDataBytes=9;
 		return FLAG_DATA_RAW;
-	case DEFDWORD('l','i','s','t'):
-		mwWriteXmlString(&pbuf, &bufsize, 1, "<queued>");
-		//if (listindex>=listcount) listindex=0;
-		{
+	case DEFDWORD('l','i','s','t'): {
 		PL_ENTRY *ptr = plhdr[session];
 		int i;
+		mwWriteXmlString(&pbuf, &bufsize, 1, "<playlist>");
 		for (i=0; ptr; ptr = ptr->next, i++) {
 			OutputItemInfo(&pbuf, &bufsize, ptr->data);
 		}
-		}
-		mwWriteXmlString(&pbuf, &bufsize, 1, "</queued>");
-		break;
+		mwWriteXmlString(&pbuf, &bufsize, 1, "</playlist>");
+		} break;
 	case DEFDWORD('a','d','d',0): {
 		node.name = "state";
 		if (plFindEntry(plhdr[session],(void*)id, strlen(id))) {
@@ -636,7 +565,7 @@ int uhVod(UrlHandlerParam* param)
 			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 			break;
 		}
-		if (plAddEntry(&plhdr[session], (void*)id, strlen(id) + 1)) {
+		if (plAddEntry(&plhdr[session], strdup(id), strlen(id) + 1)) {
 			node.value =  "OK";
 			OutputItemInfo(&pbuf, &bufsize, id);
 		} else {
@@ -658,11 +587,12 @@ int uhVod(UrlHandlerParam* param)
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 		break;
 	case DEFDWORD('p','l','a','y'): {
-		PL_ENTRY* entry = plGetEntry(&plhdr[session]);
+		void* data = plGetEntry(&plhdr[session]);
 		node.name = "state";
-		if (entry) {
-			OutputItemInfo(&pbuf, &bufsize, entry->data);
+		if (data) {
+			OutputItemInfo(&pbuf, &bufsize, data);
 			node.value = "OK";
+			free(data);
 		} else {
 			node.value = "error";
 		}
@@ -716,7 +646,7 @@ PL_ENTRY* plGetEntry(PL_ENTRY **hdr)
 	*hdr=ptr->next;
 	free(ptr);
 	listcount--;
-	return ptr;
+	return data;
 }
 
 PL_ENTRY* plFindEntry(PL_ENTRY *hdr, void* data, int datalen)

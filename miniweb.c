@@ -38,7 +38,6 @@ UrlHandler urlHandlerList[]={
 	{"vodman",uhVod,ehVod},
 #endif
 	{NULL},
-	{NULL},
 };
 
 HttpParam *httpParam;

@@ -564,6 +564,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\httpvod.c"
+				>
+			</File>
+			<File
 				RelativePath=".\httpxml.c"
 				>
 			</File>
@@ -643,42 +647,6 @@
 					/>
 				</FileConfiguration>
 			</File>
-			<File
-				RelativePath=".\vod.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ReleaseMin|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="DebugMin|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -695,6 +663,10 @@
 			</File>
 			<File
 				RelativePath=".\httppil.h"
+				>
+			</File>
+			<File
+				RelativePath=".\httpvod.h"
 				>
 			</File>
 			<File
