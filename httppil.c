@@ -83,7 +83,7 @@ int ThreadWait(pthread_t pth,void** ret)
 void MutexCreate(pthread_mutex_t* mutex)
 {
 #ifdef WIN32
-	CreateMutex(0,FALSE,NULL);
+	*mutex = CreateMutex(0,FALSE,NULL);
 #else
 	pthread_mutex_init(mutex,NULL);
 #endif

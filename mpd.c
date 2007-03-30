@@ -18,6 +18,7 @@ MP_STATES mpState = MP_IDLE;
 int mpPos = 0;
 static SHELL_PARAM mpx;
 pthread_t mpThreadHandle = 0;
+pthread_mutex_t mpConsoleMutex;
 
 static PL_ENTRY* playlist = 0;
 
@@ -66,8 +67,10 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 	switch (event) {
 	case MW_INIT:
 		memset(&mpx,0,sizeof(mpx));
+		MutexCreate(&mpConsoleMutex);
 		break;
 	case MW_UNINIT:
+		MutexDestroy(&mpConsoleMutex);
 		mpClose();
 		break;
 	}
@@ -89,6 +92,7 @@ void* mpThread(void* _args)
 		if (n) break;
 
 		mpState = MP_PLAYING;
+		MutexLock(&mpConsoleMutex);
 		while (mpCommand("get_time_pos") <= 0) msleep(500);
 		do {
 			offset = 0;
@@ -103,10 +107,13 @@ void* mpThread(void* _args)
 				}
 			}
 			// stop here when paused
+			MutexUnlock(&mpConsoleMutex);
 			do {
 				msleep(500);
 			} while (mpState == MP_PAUSED);
+			MutexLock(&mpConsoleMutex);
 		} while (mpCommand("get_time_pos") > 0);
+		MutexUnlock(&mpConsoleMutex);
 		ShellTerminate(&mpx);
 		ShellClean(&mpx);
 	}
@@ -204,24 +211,32 @@ int uhMpd(UrlHandlerParam* param)
 		}
 	} else if (!strcmp(action, "command")) {
 		char *cmd = mwGetVarValue(param->pxVars, "arg", 0);
+		char *hasResult = mwGetVarValue(param->pxVars, "result", 0);
 		if (cmd) {
-			int bytes;
-			bytes = snprintf(pbuf, bufsize,  "  <console><![CDATA[");
-			pbuf += bytes;
-			bufsize -= bytes;
-			
-			if (mpCommand(cmd) > 0 && (bytes = mpRead(pbuf, bufsize)) > 0) {
+			if (mpCommand(cmd) > 0) {
 				node.value = "OK";
+				if (hasResult) {
+					int bytes;
+					MutexLock(&mpConsoleMutex);
+
+					bytes = snprintf(pbuf, bufsize,  "  <result><![CDATA[");
+					pbuf += bytes;
+					bufsize -= bytes;
+
+					bytes = mpRead(pbuf, bufsize);
+					MutexUnlock(&mpConsoleMutex);
+					if (bytes > 0) {
+						pbuf += bytes;
+						bufsize -= bytes;
+					}
+
+					bytes = snprintf(pbuf, bufsize,  "]]></result>");
+					pbuf += bytes;
+					bufsize -= bytes;
+				}
 			} else {
 				node.value = "error";
 			}
-			pbuf += bytes;
-			bufsize -= bytes;
-
-			bytes = snprintf(pbuf, bufsize,  "]]>\n  </console>");
-			pbuf += bytes;
-			bufsize -= bytes;
-
 			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 
 		}

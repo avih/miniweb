@@ -785,7 +785,7 @@ int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 		SYSLOG(LOG_INFO,"[%d] Data sending completed (%d/%d)\n",phsSocket->socket,phsSocket->response.iSentBytes,phsSocket->response.iContentLength);
 		return 1;
 	}
-	SYSLOG(LOG_INFO,"[%d] sending data\n",phsSocket->socket);
+	//SYSLOG(LOG_INFO,"[%d] sending data\n",phsSocket->socket);
 	if (ISFLAGSET(phsSocket,FLAG_DATA_RAW|FLAG_DATA_STREAM)) {
 		return _mwSendRawDataChunk(hp, phsSocket);
 	} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
@@ -1083,7 +1083,7 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 	phsSocket->response.iSentBytes+=iBytesWritten;
 	phsSocket->pucData+=iBytesWritten;
 	phsSocket->iDataLength-=iBytesWritten;
-	SYSLOG(LOG_INFO,"[%d] sent %d bytes of %d\n",phsSocket->socket,phsSocket->response.iSentBytes,phsSocket->response.iContentLength);
+	SYSLOG(LOG_INFO,"[%d] %d bytes sent\n",phsSocket->socket,phsSocket->response.iSentBytes);
 	// if only partial data sent just return wait the remaining data to be sent next time
 	if (phsSocket->iDataLength>0)	return 0;
 
