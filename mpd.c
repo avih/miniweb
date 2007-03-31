@@ -54,7 +54,7 @@ int mpOpen(char* pchFilename, char* opts)
 {
 	char buf[512];
 	mpClose();
-	snprintf(buf, sizeof(buf), "/usr/bin/mplayer %s -slave -quiet %s",pchFilename, opts ? opts : "");
+	snprintf(buf, sizeof(buf), "mplayer %s -slave -quiet %s",pchFilename, opts ? opts : "");
 	printf("MPlayer command line:\n%s\n", buf);
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	mpState = MP_LOADING;
@@ -70,10 +70,10 @@ void* mpThread(void* _args)
 	int n;
 	int offset;
 	void* data;
-	while (data = plGetEntry(&playlist)) {
-		if (!data) {
+	for (;;) {
+		if (!(data = plGetEntry(&playlist))) {
 			if (!loopclip) continue;
-			data = loopclip;
+			data = strdup(loopclip);
 		}
 		n = mpOpen(data, args);
 		free(data);
