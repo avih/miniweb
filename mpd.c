@@ -19,7 +19,7 @@ int mpPos = 0;
 static SHELL_PARAM mpx;
 pthread_t mpThreadHandle = 0;
 pthread_mutex_t mpConsoleMutex;
-
+static char* loopclip = 0;
 static PL_ENTRY* playlist = 0;
 
 int mpRead(char* buf, int bufsize)
@@ -62,21 +62,6 @@ int mpOpen(char* pchFilename, char* opts)
 	return 0;
 }
 
-int ehMpd(MW_EVENT event, int argi, void* argp)
-{
-	switch (event) {
-	case MW_INIT:
-		memset(&mpx,0,sizeof(mpx));
-		MutexCreate(&mpConsoleMutex);
-		break;
-	case MW_UNINIT:
-		MutexDestroy(&mpConsoleMutex);
-		mpClose();
-		break;
-	}
-	return 0;
-}
-
 void* mpThread(void* _args)
 {
 	char *p = NULL;
@@ -86,7 +71,10 @@ void* mpThread(void* _args)
 	int offset;
 	void* data;
 	while (data = plGetEntry(&playlist)) {
-		if (!data) continue;
+		if (!data) {
+			if (!loopclip) continue;
+			data = loopclip;
+		}
 		n = mpOpen(data, args);
 		free(data);
 		if (n) break;
@@ -120,6 +108,32 @@ void* mpThread(void* _args)
 	free(args);
 	mpState = MP_IDLE;
 	mpThreadHandle = 0;
+	return 0;
+}
+
+int ehMpd(MW_EVENT event, int argi, void* argp)
+{
+	switch (event) {
+	case MW_INIT:
+		memset(&mpx,0,sizeof(mpx));
+		MutexCreate(&mpConsoleMutex);
+		if (loopclip) ThreadCreate(&mpThreadHandle, mpThread, 0);
+		break;
+	case MW_UNINIT:
+		MutexDestroy(&mpConsoleMutex);
+		mpClose();
+		break;
+	case MW_PARSE_ARGS: {
+		int i = 0;
+		char** argv = (char**)argp;
+		for (i = 0; i < argi; i++) {
+			if (argv[i][0] == '-' && !strcmp(argv[i] + 1, "mpdloop")) {
+				loopclip = argv[i + 1];
+				break;
+			}
+		}
+		} break;
+	}
 	return 0;
 }
 
