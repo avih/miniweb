@@ -127,7 +127,7 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 		int i = 0;
 		char** argv = (char**)argp;
 		for (i = 0; i < argi; i++) {
-			if (argv[i][0] == '-' && !strcmp(argv[i] + 1, "mpdloop")) {
+			if (!strcmp(argv[i], "--mpdloop")) {
 				loopclip = argv[i + 1];
 				break;
 			}

@@ -346,7 +346,7 @@ int ehVod(MW_EVENT event, int argi, void* argp)
 		int i = 0;
 		char** argv = (char**)argp;
 		for (i = 0; i < argi; i++) {
-			if (argv[i][0] == '-' && !strcmp(argv[i] + 1, "vodroot")) {
+			if (!strcmp(argv[i], "--vodroot")) {
 				vodroot = argv[i + 1];
 				break;
 			}
