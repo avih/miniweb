@@ -22,6 +22,9 @@ endif
 
 ifndef DEBUG
 DEFINES+= -DNODEBUG
+LDFLAGS += -s
+else
+LDFLAGS += -g
 endif
 
 ifdef MPD
@@ -31,22 +34,20 @@ endif
 
 ifdef VOD
 DEFINES+= -D_VOD
-HTTPOBJ+= vod.o crc32.o
+HTTPOBJ+= httpvod.o crc32.o
 endif
 
 ifdef WINDIR
 DEFINES= -DWIN32
-LDFLAGS = -lws2_32
+LDFLAGS += -lws2_32
 OS="Win32"
 else
 #CFLAGS+= -fPIC
 ifdef THREAD
-LDFLAGS = -lpthread
+LDFLAGS += -lpthread
 endif
 OS="Linux"
 endif
-
-LDFLAGS += -s
 
 all: $(HTTPOBJ) miniweb.o
 	@echo Building for $(OS)

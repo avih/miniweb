@@ -54,7 +54,7 @@ int mpOpen(char* pchFilename, char* opts)
 {
 	char buf[512];
 	mpClose();
-	snprintf(buf, sizeof(buf), "mplayer \"%s\" -slave -quiet %s",pchFilename, opts);
+	snprintf(buf, sizeof(buf), "/usr/bin/mplayer %s -slave -quiet %s",pchFilename, opts ? opts : "");
 	printf("MPlayer command line:\n%s\n", buf);
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	mpState = MP_LOADING;
@@ -81,7 +81,7 @@ void* mpThread(void* _args)
 {
 	char *p = NULL;
 	char buf[1024];
-	char* args = strdup(_args);
+	char* args = _args ? strdup(_args) : 0;
 	int n;
 	int offset;
 	void* data;
@@ -170,8 +170,11 @@ int uhMpd(UrlHandlerParam* param)
 	} else if (!strcmp(action, "play")) {
 		char *filename = mwGetVarValue(param->pxVars, "stream", 0);
 		char *args = mwGetVarValue(param->pxVars, "arg", 0);
-		if (filename) mwDecodeString(filename);
-		if ((!filename || !*filename) || plAddEntry(&playlist, strdup(filename), strlen(filename) + 1)) {
+		if (filename && *filename) {
+			mwDecodeString(filename);
+			filename = strdup(filename);
+		}
+		if ((!filename || !*filename) || plAddEntry(&playlist, filename, strlen(filename) + 1)) {
 			if (!mpThreadHandle) {
 				if (args) mwDecodeString(args);
 				ThreadCreate(&mpThreadHandle, mpThread, args);

@@ -434,13 +434,13 @@ int uhLib(UrlHandlerParam* param)
 			if ((hash >= 0 && hash != cat->hash) || (name && strcmp(name, cat->name)) || (catid >= 0 && catid != i))
 				continue;
 
-			_snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
+			snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			_snprintf(buf, sizeof(buf), "<name>%s</name>", cat->name);
+			snprintf(buf, sizeof(buf), "<name>%s</name>", cat->name);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			_snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
+			snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
 			mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
@@ -459,17 +459,17 @@ int uhLib(UrlHandlerParam* param)
 			for (info = cat->clips; info; info = info->next) {
 				if ((hash >= 0 && hash != info->hash) || (chars && info->chars != chars)) continue;
 				if (!matched) {
-					_snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
+					snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
 					mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 					matched = 1;
 				}
-				_snprintf(buf, sizeof(buf), "<item id=\"%02d\">", info->hash);
+				snprintf(buf, sizeof(buf), "<item id=\"%02d\">", info->hash);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
-				_snprintf(buf, sizeof(buf), "<name>%s</name>", info->title);
+				snprintf(buf, sizeof(buf), "<name>%s</name>", info->title);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
-				_snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
+				snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
 				mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
