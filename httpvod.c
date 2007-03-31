@@ -347,7 +347,7 @@ int ehVod(MW_EVENT event, int argi, void* argp)
 		char** argv = (char**)argp;
 		for (i = 0; i < argi; i++) {
 			if (!strcmp(argv[i], "--vodroot")) {
-				vodroot = argv[i + 1];
+				vodroot = argv[++i];
 				break;
 			}
 		}
@@ -398,13 +398,14 @@ void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
 	else
 		clip = GetClipByName(0, id, &cat);
 	if (!clip) return;
-	snprintf(buf, sizeof(buf), "<item id=\"%d\">", id);
-	mwWriteXmlString(pbuf, pbufsize, 2, buf);
-	snprintf(buf, sizeof(buf), "<file>%s</file>", clip->filename);
+	mwWriteXmlString(pbuf, pbufsize, 2, "<item>");
+	snprintf(buf, sizeof(buf), "<id><![CDATA[%s]]></id>", id);
 	mwWriteXmlString(pbuf, pbufsize, 3, buf);
-	snprintf(buf, sizeof(buf), "<title>%s</title>", clip->title);
+	snprintf(buf, sizeof(buf), "<file><![CDATA[%s]]></file>", clip->filename);
 	mwWriteXmlString(pbuf, pbufsize, 3, buf);
-	snprintf(buf, sizeof(buf), "<category>%s</category>", cat->name);
+	snprintf(buf, sizeof(buf), "<title><![CDATA[%s]]></title>", clip->title);
+	mwWriteXmlString(pbuf, pbufsize, 3, buf);
+	snprintf(buf, sizeof(buf), "<category><![CDATA[%s]]></category>", cat->name);
 	mwWriteXmlString(pbuf, pbufsize, 3, buf);
 	mwWriteXmlString(pbuf, pbufsize, 2, "</item>");
 }
@@ -437,7 +438,7 @@ int uhLib(UrlHandlerParam* param)
 			snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			snprintf(buf, sizeof(buf), "<name>%s</name>", cat->name);
+			snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", cat->name);
 			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
 			snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
@@ -463,10 +464,10 @@ int uhLib(UrlHandlerParam* param)
 					mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 					matched = 1;
 				}
-				snprintf(buf, sizeof(buf), "<item id=\"%02d\">", info->hash);
+				snprintf(buf, sizeof(buf), "<item id=\"%06d\">", info->hash);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
-				snprintf(buf, sizeof(buf), "<name>%s</name>", info->title);
+				snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", info->title);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
 				snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
@@ -496,13 +497,14 @@ int uhLib(UrlHandlerParam* param)
 			clip = GetClipByName(0, id, &cat);
 		if (!clip) clip = GetClipByFile(id, &cat);
 		if (clip) {
-			snprintf(buf, sizeof(buf), "<item id=\"%d\">", id);
-			mwWriteXmlString(&pbuf, &bufsize, 2, buf);
-			snprintf(buf, sizeof(buf), "<file>%s</file>", clip->filename);
+			mwWriteXmlString(&pbuf, &bufsize, 2, "<item>");
+			snprintf(buf, sizeof(buf), "<id><![CDATA[%s]]></id>", clip->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
-			snprintf(buf, sizeof(buf), "<title>%s</title>", clip->title);
+			snprintf(buf, sizeof(buf), "<file><![CDATA[%s]]></file>", clip->filename);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
-			snprintf(buf, sizeof(buf), "<category>%s</category>", cat->name);
+			snprintf(buf, sizeof(buf), "<title><![CDATA[%s]]></title>", clip->title);
+			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
+			snprintf(buf, sizeof(buf), "<category><![CDATA[%s]]></category>", cat->name);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
 			mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
 		}

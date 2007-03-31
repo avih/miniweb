@@ -19,6 +19,7 @@ int mpPos = 0;
 static SHELL_PARAM mpx;
 pthread_t mpThreadHandle = 0;
 pthread_mutex_t mpConsoleMutex;
+static char* mpbin = "mplayer";
 static char* loopclip = 0;
 static PL_ENTRY* playlist = 0;
 
@@ -54,7 +55,7 @@ int mpOpen(char* pchFilename, char* opts)
 {
 	char buf[512];
 	mpClose();
-	snprintf(buf, sizeof(buf), "mplayer %s -slave -quiet %s",pchFilename, opts ? opts : "");
+	snprintf(buf, sizeof(buf), "%s %s -slave -quiet %s", mpbin, pchFilename, opts ? opts : "");
 	printf("MPlayer command line:\n%s\n", buf);
 	mpx.flags = SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT;
 	mpState = MP_LOADING;
@@ -71,11 +72,12 @@ void* mpThread(void* _args)
 	int offset;
 	void* data;
 	for (;;) {
-		if (!(data = plGetEntry(&playlist))) {
+		if (data = plGetEntry(&playlist)) {
+			n = mpOpen(data, args);
+		} else {
 			if (!loopclip) continue;
-			data = strdup(loopclip);
+			n = mpOpen(loopclip, 0);
 		}
-		n = mpOpen(data, args);
 		free(data);
 		if (n) break;
 
@@ -127,9 +129,11 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 		int i = 0;
 		char** argv = (char**)argp;
 		for (i = 0; i < argi; i++) {
-			if (!strcmp(argv[i], "--mpdloop")) {
-				loopclip = argv[i + 1];
+			if (!strcmp(argv[i], "--mploop")) {
+				loopclip = argv[++i];
 				break;
+			} else if (!strcmp(argv[i], "--mpbin")) {
+				mpbin = argv[++i];
 			}
 		}
 		} break;
