@@ -14,37 +14,14 @@
 <xsl:output method="html" encoding="gb2312" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
 <xsl:template match="/response">
 
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=gb2312"/>
-<link href="/vod.css" rel="stylesheet" type="text/css" />
-<script language="javascript" src="/vodcfg.js"></script>
-<script language="javascript" src="/vod.js"></script>
-<script language="javascript">
-function onNumKeys(num)
-{
-	Go(document.getElementById(num).href, vod_chars_url);
-}
-</script>
-</head>
-
-<body>
-<div><strong>字数点歌</strong></div>
 <xsl:for-each select="category">
-  <li>
-  <a><xsl:attribute name="href">title?chars=<xsl:value-of select="@chars"/>&amp;xsl=/vodcharslist.xsl&amp;count=10</xsl:attribute>
-  <xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-  <xsl:value-of select="position()-1"/>&nbsp;
+  <li><xsl:value-of select="position()-1"/>&nbsp;
   <xsl:if test="@chars = '0'">所有歌曲</xsl:if>
   <xsl:if test="@chars != '0'">
-  <xsl:value-of select="@chars"/>字歌 (<xsl:value-of select="@count"/>首)
+  <xsl:value-of select="@chars"/>字歌 <span style="font-size:small">(<xsl:value-of select="@count"/>首)</span>
   </xsl:if>
-  </a>
   </li>
 </xsl:for-each>
-<p><a href="/vod.html">返回</a></p>
-</body>
-</html>
 
 </xsl:template>
 </xsl:stylesheet>

@@ -9,22 +9,20 @@
 window.innerWidth = window_width;
 window.innerHeight = window_height;
 
-function keyHandler(e)
+function onNumKeys(num)
 {
-	switch (e.which) {
-	case 49:
-		Go(vod_cats_url, vod_start_page);
+	switch (num) {
+	case 1:
+		Go(vod_cats_url);
 		break;
-	case 50:
-		Go(vod_chars_url, vod_start_page);
+	case 2:
+		Go(vod_chars_url);
 		break;
-	case 51:
-		var playlist_url = mpd_url + "/playlist?count=10&xsl=/vodplaylist.xsl";
-		Go(playlist_url, vod_start_page);
+	case 3:
+		Go(playlist_url);
 		break;
 	}
 }
-document.onkeypress = keyHandler;
 </script>
 <link href="vod.css" rel="stylesheet" type="text/css" />
 </head>

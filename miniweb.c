@@ -35,7 +35,7 @@ UrlHandler urlHandlerList[]={
 #ifdef _VOD
 	{"vodstream",uhVodStream,NULL},
 	{"vodlib",uhLib,0},
-	{"vodman",uhVod,ehVod},
+	{"vodplay",uhVod,ehVod},
 #endif
 	{NULL},
 };

@@ -1,10 +1,34 @@
 var url = document.location.href;
+var xmlhttp = new XMLHttpRequest;
 var backurl = GetBackUrl();
 
 function GetBackUrl()
 {
-	var i = url.lastIndexOf("back=");
+	var i = url.indexOf("back=");
 	return (i > 0) ? url.substr(i + 5) : vod_start_page;
+}
+
+function loadXML(xmlFile)
+{
+	var $xml = new XMLHttpRequest;
+	$xml.open('GET', xmlFile, false);
+	$xml.overrideMimeType('text/xml');
+	$xml.send(null);
+	var xml = $xml.responseXML;
+	if (!xml) {
+		alert("Unable to load "+xmlFile);
+		return null;
+	}
+	return xml;
+}
+
+function transformXML(xmlDoc, xslDoc, element)
+{
+	var XSLT = new XSLTProcessor;
+	XSLT.importStylesheet(xslDoc);
+	var e = document.getElementById(element);
+	e.innerHTML = "";
+	if (e) e.appendChild(XSLT.transformToFragment(xmlDoc, document));
 }
 
 function SetValue(id, val)
@@ -20,14 +44,21 @@ function PlayNext()
 
 function Remove(index)
 {
-	var mpd = document.getElementById("mpdframe");
-	mpd.src = mpd_url + "/playlist?action=del&arg=" + index;
+	var requrl = "/vodplay?action=del&arg=" + index;
+	xmlhttp.open("GET", requrl, false);
+	xmlhttp.send(null);
+	var result = xmlhttp.responseXML.getElementsByTagName("state");
+	return (result.length > 0 && result[0].childNodes[0].nodeValue == "OK");
 }
 
 function Pin(index)
 {
-	var mpd = document.getElementById("mpdframe");
-	mpd.src = mpd_url + "/playlist?action=pin&arg=" + index;
+	var requrl = "/vodplay?action=pin&arg=" + index;
+	xmlhttp.open("GET", requrl, false);
+	xmlhttp.send(null);
+	var result = xmlhttp.responseXML.getElementsByTagName("state");
+	alert(result);
+	return (result.length > 0 && result[0].childNodes[0].nodeValue == "OK");
 }
 
 function Command(cmd)
@@ -41,12 +72,13 @@ function SwitchChannel()
 	Command('switch_audio')	
 }
 
-function Add(obj)
+function Add(id, title)
 {
-	var mpd = document.getElementById("mpdframe");
-	var i = obj.firstChild.nodeValue.indexOf(' ');
-	mpd.src = mpd_url + "/playlist?action=add&stream=" + vodhost + "/vodstream?id=" + obj.name + "&title=" + obj.firstChild.nodeValue.substr(i + 1);
-	obj.className  = "selected";
+	var requrl = "/vodplay?action=add&stream=" + vodhost + ":" + vodport + "/vodstream?id=" + id + "&title=" + title;
+	xmlhttp.open("GET", requrl, false);
+	xmlhttp.send(null);
+	var result = xmlhttp.responseXML.getElementsByTagName("state");
+	return (result.length > 0 && result[0].childNodes[0].nodeValue == "OK");
 }
 
 function MakeFloat(id)
@@ -55,13 +87,12 @@ function MakeFloat(id)
 	//setTimeout("MakeFloat('" + id + "')", 1000);
 }
 
-function Go(newurl, backurl)
+function Go(newurl)
 {
-	if (backurl)
-		newurl += (newurl.indexOf("?") > 0 ? "&" : "?") + "back=" + backurl;
 	document.location.href = newurl;
 }
 
+/*
 function PageDown()
 {
 	var from = GetUrlArg("from");
@@ -89,11 +120,14 @@ function PageUp()
 	if (j > 0) newurl += url.substr(j);
 	Go(newurl, backurl);
 }
+*/
 
 function GetUrlArg(name)
 {
 	var idx=document.location.href.indexOf(name+'=');
 	if (idx<=0) return null;
+	var idxback = document.location.href.indexOf('back=');
+	if (idxback >0 && idx > idxback) return null;
 	var argstr=document.location.href.substring(idx+name.length+1);
 	idx = argstr.indexOf('&');
 	return idx>=0?argstr.substring(0, idx):argstr;
@@ -101,28 +135,66 @@ function GetUrlArg(name)
 
 function DefKeyEvents(e)
 {
-	if (window.onKeyPress && onKeyPress(e.which)) return;
-	if (e.which >= 48 && e.which <= 57) {
-		if (window.onNumKeys) onNumKeys(e.which - 48);
-		return;
-	}
-	switch (e.which) {
-	case key_back:
-		Go(backurl, null);
+	var KeyID = (window.event) ? event.keyCode : e.keyCode;
+	if (window.onKeyPress && onKeyPress(KeyID)) return;
+	switch (KeyID) {
+	case 27:	// ESC
+	case 192:	// `
+		history.go(-1);
 		break;
-	case key_page_down:
-		PageDown();
-		break;
-	case key_page_up:
+	case 109:	// -
 		PageUp();
 		break;
-	case key_play:
+	case 107:	// +
+	case 61:	// =
+		PageDown();
+		break;
+	case 13:	// enter
+	case 32:	// space
 		PlayNext();
 		break;
-	case key_channel:
+	case 16:	// shift
+	case 106:	// *
 		SwitchChannel();
 		break;
+	case 17:	// ctrl
+	case 111:	// /
+		Go(playlist_url);
+		break;
+	case 35:	// keypad 1
+		KeyID = 49;
+		break;
+	case 40:	// keypad 2
+		KeyID = 50;
+		break;
+	case 34:	// keypad 3
+		KeyID = 51;
+		break;
+	case 37:	// keypad 4
+		KeyID = 52;
+		break;
+	case 12:	// keypad 5
+		KeyID = 53;
+		break;
+	case 39:	// keypad 6
+		KeyID = 54;
+		break;
+	case 36:	// keypad 7
+		KeyID = 55;
+		break;
+	case 38:	// keypad 8
+		KeyID = 56;
+		break;
+	case 33:	// keypad 9
+		KeyID = 57;
+		break;
+	case 45:	// keypad 0
+		KeyID = 48;
+		break;
+	}
+	if (KeyID >= 48 && KeyID <= 57) {
+		if (window.onNumKeys) onNumKeys(KeyID - 48);
 	}
 }
 
-document.onkeypress = DefKeyEvents;
+document.onkeyup = DefKeyEvents;

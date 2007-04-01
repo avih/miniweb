@@ -12,7 +12,7 @@ static PL_ENTRY* plhdr[MAX_SESSIONS];
 static int listcount=0;
 static int playcount=0;
 static char vodbuf[256];
-static unsigned long* hashmap;
+static unsigned long* hashmap = 0;
 
 #define MAX_CHARS 30
 static int charsinfo[MAX_CHARS + 1];
@@ -337,6 +337,7 @@ int ehVod(MW_EVENT event, int argi, void* argp)
 {
 	switch (event) {
 	case MW_INIT:
+		if (hashmap) return 0; 	// already inited
 		vodInit();
 		break;
 	case MW_UNINIT:
@@ -417,10 +418,13 @@ int uhLib(UrlHandlerParam* param)
 	int bufsize = 256000;
 	char buf[256];
 	char *id;
+	char *p;
 	int from, count;
 	pbuf = (char*)malloc(256000);
 	param->pucBuffer = pbuf;
-
+	
+	p = strstr(param->pucRequest, "back=");
+	if (p) *p = 0;
 	mwParseQueryString(param);
 
 	id = mwGetVarValue(param->pxVars, "id", 0);
@@ -473,7 +477,7 @@ int uhLib(UrlHandlerParam* param)
 			for (info = cat->clips; info; info = info->next) {
 				if ((hash >= 0 && hash != info->hash) || (chars && info->chars != chars)) continue;
 				if (idx >= from) { 
-					if ((count--) == 0) break;
+					if (--count < 0) break;
 					if (!matched) {
 						snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
 						mwWriteXmlString(&pbuf, &bufsize, 1, buf);
@@ -493,7 +497,7 @@ int uhLib(UrlHandlerParam* param)
 				idx++;
 			}
 			if (matched) mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
-			if (count == 0) break;
+			if (count < 0) break;
 			matched = FALSE;
 		}
 	} else if (!strcmp(param->pucRequest, "/chars")) {
@@ -545,20 +549,77 @@ int uhVod(UrlHandlerParam* param)
 	int bufsize = param->iDataBytes;
 	//static VOD_CLIENT_ACTIONS action=0;
 	int session = 0;
-	char *arg;
-	char *id;
+	char *action;
+	PL_ENTRY *ptr;
+	int i;
 
-	DBG("Session: %d\n", session);
-	param->fileType=HTTPFILETYPE_XML;
+	if (*req && *req != '?') return 0;
 	node.indent = 1;
+	node.name = "state";
 	node.fmt = "%s";
 	node.flags = 0;
-	mwWriteXmlHeader(&pbuf, &bufsize, 10, 0, 0);
+	mwWriteXmlHeader(&pbuf, &bufsize, 10, "gb2312", mwGetVarValue(param->pxVars, "xsl", 0));
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
 
 	mwParseQueryString(param);
-	
+
 	session = mwGetVarValueInt(param->pxVars, "session", 0);
+	action = mwGetVarValue(param->pxVars, "action", 0);
+	DBG("Session: %d\n", session);
+
+	if (!action) {
+		ptr = plhdr[session];
+		mwWriteXmlString(&pbuf, &bufsize, 1, "<playlist>");
+		for (i=0; ptr; ptr = ptr->next, i++) {
+			char buf[32];
+			snprintf(buf, sizeof(buf), "<item index=\"%03d\">", i);
+			mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
+			node.indent = 3;
+			node.name = "stream";
+			node.fmt = "%s";
+			node.value = ptr->data;
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+
+			node.flags = XN_CDATA;
+			node.name = "title";
+			node.value = (char*)ptr->data + strlen(ptr->data) + 1;
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+
+			mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
+		}
+		mwWriteXmlString(&pbuf, &bufsize, 1, "</playlist>");
+	} else if (!strcmp(action, "add")) {
+		char *filename = mwGetVarValue(param->pxVars, "stream", 0);
+		char *title = mwGetVarValue(param->pxVars, "title", 0);
+		if (!title) title = "";
+		if (!filename) {
+			node.value = "error";
+		} else {
+			int fnlen;
+			int titlelen;
+			char *entrydata;
+			mwDecodeString(filename);
+			fnlen = strlen(filename);
+			titlelen = strlen(title);
+			entrydata = (char*)malloc(fnlen + titlelen + 3);
+			strcpy(entrydata, filename);
+			strcpy(entrydata + fnlen + 1, title);
+			node.value = plAddEntry(&plhdr[session], entrydata, fnlen + titlelen + 2) ? "OK" : "error";
+		}
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+	} else if (!strcmp(action, "pin")) {
+		int index = mwGetVarValueInt(param->pxVars, "arg", 0);
+		node.value = plPinEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+	} else if (!strcmp(action, "del")) {
+		int index = mwGetVarValueInt(param->pxVars, "arg", 0);
+		node.value = plDelEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+	}
+
+
+#if 0
 	arg = mwGetVarValue(param->pxVars, "arg", 0);
 	id = mwGetVarValue(param->pxVars, "id", 0);
 	switch (GETDWORD(param->pucRequest + 1)) {
@@ -623,15 +684,10 @@ int uhVod(UrlHandlerParam* param)
 	default:
 		strcpy(pbuf,"Invalid request");
 	}
-		
-	/*
-	if (action) {
-		pbuf+=sprintf(pbuf,"\nact=skip");
-		action=ACT_NOTHING;
-	}
-	*/
+#endif	
 	mwWriteXmlString(&pbuf, &bufsize, 0, "</response>");
 	param->iDataBytes=(int)(pbuf-param->pucBuffer);
+	param->fileType=HTTPFILETYPE_XML;
 	return FLAG_DATA_RAW;
 }
 

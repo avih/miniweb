@@ -37,7 +37,11 @@ int ShellRead(SHELL_PARAM* param)
 
 int ShellTerminate(SHELL_PARAM* param)
 {
-	return -1;
+#ifdef WIN32
+	return TerminateProcess(param->hproc, 0) ? 0 : -1;
+#else
+	return kill(param->pid, SIGTERM);
+#endif
 }
 
 void ShellClean(SHELL_PARAM* param)

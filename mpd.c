@@ -47,6 +47,7 @@ void mpClose()
 	mpPos = -1;
 	if (mpState != MP_IDLE) {
 		if (mpCommand("quit") > 0) ShellWait(&mpx,1000);
+		ShellTerminate(&mpx);
 		ShellClean(&mpx);
 	}
 }
@@ -117,6 +118,7 @@ int ehMpd(MW_EVENT event, int argi, void* argp)
 {
 	switch (event) {
 	case MW_INIT:
+		if (mpConsoleMutex) return 0;	// already inited
 		memset(&mpx,0,sizeof(mpx));
 		MutexCreate(&mpConsoleMutex);
 		if (loopclip) ThreadCreate(&mpThreadHandle, mpThread, 0);

@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<link href="vod.css" rel="stylesheet" type="text/css"/>
+<script language="javascript" src="vodcfg.js"></script>
+<script language="javascript" src="vod.js"></script>
+<script language="javascript">
+var from = 0;
+var xsl;
+var xmldata;
+
+var sel = new Array(item_per_page);
+
+function onNumKeys(num)
+{
+	var obj = window.document.getElementById(num);
+	if (sel[num]) {
+		obj.className  = "";
+		sel[num] = 0;
+		return;
+	}
+	sel[num] = 1;
+	obj.className  = "selected";
+}
+
+function onKeyPress(key)
+{
+	var ret = false;
+	switch (key) {
+	case 107:	// +
+	case 61:	// =
+		for (i in sel) {
+			if (sel[i]) {
+				result = xmldata.getElementsByTagName("item");
+				Pin(result[i].getAttribute("index"));
+				ret = true;
+			}
+		}
+		Refresh();
+		break;
+	case 109:	// -
+		for (i = sel.length - 1; i >= 0; i--) {
+			if (sel[i]) {
+				result = xmldata.getElementsByTagName("item");
+				Remove(result[i].getAttribute("index"));
+			}
+		}
+		Refresh();
+		break;
+	case 13:
+	case 32:
+		PlayNext();
+		Refresh();
+		break;
+	default:
+		return false;
+	}
+	return ret;
+}
+
+function onLoad()
+{
+	xsl = loadXML("vodplaylist.xsl");
+	Refresh();
+}
+
+function Refresh()
+{
+	xmldata = loadXML("/vodplay?from=" + from + "&count=" + item_per_page);
+	transformXML(xmldata, xsl, "content");
+	for (i in sel) sel[i] = 0;
+}
+
+function PageDown()
+{
+	from += item_per_page;
+	Refresh();
+}
+
+function PageUp()
+{
+	from -= item_per_page;
+	if (from < 0) from = 0;
+	Refresh();
+}
+
+</script>
+<link href="vod.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body onload="onLoad()">
+<div><strong>已点歌曲</strong></div>
+<div id="content">
+</div>
+<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:none"></iframe>
+</body>
+</html>

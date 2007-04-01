@@ -11,12 +11,16 @@
 	<!ENTITY euro   "&#8364;">
 ]>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:output method="html" encoding="gb2312" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
-<xsl:template match="/response/playlist">
+<xsl:output method="html" encoding="gb2312"/>
+<xsl:template match="/response">
 
+<div id="title" style="font-weight:bold"><xsl:value-of select="category/@name"/></div>
+
+<xsl:for-each select="category">
 <xsl:for-each select="item">
-    <li><a><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-	<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="title"/></a></li>
+<li><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
+<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="name"/></li>
+</xsl:for-each>
 </xsl:for-each>
 
 </xsl:template>
