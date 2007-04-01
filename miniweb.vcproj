@@ -674,6 +674,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\iconv.h"
+				>
+			</File>
+			<File
 				RelativePath=".\procpil.h"
 				>
 			</File>

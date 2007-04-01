@@ -75,7 +75,7 @@ void* mpThread(void* _args)
 		if (data = plGetEntry(&playlist)) {
 			n = mpOpen(data, args);
 		} else {
-			if (!loopclip) continue;
+			if (!loopclip) break;
 			n = mpOpen(loopclip, 0);
 		}
 		free(data);
@@ -165,22 +165,51 @@ int uhMpd(UrlHandlerParam* param)
 		if (!action) {
 		} else if (!strcmp(action, "add")) {
 			char *filename = mwGetVarValue(param->pxVars, "stream", 0);
-			if (!filename || plAddEntry(&playlist, strdup(filename), strlen(filename) + 1)) {
-				mwDecodeString(filename);
-				node.value = "OK";
-			} else {
+			char *title = mwGetVarValue(param->pxVars, "title", 0);
+			if (!title) title = "";
+			if (!filename) {
 				node.value = "error";
+			} else {
+				int fnlen;
+				int titlelen;
+				char *entrydata;
+				mwDecodeString(filename);
+				fnlen = strlen(filename);
+				titlelen = strlen(title);
+				entrydata = (char*)malloc(fnlen + titlelen + 3);
+				strcpy(entrydata, filename);
+				strcpy(entrydata + fnlen + 1, title);
+				node.value = plAddEntry(&playlist, entrydata, fnlen + titlelen + 2) ? "OK" : "error";
 			}
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+		} else if (!strcmp(action, "pin")) {
+			int index = mwGetVarValueInt(param->pxVars, "arg", 0);
+			node.value = plPinEntryByIndex(&playlist, index) ? "OK" : "error";
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+		} else if (!strcmp(action, "del")) {
+			int index = mwGetVarValueInt(param->pxVars, "arg", 0);
+			node.value = plDelEntryByIndex(&playlist, index) ? "OK" : "error";
 			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 		}
 		ptr = playlist;
 		mwWriteXmlString(&pbuf, &bufsize, 1, "<playlist>");
 		for (i=0; ptr; ptr = ptr->next, i++) {
-			node.indent = 2;
-			node.name = "item";
+			char buf[32];
+			snprintf(buf, sizeof(buf), "<item index=\"%03d\">", i);
+			mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
+			node.indent = 3;
+			node.name = "stream";
 			node.fmt = "%s";
 			node.value = ptr->data;
 			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+
+			node.flags = XN_CDATA;
+			node.name = "title";
+			node.value = (char*)ptr->data + strlen(ptr->data) + 1;
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+
+			mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
 		}
 		mwWriteXmlString(&pbuf, &bufsize, 1, "</playlist>");
 	} else if (!action) {

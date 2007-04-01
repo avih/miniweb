@@ -39,7 +39,6 @@ void mwWriteXmlString(char** pbuf, int* pbufsize, int indent, char* str)
 
 int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr)
 {
-	char fmt[16];
 	int bufsize = *pbufsize;
 	int len;
 	int i;
@@ -58,11 +57,29 @@ int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr)
 		*pbuf += len;
 		bufsize -= len;
 	}
-	snprintf(fmt, sizeof(fmt), ">%s%s%s</%%s>\n",
-		(node->flags & XN_CDATA) ? "<![CDATA[" : "", node->fmt, (node->flags & XN_CDATA) ? "]]>" : "");
-	len = snprintf(*pbuf, bufsize, fmt, node->value, node->name);
+	*((*pbuf)++) = '>';
+	bufsize--;
+
+	if (node->flags & XN_CDATA) {
+		len = snprintf(*pbuf, bufsize, "%s", "<![CDATA[");
+		*pbuf += len;
+		bufsize -= len;
+	}
+
+	len = snprintf(*pbuf, bufsize, node->fmt, node->value);
 	*pbuf += len;
 	bufsize -= len;
+
+	if (node->flags & XN_CDATA) {
+		len = snprintf(*pbuf, bufsize, "%s", "]]>");
+		*pbuf += len;
+		bufsize -= len;
+	}
+
+	len = snprintf(*pbuf, bufsize, "</%s>\n", node->name);
+	*pbuf += len;
+	bufsize -= len;
+
 	*pbufsize = bufsize;
 	return 0;
 }

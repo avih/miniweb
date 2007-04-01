@@ -15,7 +15,9 @@ PL_ENTRY* plAddEntry(PL_ENTRY **hdr, void* data, int datalen);
 PL_ENTRY* plFindEntry(PL_ENTRY *hdr, void* data, int datalen);
 PL_ENTRY* plGetEntry(PL_ENTRY **hdr);
 void* plDelEntry(PL_ENTRY **hdr, void* data);
+void* plDelEntryByIndex(PL_ENTRY **hdr, int index);
 PL_ENTRY* plPinEntry(PL_ENTRY **hdr, void* data);
+PL_ENTRY* plPinEntryByIndex(PL_ENTRY **hdr, int index);
 
 typedef struct _CLIP_INFO {
 	char* filename;

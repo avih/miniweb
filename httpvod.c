@@ -272,6 +272,7 @@ int AddClip(char* filename)
 	while (IsHashed(pinfo->hash, 1)) {
 		CATEGORY_INFO* excat;
 		CLIP_INFO* exclip = GetClipByHash(pinfo->hash, &excat);
+		if (!exclip) break;
 		if (excat == cat && !strcmp(exclip->title, pinfo->title)) {	
 			printf("DUPLICATED @ %06d Cat: %s\nExist: %s\nNew: %s\n", pinfo->hash, cat->name, exclip->filename, pinfo->filename);	
 		} else {
@@ -416,14 +417,18 @@ int uhLib(UrlHandlerParam* param)
 	int bufsize = 256000;
 	char buf[256];
 	char *id;
+	int from, count;
 	pbuf = (char*)malloc(256000);
 	param->pucBuffer = pbuf;
 
 	mwParseQueryString(param);
 
+	id = mwGetVarValue(param->pxVars, "id", 0);
+	from = mwGetVarValueInt(param->pxVars, "from", 0);
+	count = mwGetVarValueInt(param->pxVars, "count", -1);
+
 	mwWriteXmlHeader(&pbuf, &bufsize, 10, "gb2312", mwGetVarValue(param->pxVars, "xsl", 0));
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
-	id = mwGetVarValue(param->pxVars, "id", 0);
 
 	if (!strcmp(param->pucRequest, "/category")) {
 		int catid = id ? atoi(id) : -1;
@@ -431,20 +436,26 @@ int uhLib(UrlHandlerParam* param)
 		char* name = mwGetVarValue(param->pxVars, "name", 0);
 		CATEGORY_INFO* cat;
 		int i = 0;
+		int idx = 0;
 		for (cat = &cats; cat; cat = cat->next, i++) {
 			if ((hash >= 0 && hash != cat->hash) || (name && strcmp(name, cat->name)) || (catid >= 0 && catid != i))
 				continue;
 
-			snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\">", i, cat->hash);
-			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
+			if (idx >= from) { 
+				if ((count--) == 0) break;
 
-			snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", cat->name);
-			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
+				snprintf(buf, sizeof(buf), "<category id=\"%d\" hash=\"%02d\" index=\"%03d\">", i, cat->hash, idx);
+				mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
-			mwWriteXmlString(&pbuf, &bufsize, 1, buf);
+				snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", cat->name);
+				mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 
-			mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
+				snprintf(buf, sizeof(buf), "<clips>%d</clips>", cat->count);
+				mwWriteXmlString(&pbuf, &bufsize, 1, buf);
+
+				mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
+			}
+			idx++;
 		}
 	} else if (!strcmp(param->pucRequest, "/title")) {
 		int hash = id ? atoi(id) : -1;
@@ -452,6 +463,7 @@ int uhLib(UrlHandlerParam* param)
 		char* catname = mwGetVarValue(param->pxVars, "category", 0);
 		int catid = mwGetVarValueInt(param->pxVars, "catid", -1);
 		int i = 0;
+		int idx = 0;
 		BOOL matched = 0;
 		CLIP_INFO* info;
 		CATEGORY_INFO* cat;
@@ -459,29 +471,34 @@ int uhLib(UrlHandlerParam* param)
 			if ((catid >= 0 && catid != i) || (catname && strcmp(catname, cat->name))) continue;
 			for (info = cat->clips; info; info = info->next) {
 				if ((hash >= 0 && hash != info->hash) || (chars && info->chars != chars)) continue;
-				if (!matched) {
-					snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
-					mwWriteXmlString(&pbuf, &bufsize, 1, buf);
-					matched = 1;
+				if (idx >= from) { 
+					if ((count--) == 0) break;
+					if (!matched) {
+						snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
+						mwWriteXmlString(&pbuf, &bufsize, 1, buf);
+						matched = 1;
+					}
+					snprintf(buf, sizeof(buf), "<item id=\"%06d\" index=\"%04d\">", info->hash, idx);
+					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
+					snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", info->title);
+					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
+					snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
+					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
+					mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
 				}
-				snprintf(buf, sizeof(buf), "<item id=\"%06d\">", info->hash);
-				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
-
-				snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", info->title);
-				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
-
-				snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
-				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
-
-				mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
+				idx++;
 			}
 			if (matched) mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
 			matched = FALSE;
 		}
 	} else if (!strcmp(param->pucRequest, "/chars")) {
 		int i;
-		for (i = 1; i <= MAX_CHARS; i++) {
-			if (charsinfo[i]) {
+		for (i = 0; i <= MAX_CHARS; i++) {
+			if (i >= from) { 
+				if ((count--) == 0) break;
 				snprintf(buf, sizeof(buf), "<category chars=\"%d\" count=\"%d\"/>", i, charsinfo[i]);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 			}
@@ -490,6 +507,7 @@ int uhLib(UrlHandlerParam* param)
 		char buf[256];
 		CATEGORY_INFO *cat;
 		CLIP_INFO* clip;
+		int idx = 0;
 		int hash = id ? atoi(id) : -1;
 		if (hash > 0)
 			clip = GetClipByHash(hash, &cat);
@@ -684,6 +702,30 @@ void* plDelEntry(PL_ENTRY **hdr, void* data)
 	return NULL;
 }
 
+void* plDelEntryByIndex(PL_ENTRY **hdr, int index)
+{
+	PL_ENTRY *ptr=*hdr,*prev=NULL;
+	void* deleted;
+	int i;
+	if (!ptr) return NULL;
+	if (index == 0) {
+		deleted = ptr->data;
+		*hdr = ptr->next;
+		free(ptr);
+		listcount--;
+		return deleted;
+	}
+	for (i = 0; i < index && ptr; i++, prev = ptr, ptr = ptr->next);
+	if (ptr) {
+		deleted = ptr->data;
+		prev->next = ptr->next;
+		free(ptr);
+		listcount--;
+		return deleted;
+	}
+	return NULL;
+}
+
 PL_ENTRY* plPinEntry(PL_ENTRY **hdr, void* data)
 {
 	PL_ENTRY *ptr=*hdr,*prev=NULL;
@@ -699,6 +741,20 @@ PL_ENTRY* plPinEntry(PL_ENTRY **hdr, void* data)
 		ptr=ptr->next;
 	}
 	return NULL;
+}
+
+PL_ENTRY* plPinEntryByIndex(PL_ENTRY **hdr, int index)
+{
+	PL_ENTRY *ptr=*hdr,*prev=NULL;
+	int i;
+	if (index == 0 || !ptr) return ptr;
+	for (i = 0; i < index && ptr; i++, prev = ptr, ptr = ptr->next);
+	if (ptr) {
+		prev->next = ptr->next;
+		ptr->next = *hdr;
+		*hdr = ptr;
+	}
+	return ptr;
 }
 
 int plEnumEntries(PL_ENTRY *hdr, PL_ENUM_CALLBACK pfnEnumCallback, 
