@@ -44,7 +44,7 @@ function onNumKeys(num)
     <input name="button22" type="button" onclick="Command(document.getElementById('cmd').value)" value="Send Command"/>
     <input type="text" name="textfield" id="cmd"/>
 </p>
-<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:block"></iframe>
+<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:none"></iframe>
 </div>
 </div>
 </body>

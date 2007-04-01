@@ -53,7 +53,7 @@ function onNumKeys(num)
 <input type="hidden" id="mptitle" name="title" />
 </form>
 <p>&nbsp;</p>
-<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:block"></iframe>
+<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:none"></iframe>
 </div>
 </div>
 </body>

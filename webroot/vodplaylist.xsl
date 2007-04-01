@@ -56,6 +56,10 @@ function keyHandler(e)
 		}
 		location.reload(true);
 		break;
+	case key_play:
+		PlayNext();
+		location.reload(true);
+		break;
 	default:
 		return false;
 	}
@@ -73,16 +77,6 @@ function keyHandler(e)
 	<xsl:attribute name="onclick">processInput('<xsl:value-of select="@index"/>')</xsl:attribute>
 	<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="title"/></a></li>
 </xsl:for-each>
-
-<p><a href="/vod.html">返回</a></p>
-
-
-<form id="mpfrm" name="form1" method="post" target="mpdframe">
-<input type="hidden" id="mpaction" name="action"/>
-<input type="hidden" id="mparg" name="arg"/>
-<input type="hidden" id="mpstream" name="stream" />
-<input type="hidden" id="mptitle" name="title" />
-</form>
 <iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:none"></iframe>
 </div>
 </body>
