@@ -29,16 +29,15 @@ function onNumKeys(num)
 </head>
 
 <body>
-<div id="input">
+<div><strong>歌手点歌</strong></div>
 <xsl:for-each select="category">
 <xsl:if test="name != ''">
 <li><xsl:value-of select="position()-1"/>&nbsp;
 <a><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-<xsl:attribute name="href">title?xsl=/vodlist.xsl&amp;catid=<xsl:value-of select="@id"/>&amp;count=10</xsl:attribute>
+<xsl:attribute name="href">title?xsl=/vodcatslist.xsl&amp;catid=<xsl:value-of select="@id"/>&amp;count=10</xsl:attribute>
 <xsl:value-of select="name"/></a> (<xsl:value-of select="clips"/>首)</li>
 </xsl:if>
 </xsl:for-each>
-</div>
 </body>
 </html>
 

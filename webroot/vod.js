@@ -43,14 +43,9 @@ function SwitchChannel()
 
 function Add(obj)
 {
-	var frm = document.getElementById("mpfrm");
+	var mpd = document.getElementById("mpdframe");
 	var i = obj.firstChild.nodeValue.indexOf(' ');
-	SetValue("mptitle", obj.firstChild.nodeValue.substr(i + 1));
-	SetValue("mpstream", vodhost + "/vodstream?id=" + obj.name);
-	SetValue("mpaction", "add");
-	SetValue("mparg", "");
-	frm.action = mpd_url + "/playlist";
-	frm.submit();
+	mpd.src = mpd_url + "/playlist?action=add&stream=" + vodhost + "/vodstream?id=" + obj.name + "&title=" + obj.firstChild.nodeValue.substr(i + 1);
 	obj.className  = "selected";
 }
 

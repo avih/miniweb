@@ -467,6 +467,7 @@ int uhLib(UrlHandlerParam* param)
 		BOOL matched = 0;
 		CLIP_INFO* info;
 		CATEGORY_INFO* cat;
+		int pos = 0;
 		for (cat = &cats; cat; cat = cat->next, i++) {
 			if ((catid >= 0 && catid != i) || (catname && strcmp(catname, cat->name))) continue;
 			for (info = cat->clips; info; info = info->next) {
@@ -478,7 +479,7 @@ int uhLib(UrlHandlerParam* param)
 						mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 						matched = 1;
 					}
-					snprintf(buf, sizeof(buf), "<item id=\"%06d\" index=\"%04d\">", info->hash, idx);
+					snprintf(buf, sizeof(buf), "<item id=\"%06d\" index=\"%04d\" pos=\"%d\">", info->hash, idx, pos++);
 					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
 					snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", info->title);
@@ -492,6 +493,7 @@ int uhLib(UrlHandlerParam* param)
 				idx++;
 			}
 			if (matched) mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
+			if (count == 0) break;
 			matched = FALSE;
 		}
 	} else if (!strcmp(param->pucRequest, "/chars")) {

@@ -12,7 +12,7 @@
 ]>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="html" encoding="gb2312" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"/>
-<xsl:template match="/response">
+<xsl:template match="/response/category">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -31,13 +31,12 @@ function onNumKeys(num)
 
 <body>
 <div id="rootdiv">
-<xsl:for-each select="category">
-  <xsl:for-each select="item">
-    <li><a><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-	<xsl:attribute name="name"><xsl:value-of select="@id"/></xsl:attribute>
-	<xsl:attribute name="onclick">javascript:Add(this)</xsl:attribute>
-	<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="name"/></a></li>
-  </xsl:for-each>
+<div><strong><xsl:value-of select="@name"/></strong></div>
+<xsl:for-each select="item">
+<li><a><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
+<xsl:attribute name="name"><xsl:value-of select="@id"/></xsl:attribute>
+<xsl:attribute name="onclick">javascript:Add(this)</xsl:attribute>
+<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="name"/></a></li>
 </xsl:for-each>
 
 <div style="display:block">
@@ -45,13 +44,6 @@ function onNumKeys(num)
     <input name="button22" type="button" onclick="Command(document.getElementById('cmd').value)" value="Send Command"/>
     <input type="text" name="textfield" id="cmd"/>
 </p>
-<form id="mpfrm" name="form1" method="post" target="mpdframe">
-<input type="hidden" id="mpaction" name="action"/>
-<input type="hidden" id="mparg" name="arg"/>
-<input type="hidden" id="mpstream" name="stream" />
-<input type="hidden" id="mptitle" name="title" />
-</form>
-<p>&nbsp;</p>
 <iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:block"></iframe>
 </div>
 </div>

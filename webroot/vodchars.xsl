@@ -29,9 +29,10 @@ function onNumKeys(num)
 </head>
 
 <body>
+<div><strong>字数点歌</strong></div>
 <xsl:for-each select="category">
   <li>
-  <a><xsl:attribute name="href">title?chars=<xsl:value-of select="@chars"/>&amp;xsl=/vodlist.xsl&amp;count=10</xsl:attribute>
+  <a><xsl:attribute name="href">title?chars=<xsl:value-of select="@chars"/>&amp;xsl=/vodcharslist.xsl&amp;count=10</xsl:attribute>
   <xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
   <xsl:value-of select="position()-1"/>&nbsp;
   <xsl:if test="@chars = '0'">所有歌曲</xsl:if>

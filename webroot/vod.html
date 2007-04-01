@@ -8,7 +8,6 @@
 <script language="javascript">
 window.innerWidth = window_width;
 window.innerHeight = window_height;
-var host = url.substr(0, url.indexOf("/", 8));
 
 function keyHandler(e)
 {
@@ -20,7 +19,7 @@ function keyHandler(e)
 		Go(vod_chars_url, vod_start_page);
 		break;
 	case 51:
-		var playlist_url = mpd_url + "/playlist?count=10&xsl=" + host + "/vodplaylist.xsl";
+		var playlist_url = mpd_url + "/playlist?count=10&xsl=/vodplaylist.xsl";
 		Go(playlist_url, vod_start_page);
 		break;
 	}
