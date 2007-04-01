@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<link href="vod.css" rel="stylesheet" type="text/css"/>
+<script language="javascript" src="vodcfg.js"></script>
+<script language="javascript" src="vod.js"></script>
+<script language="javascript">
+window.innerWidth = window_width;
+window.innerHeight = window_height;
+var host = url.substr(0, url.indexOf("/", 8));
+
+function keyHandler(e)
+{
+	switch (e.which) {
+	case 49:
+		Go(vod_cats_url, vod_start_page);
+		break;
+	case 50:
+		Go(vod_chars_url, vod_start_page);
+		break;
+	case 51:
+		var playlist_url = mpd_url + "/playlist?count=10&xsl=" + host + "/vodplaylist.xsl";
+		Go(playlist_url, vod_start_page);
+		break;
+	}
+}
+document.onkeypress = keyHandler;
+</script>
+<link href="vod.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+<div>
+  <li>1 按歌手点歌</li>
+  <li>2 按字数点歌</li>
+  <li>3 已点歌曲</li>
+</div>
+</body>
+</html>
