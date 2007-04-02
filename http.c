@@ -429,16 +429,16 @@ void* _mwHttpThread(HttpParam *hp)
 				phsSocketCur->socket=socket;
 				phsSocketCur->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
 				phsSocketCur->iRequestCount=0;
-				phsSocketCur->request.ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
+				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
+				SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",
+					phsSocketCur->ipAddr.caddr[3],
+					phsSocketCur->ipAddr.caddr[2],
+					phsSocketCur->ipAddr.caddr[1],
+					phsSocketCur->ipAddr.caddr[0]);
 				hp->stats.clientCount++;
-				//update max client count
-				if (hp->stats.clientCount>hp->stats.clientCountMax)
-					hp->stats.clientCountMax=hp->stats.clientCount;
-				{
-					IP ip=phsSocketCur->request.ipAddr;
-					SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",phsSocketCur->socket,ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0]);
-				}
 				SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
+				//update max client count
+				if (hp->stats.clientCount>hp->stats.clientCountMax) hp->stats.clientCountMax=hp->stats.clientCount;
 			}
 		} else {
 			HttpSocket *phsSocketPrev=NULL;

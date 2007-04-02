@@ -54,6 +54,7 @@ int uhStats(UrlHandlerParam* param)
 	char buf[128];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;
+	IP ip = param->hs->ipAddr;
 	HTTP_XML_NODE node;
 	int bufsize = param->iDataBytes;
 	int ret=FLAG_DATA_RAW;
@@ -72,10 +73,7 @@ int uhStats(UrlHandlerParam* param)
 
 	mwWriteXmlString(&p, &bufsize, 0, "<ServerStats>");
 
-	sprintf(buf, "%d.%d.%d.%d", req->ipAddr.caddr[3],
-		req->ipAddr.caddr[2],
-		req->ipAddr.caddr[1],
-		req->ipAddr.caddr[0]);
+	sprintf(buf, "%d.%d.%d.%d", ip.caddr[3], ip.caddr[2], ip.caddr[1], ip.caddr[0]);
 
 	node.indent = 1;
 	node.fmt = "%s";
@@ -86,11 +84,6 @@ int uhStats(UrlHandlerParam* param)
 	node.fmt = "%d";
 	node.name = "UpTime";
 	node.value = (void*)(time(NULL)-stats->startTime);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
-
-	node.fmt = "%d";
-	node.name = "ConnectedClients";
-	node.value = (void*)(stats->clientCount);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
 	node.fmt = "%d";
@@ -113,18 +106,13 @@ int uhStats(UrlHandlerParam* param)
 	node.value = (void*)(stats->fileSentBytes);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	node.fmt = "%d";
-	node.name = "ConnectedClients";
-	node.value = (void*)(stats->clientCount);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
-
 	mwWriteXmlString(&p, &bufsize, 1, "<Clients>");
 
 	{
 		HttpSocket *phsSocketCur;
 		time_t curtime=time(NULL);
 		for (phsSocketCur=((HttpParam*)param->hp)->phsSocketHead; phsSocketCur; phsSocketCur=phsSocketCur->next) {
-			IP ip=phsSocketCur->request.ipAddr;
+			ip=phsSocketCur->ipAddr;
 			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\"/>",
 				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0],phsSocketCur->iRequestCount,phsSocketCur->tmExpirationTime-curtime);
 			mwWriteXmlString(&p, &bufsize, 2, buf);

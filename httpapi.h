@@ -135,7 +135,6 @@ typedef union {
 } IP;
 
 typedef struct {
-	IP ipAddr;
 	int iStartByte;
 	unsigned char *pucPath;
 	int ofReferer;
@@ -195,12 +194,14 @@ typedef struct {
 typedef struct _HttpSocket{
 	struct _HttpSocket *next;
 	SOCKET socket;
-	int fd;
+	IP ipAddr;
+
 	HttpRequest request;
 	HttpResponse response;
 	unsigned char *pucData;
 	int iDataLength;
 
+	int fd;
 	unsigned long flags;
 	void* ptr;
 	time_t tmAcceptTime;
