@@ -46,6 +46,8 @@
 typedef HANDLE pthread_t;
 typedef HANDLE pthread_mutex_t;
 
+typedef DWORD (WINAPI *PFNGetProcessId)(HANDLE hProcess);
+
 #else
 
 #define closesocket close

@@ -18,8 +18,8 @@
 
 <xsl:for-each select="category">
 <xsl:for-each select="item">
-<li><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="name"/></li>
+<li><xsl:attribute name="id"><xsl:value-of select="@pos"/></xsl:attribute>
+<xsl:value-of select="@pos"/>&nbsp;<xsl:value-of select="name"/></li>
 </xsl:for-each>
 </xsl:for-each>
 

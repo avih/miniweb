@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>无标题文档</title>
+<script language="javascript">
+function keyHandler(e)
+{
+	var KeyID = (window.event) ? event.keyCode : e.keyCode;
+	document.getElementById("info").value = KeyID;
+}
+document.onkeyup  = keyHandler;
+</script>
+</head>
+
+<body>
+<input id="info" type="text" />
+</body>
+</html>

@@ -38,8 +38,9 @@ function SetValue(id, val)
 
 function PlayNext()
 {
-	var mpd = document.getElementById("mpdframe");
-	mpd.src = mpd_url + "?action=play&arg=" + mpd_args;
+	var requrl = "/vodplay?action=control&arg=1";
+	xmlhttp.open("GET", requrl, false);
+	xmlhttp.send(null);
 }
 
 function Remove(index)
@@ -57,19 +58,22 @@ function Pin(index)
 	xmlhttp.open("GET", requrl, false);
 	xmlhttp.send(null);
 	var result = xmlhttp.responseXML.getElementsByTagName("state");
-	alert(result);
 	return (result.length > 0 && result[0].childNodes[0].nodeValue == "OK");
 }
 
 function Command(cmd)
 {
+	/*
 	var mpd = document.getElementById("mpdframe");
 	mpd.src = mpd_url + "?action=command&arg=" + cmd;
+	*/
 }
 
 function SwitchChannel()
 {
-	Command('switch_audio')	
+	var requrl = "/vodplay?action=control&arg=2";
+	xmlhttp.open("GET", requrl, false);
+	xmlhttp.send(null);
 }
 
 function Add(id, title)
@@ -79,12 +83,6 @@ function Add(id, title)
 	xmlhttp.send(null);
 	var result = xmlhttp.responseXML.getElementsByTagName("state");
 	return (result.length > 0 && result[0].childNodes[0].nodeValue == "OK");
-}
-
-function MakeFloat(id)
-{
-	document.getElementById(id).style.top = window.pageYOffset + 'px';
-	//setTimeout("MakeFloat('" + id + "')", 1000);
 }
 
 function Go(newurl)
@@ -138,13 +136,16 @@ function DefKeyEvents(e)
 	var KeyID = (window.event) ? event.keyCode : e.keyCode;
 	if (window.onKeyPress && onKeyPress(KeyID)) return;
 	switch (KeyID) {
+	case 76:
 	case 27:	// ESC
 	case 192:	// `
 		history.go(-1);
 		break;
+	case 70:
 	case 109:	// -
 		PageUp();
 		break;
+	case 71:
 	case 107:	// +
 	case 61:	// =
 		PageDown();
@@ -155,11 +156,17 @@ function DefKeyEvents(e)
 		break;
 	case 16:	// shift
 	case 106:	// *
+	case 9:
 		SwitchChannel();
 		break;
 	case 17:	// ctrl
 	case 111:	// /
+	case 46:
 		Go(playlist_url);
+		break;
+	case 77:
+	case 220:	// \
+		Go(vod_start_page);
 		break;
 	case 35:	// keypad 1
 		KeyID = 49;
@@ -174,6 +181,7 @@ function DefKeyEvents(e)
 		KeyID = 52;
 		break;
 	case 12:	// keypad 5
+	case 0:		// keypad 5 on linux
 		KeyID = 53;
 		break;
 	case 39:	// keypad 6

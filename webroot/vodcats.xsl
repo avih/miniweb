@@ -15,10 +15,14 @@
 <xsl:template match="/response">
 
 <xsl:for-each select="category">
-<xsl:if test="name != ''">
 <li><xsl:value-of select="position()-1"/>&nbsp;
-<xsl:value-of select="name"/>&nbsp;<span style="font-size:small"><xsl:value-of select="clips"/>首</span></li>
+<xsl:if test="name != ''">
+<xsl:value-of select="name"/>&nbsp;<span style="font-size:small"><xsl:value-of select="clips"/>首</span>
 </xsl:if>
+<xsl:if test="name = ''">
+佚名
+</xsl:if>
+</li>
 </xsl:for-each>
 
 </xsl:template>

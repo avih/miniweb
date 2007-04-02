@@ -38,7 +38,7 @@ int ShellRead(SHELL_PARAM* param)
 int ShellTerminate(SHELL_PARAM* param)
 {
 #ifdef WIN32
-	return TerminateProcess(param->hproc, 0) ? 0 : -1;
+	return TerminateProcess((HANDLE)param->hproc, 0) ? 0 : -1;
 #else
 	return kill(param->pid, SIGTERM);
 #endif
@@ -164,11 +164,14 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 	} else {
 		param->hproc = _spawnvp( P_NOWAIT, exe, tokens);
 	}
+	{
+	HMODULE hKernel = LoadLibrary("kernel32.dll");
+	PFNGetProcessId pfnGetPid = (PFNGetProcessId)GetProcAddress(hKernel, "GetProcessId");
+	param->pid = pfnGetPid ? (*pfnGetPid)((HANDLE)param->hproc) : param->hproc;
+	}
 #else
-	param->pid = fork();
-	if (param->pid == -1) return -1;
+	param->pid = vfork();
 	if (param->pid == 0) { /* chid process */
-		printf("MPlayer: %s\n", exe);
 		if (execv(exe, tokens)<0) {
 			printf("Error starting specified program\n");
 		}
@@ -189,5 +192,5 @@ int ShellExec(SHELL_PARAM* param, char* commandLine)
 		return -1;
 	}
 
-	return 0;
+	return param->pid;
 }

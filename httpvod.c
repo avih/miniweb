@@ -6,11 +6,12 @@
 
 #define MAX_SESSIONS 2
 #define PRE_ALLOC_UNIT 16
-#define LOOP_VIDEO "vodloop.mp4"
 
 static PL_ENTRY* plhdr[MAX_SESSIONS];
 static int listcount=0;
 static int playcount=0;
+static char *vodloop = 0;
+static char *vodhost = 0;
 static char vodbuf[256];
 static unsigned long* hashmap = 0;
 
@@ -21,6 +22,9 @@ static char** filelist = NULL;
 static int filecount = 0;
 static CATEGORY_INFO cats;
 static int prefixlen = 0;
+
+static int nextaction = 0;
+static int nextarg = 0;
 
 int EnumDir(char* pchDir)
 {
@@ -342,7 +346,14 @@ int ehVod(MW_EVENT event, int argi, void* argp)
 		break;
 	case MW_UNINIT:
 		//un-initialization
-		free(hashmap);
+		if (hashmap) {
+			free(hashmap);
+			hashmap = 0;
+			if (vodloop) {
+				free(vodloop);
+				vodloop = 0;
+			}
+		}
 		break;
 	case MW_PARSE_ARGS: {
 		int i = 0;
@@ -350,7 +361,16 @@ int ehVod(MW_EVENT event, int argi, void* argp)
 		for (i = 0; i < argi; i++) {
 			if (!strcmp(argv[i], "--vodroot")) {
 				vodroot = argv[++i];
-				break;
+			} else if (!strcmp(argv[i], "--vodloop")) {
+				i++;
+				if (vodhost) {
+					vodloop = (char*)malloc(strlen(vodhost) + strlen(argv[i]) + 1);
+					sprintf(vodloop, "%s%s", vodhost, argv[i]);
+				} else {
+					vodloop = strdup(argv[i]);
+				}
+			} else if (!strcmp(argv[i], "--vodhost")) {
+				vodhost = argv[++i];
 			}
 		}
 		}
@@ -471,19 +491,20 @@ int uhLib(UrlHandlerParam* param)
 		BOOL matched = 0;
 		CLIP_INFO* info;
 		CATEGORY_INFO* cat;
-		int pos = 0;
+		int pos = 1;
 		for (cat = &cats; cat; cat = cat->next, i++) {
 			if ((catid >= 0 && catid != i) || (catname && strcmp(catname, cat->name))) continue;
 			for (info = cat->clips; info; info = info->next) {
 				if ((hash >= 0 && hash != info->hash) || (chars && info->chars != chars)) continue;
 				if (idx >= from) { 
-					if (--count < 0) break;
+					if (count == 0) break;
+					count--;
 					if (!matched) {
 						snprintf(buf, sizeof(buf), "<category name=\"%s\">", cat->name);
 						mwWriteXmlString(&pbuf, &bufsize, 1, buf);
 						matched = 1;
 					}
-					snprintf(buf, sizeof(buf), "<item id=\"%06d\" index=\"%04d\" pos=\"%d\">", info->hash, idx, pos++);
+					snprintf(buf, sizeof(buf), "<item id=\"%06d\" pos=\"%d\">", info->hash, pos++);
 					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
 					snprintf(buf, sizeof(buf), "<name><![CDATA[%s]]></name>", info->title);
@@ -497,7 +518,7 @@ int uhLib(UrlHandlerParam* param)
 				idx++;
 			}
 			if (matched) mwWriteXmlString(&pbuf, &bufsize, 1, "</category>");
-			if (count < 0) break;
+			if (count == 0) break;
 			matched = FALSE;
 		}
 	} else if (!strcmp(param->pucRequest, "/chars")) {
@@ -614,10 +635,40 @@ int uhVod(UrlHandlerParam* param)
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 	} else if (!strcmp(action, "del")) {
 		int index = mwGetVarValueInt(param->pxVars, "arg", 0);
-		node.value = plDelEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		void* data = plDelEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		if (data) {
+			free(data);
+			node.value = "OK";
+		} else {
+			node.value = "error";
+		}
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+	} else if (!strcmp(action, "play")) {
+		char* stream = (char*)plGetEntry(&plhdr[session]);
+		if (stream) {
+			node.name = "stream";
+		}
+		node.name = "stream";
+		node.value = stream ? stream : vodloop;
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+		node.name = "control";
+		node.fmt = "%s/vodplay?action=control";
+		node.value = vodhost;
+		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+		if (stream) free(stream);
+		nextaction = 0;
+	} else if (!strcmp(action, "control")) {
+		int arg = mwGetVarValueInt(param->pxVars, "arg", 0);
+		if (arg)
+			nextaction = arg;
+		else if (nextaction) {
+			node.name = "action";
+			node.fmt = "%d";
+			node.value = (void*)nextaction;
+			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
+			nextaction = 0;
+		}
 	}
-
 
 #if 0
 	arg = mwGetVarValue(param->pxVars, "arg", 0);
@@ -715,7 +766,7 @@ PL_ENTRY* plAddEntry(PL_ENTRY **hdr, void* data, int datalen)
 	return ptr;
 }
 
-PL_ENTRY* plGetEntry(PL_ENTRY **hdr)
+void* plGetEntry(PL_ENTRY **hdr)
 {
 	PL_ENTRY *ptr=*hdr;
 	void* data;
