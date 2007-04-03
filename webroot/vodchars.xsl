@@ -15,10 +15,9 @@
 <xsl:template match="/response">
 
 <xsl:for-each select="category">
-  <li><xsl:value-of select="position()-1"/>&nbsp;
-  <xsl:if test="@chars = '0'">所有歌曲</xsl:if>
+  <li><xsl:value-of select="position()"/>&nbsp;
   <xsl:if test="@chars != '0'">
-  <xsl:value-of select="@chars"/>字歌 <span style="font-size:small">(<xsl:value-of select="@count"/>首)</span>
+  <xsl:value-of select="@chars"/>字歌<span class="list_postfix">(<xsl:value-of select="@count"/>首)</span>
   </xsl:if>
   </li>
 </xsl:for-each>

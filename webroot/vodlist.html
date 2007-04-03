@@ -14,10 +14,10 @@ var chars = GetUrlArg("chars");
 
 function onNumKeys(num)
 {
-	//Go(document.getElementById(num).href);
+	if (num <= 0 || num > item_per_page) return;
 	result = xmldata.getElementsByTagName("item");
-	var id = result[num].getAttribute("id");
-	var title = result[num].childNodes[1].childNodes[0].data;
+	var id = result[num - 1].getAttribute("id");
+	var title = result[num- 1].childNodes[1].childNodes[0].data;
 	if (Add(id, title)) {
 		document.getElementById(num).className = "selected";
 	}
@@ -59,7 +59,7 @@ function PageUp()
 </head>
 
 <body onload="onLoad()">
-<div id="content">
+<div id="content" class="list">
 </div>
 </body>
 </html>

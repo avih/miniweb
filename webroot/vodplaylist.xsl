@@ -15,8 +15,8 @@
 <xsl:template match="/response/playlist">
 
 <xsl:for-each select="item">
-    <li><a><xsl:attribute name="id"><xsl:value-of select="position()-1"/></xsl:attribute>
-	<xsl:value-of select="position()-1"/><xsl:text> </xsl:text><xsl:value-of select="title"/></a></li>
+    <li><a><xsl:attribute name="id"><xsl:value-of select="position()"/></xsl:attribute>
+	<xsl:value-of select="position()"/><xsl:text> </xsl:text><xsl:value-of select="title"/></a></li>
 </xsl:for-each>
 
 </xsl:template>

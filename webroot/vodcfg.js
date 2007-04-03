@@ -4,7 +4,7 @@ var href = document.location.href;
 var vodhost = href.substr(0, href.indexOf('/', 8));
 var vodport = 81;
 var mpd_args = "";
-var item_per_page = 7;
+var item_per_page = 6;
 
 var vod_start_page = "/vod.html";
 var vod_cats_url = "vodcats.html";

@@ -4,10 +4,9 @@
 #include "httpvod.h"
 #include "crc32.h"
 
-#define MAX_SESSIONS 2
 #define PRE_ALLOC_UNIT 16
 
-static PL_ENTRY* plhdr[MAX_SESSIONS];
+static VOD_CTX vodctx;
 static int listcount=0;
 static int playcount=0;
 static char *vodloop = 0;
@@ -321,7 +320,7 @@ void vodInit()
 	int count = 0;
 	if (!vodroot)
 		return;
-	memset(plhdr, 0, sizeof(plhdr));
+	memset(&vodctx, 0, sizeof(vodctx));
 	memset(&charsinfo, 0, sizeof(charsinfo));
 	hashmap = calloc(1000000 / 32, sizeof(long));
 	//sprintf(vodroot,"%s",hp->pchWebPath);
@@ -390,11 +389,9 @@ int uhVodStream(UrlHandlerParam* param)
 {
 	static int code = 0;
 	static int prevtime = 0;
-	int session;
 	int id;
 	char* file;
 	mwParseQueryString(param);
-	session = mwGetVarValueInt(param->pxVars, "session", 0);
 	file = mwGetVarValue(param->pxVars, "file", 0);
 	id = mwGetVarValueInt(param->pxVars, "id" , -1);
 	if (!file) {
@@ -409,7 +406,7 @@ int uhVodStream(UrlHandlerParam* param)
 	return 0;
 }
 
-void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
+static void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
 {
 	char buf[256];
 	CATEGORY_INFO *cat;
@@ -435,12 +432,12 @@ void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
 int uhLib(UrlHandlerParam* param)
 {
 	char *pbuf;
-	int bufsize = 256000;
+	int bufsize = 65536;
 	char buf[256];
 	char *id;
 	char *p;
 	int from, count;
-	pbuf = (char*)malloc(256000);
+	pbuf = (char*)malloc(bufsize);
 	param->pucBuffer = pbuf;
 	
 	p = strstr(param->pucRequest, "back=");
@@ -523,8 +520,8 @@ int uhLib(UrlHandlerParam* param)
 		}
 	} else if (!strcmp(param->pucRequest, "/chars")) {
 		int i;
-		for (i = 0; i <= MAX_CHARS; i++) {
-			if (i >= from) { 
+		for (i = 1; i <= MAX_CHARS; i++) {
+			if (i > from) { 
 				if ((count--) == 0) break;
 				snprintf(buf, sizeof(buf), "<category chars=\"%d\" count=\"%d\"/>", i, charsinfo[i]);
 				mwWriteXmlString(&pbuf, &bufsize, 2, buf);
@@ -562,16 +559,35 @@ int uhLib(UrlHandlerParam* param)
 	return FLAG_DATA_RAW | FLAG_TO_FREE;
 }
 
+static VOD_CTX* GetVodContext(DWORD ip)
+{
+	VOD_CTX* ctx = &vodctx;
+	if (!ip) return NULL;
+	for (;;) {
+		if (ctx->ip == 0) break;
+		if (ctx->ip == ip) return ctx;
+		if (!ctx->next) {
+			ctx->next = (VOD_CTX*)malloc(sizeof(VOD_CTX));
+			ctx = ctx->next;
+			ctx->next = 0;
+			ctx->playlist = 0;
+			break;
+		}
+		ctx = ctx->next;
+	}
+	ctx->ip = ip;
+	return ctx;
+}
+
 int uhVod(UrlHandlerParam* param)
 {
 	HTTP_XML_NODE node;
 	char *req=param->pucRequest;
 	char *pbuf = param->pucBuffer;
 	int bufsize = param->iDataBytes;
-	//static VOD_CLIENT_ACTIONS action=0;
-	int session = 0;
 	char *action;
 	PL_ENTRY *ptr;
+	VOD_CTX* ctx;
 	int i;
 
 	if (*req && *req != '?') return 0;
@@ -584,12 +600,12 @@ int uhVod(UrlHandlerParam* param)
 
 	mwParseQueryString(param);
 
-	session = mwGetVarValueInt(param->pxVars, "session", 0);
+	ctx = GetVodContext(param->hs->ipAddr.laddr);
+
 	action = mwGetVarValue(param->pxVars, "action", 0);
-	DBG("Session: %d\n", session);
 
 	if (!action) {
-		ptr = plhdr[session];
+		ptr = ctx->playlist;
 		mwWriteXmlString(&pbuf, &bufsize, 1, "<playlist>");
 		for (i=0; ptr; ptr = ptr->next, i++) {
 			char buf[32];
@@ -626,16 +642,16 @@ int uhVod(UrlHandlerParam* param)
 			entrydata = (char*)malloc(fnlen + titlelen + 3);
 			strcpy(entrydata, filename);
 			strcpy(entrydata + fnlen + 1, title);
-			node.value = plAddEntry(&plhdr[session], entrydata, fnlen + titlelen + 2) ? "OK" : "error";
+			node.value = plAddEntry(&ctx->playlist, entrydata, fnlen + titlelen + 2) ? "OK" : "error";
 		}
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 	} else if (!strcmp(action, "pin")) {
 		int index = mwGetVarValueInt(param->pxVars, "arg", 0);
-		node.value = plPinEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		node.value = plPinEntryByIndex(&ctx->playlist, index) ? "OK" : "error";
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 	} else if (!strcmp(action, "del")) {
 		int index = mwGetVarValueInt(param->pxVars, "arg", 0);
-		void* data = plDelEntryByIndex(&plhdr[session], index) ? "OK" : "error";
+		void* data = plDelEntryByIndex(&ctx->playlist, index) ? "OK" : "error";
 		if (data) {
 			free(data);
 			node.value = "OK";
@@ -644,7 +660,7 @@ int uhVod(UrlHandlerParam* param)
 		}
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 	} else if (!strcmp(action, "play")) {
-		char* stream = (char*)plGetEntry(&plhdr[session]);
+		char* stream = (char*)plGetEntry(&ctx->playlist);
 		if (stream) {
 			node.name = "stream";
 		}

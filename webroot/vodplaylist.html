@@ -14,13 +14,14 @@ var sel = new Array(item_per_page);
 
 function onNumKeys(num)
 {
+	if (num <= 0 || num > item_per_page) return;
 	var obj = window.document.getElementById(num);
-	if (sel[num]) {
+	if (sel[num - 1]) {
 		obj.className  = "";
-		sel[num] = 0;
+		sel[num - 1] = 0;
 		return;
 	}
-	sel[num] = 1;
+	sel[num - 1] = 1;
 	obj.className  = "selected";
 }
 
@@ -91,8 +92,7 @@ function PageUp()
 
 <body onload="onLoad()">
 <div><strong>ÒÑµã¸èÇú</strong></div>
-<div id="content">
+<div id="content" class="list">
 </div>
-<iframe id="mpdframe" name="vodxml" width="600" height="300" style="display:none"></iframe>
 </body>
 </html>

@@ -19,7 +19,11 @@
 <xsl:for-each select="category">
 <xsl:for-each select="item">
 <li><xsl:attribute name="id"><xsl:value-of select="@pos"/></xsl:attribute>
-<xsl:value-of select="@pos"/>&nbsp;<xsl:value-of select="name"/></li>
+<xsl:value-of select="@pos"/>&nbsp;<xsl:value-of select="name"/>
+<xsl:if test="../@name != ''">
+<span class="list_postfix">(<xsl:value-of select="../@name"/>)</span>
+</xsl:if>
+</li>
 </xsl:for-each>
 </xsl:for-each>
 

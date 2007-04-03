@@ -15,7 +15,7 @@
 <xsl:template match="/response">
 
 <xsl:for-each select="category">
-<li><xsl:value-of select="position()-1"/>&nbsp;
+<li><xsl:value-of select="position()"/>&nbsp;
 <xsl:if test="name != ''">
 <xsl:value-of select="name"/>&nbsp;<span style="font-size:small"><xsl:value-of select="clips"/>首</span>
 </xsl:if>

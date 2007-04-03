@@ -12,8 +12,9 @@ var xmldata;
 
 function onNumKeys(num)
 {
+	if (num <= 0 || num > item_per_page) return;
 	result = xmldata.getElementsByTagName("category");
-	Go("vodlist.html?catid=" + result[num].getAttribute("id"));
+	Go("vodlist.html?catid=" + result[num - 1].getAttribute("id"));
 }
 
 function onLoad()
@@ -47,7 +48,7 @@ function PageUp()
 
 <body onload="onLoad()">
 <div><strong>∏Ë ÷µ„∏Ë</strong></div>
-<div id="content">
+<div id="content" class="list">
 </div>
 </body>
 </html>

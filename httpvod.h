@@ -37,3 +37,8 @@ typedef struct _CATEGORY_INFO {
 	struct _CATEGORY_INFO* next;
 } CATEGORY_INFO;
 
+typedef struct _VOD_CTX {
+	PL_ENTRY* playlist;
+	DWORD ip;
+	struct _VOD_CTX* next;
+} VOD_CTX;

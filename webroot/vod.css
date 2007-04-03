@@ -4,10 +4,13 @@ body {
 	color:#333333;
 	line-height: 100%;
 	overflow: hidden;
+	background-color:#006699;
+	color:#FFFFFF;
 }
 
 li {
 	list-style-type: none;
+	color:#FFFFFF;
 }
 
 a {
@@ -32,15 +35,16 @@ width:200px;
 height:200px;
 }
 
-.panel {
-	position: absolute;
-	left: 180px; top: 0px; width:60px; height: 24px;
-	background-color:#990033;
-	color:#FFFFFF;
-	font-family:Tahoma;
-	font-size:larger;
-}
-
 .selected {
 	color:#FF0000;
+}
+
+.list {
+	width: 400px;
+	line-height: 100%;
+	overflow:hidden;
+}
+
+.list_postfix {
+	font-size:small;
 }
