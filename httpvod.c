@@ -22,7 +22,6 @@ static int filecount = 0;
 static CATEGORY_INFO cats;
 static int prefixlen = 0;
 
-static int nextaction = 0;
 static int nextarg = 0;
 
 int EnumDir(char* pchDir)
@@ -567,7 +566,7 @@ static VOD_CTX* GetVodContext(DWORD ip)
 		if (ctx->ip == 0) break;
 		if (ctx->ip == ip) return ctx;
 		if (!ctx->next) {
-			ctx->next = (VOD_CTX*)malloc(sizeof(VOD_CTX));
+			ctx->next = (VOD_CTX*)calloc(1, sizeof(VOD_CTX));
 			ctx = ctx->next;
 			ctx->next = 0;
 			ctx->playlist = 0;
@@ -672,17 +671,17 @@ int uhVod(UrlHandlerParam* param)
 		node.value = vodhost;
 		mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
 		if (stream) free(stream);
-		nextaction = 0;
+		ctx->nextaction = 0;
 	} else if (!strcmp(action, "control")) {
 		int arg = mwGetVarValueInt(param->pxVars, "arg", 0);
 		if (arg)
-			nextaction = arg;
-		else if (nextaction) {
+			ctx->nextaction = arg;
+		else if (ctx->nextaction) {
 			node.name = "action";
 			node.fmt = "%d";
-			node.value = (void*)nextaction;
+			node.value = (void*)ctx->nextaction;
 			mwWriteXmlLine(&pbuf, &bufsize, &node, 0);
-			nextaction = 0;
+			ctx->nextaction = 0;
 		}
 	}
 

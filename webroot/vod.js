@@ -136,36 +136,41 @@ function DefKeyEvents(e)
 	var KeyID = (window.event) ? event.keyCode : e.keyCode;
 	if (window.onKeyPress && onKeyPress(KeyID)) return;
 	switch (KeyID) {
-	case 76:
 	case 27:	// ESC
-	case 192:	// `
+	case 74:	// j
 		history.go(-1);
 		break;
 	case 70:
 	case 109:	// -
+	case 73:	// i
 		PageUp();
 		break;
 	case 71:
 	case 107:	// +
 	case 61:	// =
+	case 75:	// k
 		PageDown();
 		break;
 	case 13:	// enter
 	case 32:	// space
+	case 78:	// n
 		PlayNext();
 		break;
 	case 16:	// shift
 	case 106:	// *
 	case 9:
+	case 67:	// c
 		SwitchChannel();
 		break;
 	case 17:	// ctrl
 	case 111:	// /
 	case 46:
+	case 76:	// l
 		Go(playlist_url);
 		break;
-	case 77:
+	case 77:	// m
 	case 220:	// \
+	case 192:	// `
 		Go(vod_start_page);
 		break;
 	case 35:	// keypad 1

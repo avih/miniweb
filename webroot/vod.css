@@ -1,5 +1,5 @@
 body {
-	margin-left: 2px; margin-top:10px;
+	margin-left: 2px; margin-top:10px; margin-right: 2px; margin-bottom:2px;
 	font-size:x-large;
 	color:#333333;
 	line-height: 100%;
@@ -42,7 +42,6 @@ height:200px;
 .list {
 	width: 400px;
 	line-height: 100%;
-	overflow:hidden;
 }
 
 .list_postfix {

@@ -40,5 +40,6 @@ typedef struct _CATEGORY_INFO {
 typedef struct _VOD_CTX {
 	PL_ENTRY* playlist;
 	DWORD ip;
+	int nextaction;
 	struct _VOD_CTX* next;
 } VOD_CTX;
