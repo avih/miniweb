@@ -41,7 +41,7 @@ FILE *fpLog=NULL;
 
 const char *dayNames="Sun\0Mon\0Tue\0Wed\0Thu\0Fri\0Sat";
 const char *monthNames="Jan\0Feb\0Mar\0Apr\0May\0Jun\0Jul\0Aug\0Sep\0Oct\0Nov\0Dec";
-const char *httpDateTimeFormat="%s, %02d %s %02d %02d:%02d:%02d GMT";
+const char *httpDateTimeFormat="%s, %02d %s %d %02d:%02d:%02d GMT";
 
 char* mwGetVarValue(HttpVariables* vars, char *varname, int index)
 {

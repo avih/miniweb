@@ -249,7 +249,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../$(ProjectName).dll"
+				OutputFile="$(SolutionDir)bin/$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="false"
@@ -257,6 +257,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/7zDec.pdb"
 				SubSystem="1"
+				ImportLibrary="$(SolutionDir)lib/$(TargetName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -341,12 +342,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../$(ProjectName).dll"
+				OutputFile="$(SolutionDir)bin/$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="7zDll.def"
 				ProgramDatabaseFile=".\Release/7zDec.pdb"
 				SubSystem="1"
+				ImportLibrary="$(SolutionDir)lib/$(TargetName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -431,7 +433,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../$(ProjectName).lib"
+				OutputFile="$(SolutionDir)lib/$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
