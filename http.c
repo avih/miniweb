@@ -25,11 +25,11 @@
 const char g_chPasswordPage[]="password.htm";
 
 char* contentTypeTable[]={
-	HTTPTYPE_OCTET,HTTPTYPE_HTML,HTTPTYPE_XML,HTTPTYPE_TEXT,HTTPTYPE_CSS,HTTPTYPE_PNG,HTTPTYPE_JPEG,HTTPTYPE_GIF,HTTPTYPE_SWF,
+	HTTPTYPE_OCTET,HTTPTYPE_HTML,HTTPTYPE_XML,HTTPTYPE_TEXT,HTTPTYPE_XUL,HTTPTYPE_CSS,HTTPTYPE_PNG,HTTPTYPE_JPEG,HTTPTYPE_GIF,HTTPTYPE_SWF,
 	HTTPTYPE_MPA,HTTPTYPE_MPEG,HTTPTYPE_AVI,HTTPTYPE_QUICKTIME,HTTPTYPE_QUICKTIME,HTTPTYPE_JS,HTTPTYPE_OCTET,HTTPTYPE_STREAM
 };
 
-char* defaultPages[]={"index.htm","index.html","default.htm"};
+char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
 
 FILE *fpLog=NULL;
 
@@ -1028,7 +1028,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			}
 			return _mwStartSendRawData(hp, phsSocket);
 		}
-		phsSocket->response.fileType = HTTPFILETYPE_HTML;
+		phsSocket->response.fileType = mwGetContentType(strchr(defaultPages[i], '.') + 1);
 	}
 	if (phsSocket->fd > 0) {
 		phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
@@ -1389,6 +1389,7 @@ int mwGetContentType(char *pchExtname)
 		case FILEEXT_HTM:	return HTTPFILETYPE_HTML;
 		case FILEEXT_XML:	return HTTPFILETYPE_XML;
 		case FILEEXT_TEXT:	return HTTPFILETYPE_TEXT;
+		case FILEEXT_XUL:	return HTTPFILETYPE_XUL;
 		case FILEEXT_CSS:	return HTTPFILETYPE_CSS;
 		case FILEEXT_PNG:	return HTTPFILETYPE_PNG;
 		case FILEEXT_JPG:	return HTTPFILETYPE_JPEG;

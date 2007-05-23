@@ -23,6 +23,7 @@
 #define HTTPTYPE_HTML "text/html"
 #define HTTPTYPE_XML "text/xml"
 #define HTTPTYPE_TEXT "text/plain"
+#define HTTPTYPE_XUL "application/vnd.mozilla.xul+xml"
 #define HTTPTYPE_GIF "image/gif"
 #define HTTPTYPE_JPEG "image/jpeg"
 #define HTTPTYPE_PNG "image/png"
@@ -50,6 +51,7 @@
 #define FILEEXT_HTM DEFDWORD('H','T','M',0)
 #define FILEEXT_XML DEFDWORD('X','M','L',0)
 #define FILEEXT_TEXT DEFDWORD('T','X','T',0)
+#define FILEEXT_XUL DEFDWORD('X','U','L',0)
 #define FILEEXT_GIF DEFDWORD('G','I','F',0)
 #define FILEEXT_JPG DEFDWORD('J','P','G',0)
 #define FILEEXT_PNG DEFDWORD('P','N','G',0)
