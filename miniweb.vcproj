@@ -65,6 +65,7 @@
 				OutputFile="miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="LIBCMTD.lib"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/MiniWeb.pdb"
 				SubSystem="1"

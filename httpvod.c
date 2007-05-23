@@ -120,6 +120,10 @@ CATEGORY_INFO* FindCategory(char* name)
 		cats.count++;
 		return &cats;
 	}
+	{
+	char *p = strchr(name, ',');
+	if (p) *p = 0;
+	}
 	ptr = &cats;
 	for (;;) {
 		int n = strcmp(ptr->name, name);
@@ -205,6 +209,8 @@ CLIP_INFO* GetClipByFile(char* filename, CATEGORY_INFO** pcat)
 	return 0;
 }
 
+FILE* fpdup;
+
 int AddClip(char* filename)
 {
 	CLIP_INFO* pinfo;
@@ -234,7 +240,7 @@ int AddClip(char* filename)
 		p = strchr(buf, '[');
 		while (--p >= buf && *p == ' ');
 		*(p + 1) = 0;
-		pinfo->title = FilterDup(s);
+		pinfo->title = FilterDup(buf);
 	} else {
 		strcpy(buf, s);
 		s = buf;
@@ -245,10 +251,10 @@ int AddClip(char* filename)
 			p = strrchr(s, '.');
 			if (p) *p = 0;
 			pinfo->title = FilterDup(s);
-		} else if ((p = strchr(s, ' ')) || (p = strchr(s, '-'))) {
+		} else if ((p = strchr(s, '-')) || (p = strchr(s, ' '))) {
 			*p = 0;
 			cat = FindCategory(s);
-			for (s = p + 1; *s == ' ' || *s == '-'; s++);
+			for (s = p + 1; *s == '-' || *s == ' '; s++);
 			p = strrchr(s, '.');
 			if (p) *p = 0;
 			pinfo->title = FilterDup(s);
@@ -276,7 +282,8 @@ int AddClip(char* filename)
 		CLIP_INFO* exclip = GetClipByHash(pinfo->hash, &excat);
 		if (!exclip) break;
 		if (excat == cat && !strcmp(exclip->title, pinfo->title)) {	
-			printf("DUPLICATED @ %06d Cat: %s\nExist: %s\nNew: %s\n", pinfo->hash, cat->name, exclip->filename, pinfo->filename);	
+			fprintf(fpdup, "<li>%06d %s [ <a href='/vodstream?file=%s'>%s</a> ] [ <a href='/vodstream?file=%s'>%s</a> ]</li>\n",
+				pinfo->hash, cat->name, exclip->filename, exclip->title, pinfo->filename, pinfo->title);	
 		} else {
 			//printf("HASH FAULT @ %06d Exist: %s - %s New: %s - %s\n", pinfo->hash, cat->name, exclip->title, cat->name, pinfo->title);	
 		}
@@ -328,9 +335,14 @@ void vodInit()
 	cats.next = 0;
 	prefixlen = strlen(vodroot) + 1;
  	EnumDir(vodroot);
+
+	fpdup = fopen("webroot/dup.htm", "w");
+	fprintf(fpdup, "<html><body>");
 	for (i = 0; i < filecount; i++) {
 		if (!AddClip(filelist[i])) count++;
 	}
+	fprintf(fpdup, "</body></html>");
+	fclose(fpdup);
 
 	printf("\n\nCount: %d\n", count);
 }
@@ -431,13 +443,11 @@ static void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
 int uhLib(UrlHandlerParam* param)
 {
 	char *pbuf;
-	int bufsize = 65536;
+	int bufsize;
 	char buf[256];
 	char *id;
 	char *p;
 	int from, count;
-	pbuf = (char*)malloc(bufsize);
-	param->pucBuffer = pbuf;
 	
 	p = strstr(param->pucRequest, "back=");
 	if (p) *p = 0;
@@ -447,10 +457,19 @@ int uhLib(UrlHandlerParam* param)
 	from = mwGetVarValueInt(param->pxVars, "from", 0);
 	count = mwGetVarValueInt(param->pxVars, "count", -1);
 
+	if (count <= 0)
+		bufsize = 1024 * 1024;
+	else
+		bufsize = count * 256;
+
+	pbuf = (char*)malloc(bufsize);
+	param->pucBuffer = pbuf;
+
 	mwWriteXmlHeader(&pbuf, &bufsize, 10, "gb2312", mwGetVarValue(param->pxVars, "xsl", 0));
 	mwWriteXmlString(&pbuf, &bufsize, 0, "<response>");
 
 	if (!strcmp(param->pucRequest, "/category")) {
+		int mincount = mwGetVarValueInt(param->pxVars, "min", 2);
 		int catid = id ? atoi(id) : -1;
 		int hash = mwGetVarValueInt(param->pxVars, "hash", -1);
 		char* name = mwGetVarValue(param->pxVars, "name", 0);
@@ -458,7 +477,7 @@ int uhLib(UrlHandlerParam* param)
 		int i = 0;
 		int idx = 0;
 		for (cat = &cats; cat; cat = cat->next, i++) {
-			if ((hash >= 0 && hash != cat->hash) || (name && strcmp(name, cat->name)) || (catid >= 0 && catid != i))
+			if ((hash >= 0 && hash != cat->hash) || (name && strcmp(name, cat->name)) || (catid >= 0 && catid != i) || cat->count < mincount)
 				continue;
 
 			if (idx >= from) { 
@@ -539,7 +558,7 @@ int uhLib(UrlHandlerParam* param)
 		if (!clip) clip = GetClipByFile(id, &cat);
 		if (clip) {
 			mwWriteXmlString(&pbuf, &bufsize, 2, "<item>");
-			snprintf(buf, sizeof(buf), "<id><![CDATA[%s]]></id>", clip->hash);
+			snprintf(buf, sizeof(buf), "<id><![CDATA[%d]]></id>", clip->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
 			snprintf(buf, sizeof(buf), "<file><![CDATA[%s]]></file>", clip->filename);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
@@ -604,9 +623,10 @@ int uhVod(UrlHandlerParam* param)
 	action = mwGetVarValue(param->pxVars, "action", 0);
 
 	if (!action) {
+		int count = mwGetVarValueInt(param->pxVars, "count", -1);
 		ptr = ctx->playlist;
 		mwWriteXmlString(&pbuf, &bufsize, 1, "<playlist>");
-		for (i=0; ptr; ptr = ptr->next, i++) {
+		for (i=0; ptr && (unsigned int)i < (unsigned int)count; ptr = ptr->next, i++) {
 			char buf[32];
 			snprintf(buf, sizeof(buf), "<item index=\"%03d\">", i);
 			mwWriteXmlString(&pbuf, &bufsize, 2, buf);

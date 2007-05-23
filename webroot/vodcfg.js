@@ -1,4 +1,4 @@
-var window_width = 240;
+var window_width = 220;
 var window_height = 200;
 var href = document.location.href;
 var vodhost = href.substr(0, href.indexOf('/', 8));

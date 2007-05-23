@@ -6,9 +6,6 @@
 <script language="javascript" src="vodcfg.js"></script>
 <script language="javascript" src="vod.js"></script>
 <script language="javascript">
-window.innerWidth = window_width;
-window.innerHeight = window_height;
-
 function onNumKeys(num)
 {
 	switch (num) {
@@ -19,6 +16,9 @@ function onNumKeys(num)
 		Go(vod_chars_url);
 		break;
 	case 3:
+		Go("vodnum.html");
+		break;
+	case 4:
 		Go(playlist_url);
 		break;
 	}
@@ -32,7 +32,8 @@ function onNumKeys(num)
 <div class="list">
   <li>1 按歌手点歌</li>
   <li>2 按字数点歌</li>
-  <li>3 已点歌曲</li>
+  <li>3 按号码点歌</li>
+  <li>4 已点歌曲</li>
 </div>
 </div>
 </body>

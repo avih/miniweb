@@ -431,7 +431,7 @@ void* _mwHttpThread(HttpParam *hp)
 				phsSocketCur->iRequestCount=0;
 				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
 				SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",
-					phsSocketCur,
+					phsSocketCur->socket,
 					phsSocketCur->ipAddr.caddr[3],
 					phsSocketCur->ipAddr.caddr[2],
 					phsSocketCur->ipAddr.caddr[1],
