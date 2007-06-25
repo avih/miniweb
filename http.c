@@ -1006,7 +1006,10 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		for (i=0; i<sizeof(defaultPages)/sizeof(defaultPages[0]); i++) {
 			strcpy(p,defaultPages[i]);
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
-			if (phsSocket->fd > 0) break;
+			if (phsSocket->fd > 0) {
+				phsSocket->response.fileType = mwGetContentType(strchr(defaultPages[i], '.') + 1);
+				break;
+			}
 		}
 
 		if (phsSocket->fd <= 0 && (hp->flags & FLAG_DIR_LISTING)) {
@@ -1028,7 +1031,6 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			}
 			return _mwStartSendRawData(hp, phsSocket);
 		}
-		phsSocket->response.fileType = mwGetContentType(strchr(defaultPages[i], '.') + 1);
 	}
 	if (phsSocket->fd > 0) {
 		phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
@@ -1045,8 +1047,9 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		if (hp->pfnSubst && (phsSocket->response.fileType==HTTPFILETYPE_HTML ||phsSocket->response.fileType==HTTPFILETYPE_JS)) {
 			SETFLAG(phsSocket,FLAG_SUBST);
 		}
+	} else {
+		_mwSend404Page(phsSocket);
 	}
-
 
 	SYSLOG(LOG_INFO,"File/requested size: %d/%d\n",st.st_size,phsSocket->response.iContentLength);
 
