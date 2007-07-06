@@ -11,7 +11,9 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "revision.h"
+#ifdef _7Z
 #include "7zDec/7zInc.h"
+#endif
 #include "httpxml.h"
 
 int uhMpd(UrlHandlerParam* param);
