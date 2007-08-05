@@ -63,8 +63,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="wsock32.lib"
-				OutputFile="../lib/httpd_debug.lib"
+				AdditionalDependencies="wsock32.lib 7zDec.lib "
+				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
 				IgnoreAllDefaultLibraries="true"
 				IgnoreDefaultLibraryNames="libcmtd.lib"
 			/>
@@ -111,7 +111,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="0"
-				PreprocessorDefinitions="WIN32;NDEBUG;NODEBUG;NOCONSOLE;HTTPPOST;_CRT_SECURE_NO_DEPRECATE;_7Z"
+				PreprocessorDefinitions="WIN32;NDEBUG;NODEBUG;NOCONSOLE;HTTPPOST;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="0"
@@ -135,7 +135,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				AdditionalDependencies="wsock32.lib"
-				OutputFile="../lib/httpd.lib"
+				OutputFile="$(SolutionDir)lib/httpd.lib"
 				IgnoreAllDefaultLibraries="true"
 			/>
 			<Tool
@@ -367,8 +367,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="wsock32.lib"
-				OutputFile="../lib/httpd.lib"
+				AdditionalDependencies="wsock32.lib 7zDec.lib "
+				OutputFile="$(SolutionDir)lib/httpd.lib"
 				IgnoreAllDefaultLibraries="true"
 			/>
 			<Tool
