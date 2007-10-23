@@ -256,7 +256,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="TRUE"
 				PreprocessorDefinitions="NDEBUG;WIN32;_CONSOLE;_LZMA_PROB32;_LZMA_IN_CB;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
