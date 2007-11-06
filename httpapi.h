@@ -185,11 +185,7 @@ typedef struct {
 	int fileUploadCount;
 } HttpStats;
 
-#ifdef _VOD
-#define HTTP_BUFFER_SIZE (8*1024 /*bytes*/)
-#else
-#define HTTP_BUFFER_SIZE (4*1024 /*bytes*/)
-#endif
+#define HTTP_BUFFER_SIZE (16*1024 /*bytes*/)
 
 // per connection/socket structure
 typedef struct _HttpSocket{
