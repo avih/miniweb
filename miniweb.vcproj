@@ -202,7 +202,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				InlineFunctionExpansion="0"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;NODEBUG;HTTPPOST;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -362,7 +362,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HTTPPOST"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HTTPPOST;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -507,6 +507,22 @@
 			<File
 				RelativePath=".\crc32.c"
 				>
+				<FileConfiguration
+					Name="ReleaseMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\http.c"
@@ -517,6 +533,14 @@
 				>
 				<FileConfiguration
 					Name="ReleaseMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugMin|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -567,10 +591,42 @@
 			<File
 				RelativePath=".\httpvod.c"
 				>
+				<FileConfiguration
+					Name="ReleaseMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\httpxml.c"
 				>
+				<FileConfiguration
+					Name="ReleaseMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="DebugMin|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\miniweb.c"

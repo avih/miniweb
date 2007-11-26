@@ -4,7 +4,7 @@
 #include "httpapi.h"
 
 int MyUrlHandler(UrlHandlerParam* param);
-int MyUrlHandlerInit(HttpParam* hp, int uninit);
+int MyUrlHandlerInit(MW_EVENT msg, int argi, void* argp);
 
 //URL handler list
 UrlHandler urlHandlerList[]={
@@ -21,15 +21,18 @@ struct {
 	char tvmode[4];
 } cfgdata;
 
-int MyUrlHandlerInit(HttpParam* hp, int uninit)
+int MyUrlHandlerInit(MW_EVENT msg, int argi, void* argp)
 {
-	if (!uninit) {
+	switch (msg) {
+	case MW_INIT:
 		memset(&cfgdata,0,sizeof(cfgdata));
 		strcpy(cfgdata.ip,"192.168.0.100");
 		cfgdata.tvmode[0]=1;
 		cfgdata.tvmode[1]=1;
-	} else {
-		//nothing to do
+		break;
+	case MW_UNINIT:
+		//nothing to uninit
+		break;
 	}
 	return 0;	//0 on success, -1 on failure
 }
@@ -60,16 +63,16 @@ int MyUrlHandler(UrlHandlerParam* param)
 
 	if (param->pxVars) {
 		// processing settings
-		if ((v=mwGetVarValue(param->pxVars,"if")))
+		if ((v=mwGetVarValue(param->pxVars,"if", 0)))
 			cfgdata.ethif=atoi(v);
-		if ((v=mwGetVarValue(param->pxVars,"mode")))
+		if ((v=mwGetVarValue(param->pxVars,"mode", 0)))
 			cfgdata.mode=atoi(v);
-		if ((v=mwGetVarValue(param->pxVars,"ip")))
+		if ((v=mwGetVarValue(param->pxVars,"ip", 0)))
 			strcpy(cfgdata.ip,v);
 		for (i=0; i<4; i++) {
 			char buf[4];
 			sprintf(buf,"m%d",i);
-			cfgdata.tvmode[i]=mwGetVarValue(param->pxVars,buf)?1:0;
+			cfgdata.tvmode[i]=mwGetVarValue(param->pxVars,buf, 0) ? 1 : 0;
 		}
 		// print new settings in console
 		printf("\n--- Configuration ---\nNetwork Interface: %d\n",cfgdata.ethif);
