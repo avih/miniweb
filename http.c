@@ -26,7 +26,7 @@ const char g_chPasswordPage[]="password.htm";
 
 char* contentTypeTable[]={
 	HTTPTYPE_OCTET,HTTPTYPE_HTML,HTTPTYPE_XML,HTTPTYPE_TEXT,HTTPTYPE_XUL,HTTPTYPE_CSS,HTTPTYPE_PNG,HTTPTYPE_JPEG,HTTPTYPE_GIF,HTTPTYPE_SWF,
-	HTTPTYPE_MPA,HTTPTYPE_MPEG,HTTPTYPE_AVI,HTTPTYPE_QUICKTIME,HTTPTYPE_QUICKTIME,HTTPTYPE_JS,HTTPTYPE_OCTET,HTTPTYPE_STREAM
+	HTTPTYPE_MPA,HTTPTYPE_MPEG,HTTPTYPE_AVI,HTTPTYPE_QUICKTIME,HTTPTYPE_QUICKTIME,HTTPTYPE_264,HTTPTYPE_JS,HTTPTYPE_OCTET,HTTPTYPE_STREAM
 };
 
 char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
@@ -1406,6 +1406,7 @@ int mwGetContentType(char *pchExtname)
 		case FILEEXT_AVI:	return HTTPFILETYPE_AVI;
 		case FILEEXT_MP4:	return HTTPFILETYPE_MP4;
 		case FILEEXT_MOV:	return HTTPFILETYPE_MOV;
+		case FILEEXT_264:	return HTTPFILETYPE_264;
 		}
 	} else if (pchExtname[4]=='\0' || pchExtname[4]=='?') {
 		//logic-and with 0xdfdfdfdf gets the uppercase of 4 chars

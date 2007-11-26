@@ -9,6 +9,10 @@
 #ifndef _HTTPPIL_H_
 #define _HTTPPIL_H_
 
+#ifdef SYS_MINGW
+#define WIN32
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
@@ -31,7 +35,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -39,12 +42,18 @@
 #include <sys/select.h>
 #endif
 
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
+
 #ifdef WIN32
 
 #define ssize_t size_t
 #define socklen_t int
+#ifndef HAVE_PTHREAD
 typedef HANDLE pthread_t;
 typedef HANDLE pthread_mutex_t;
+#endif
 
 typedef DWORD (WINAPI *PFNGetProcessId)(HANDLE hProcess);
 

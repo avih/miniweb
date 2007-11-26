@@ -34,6 +34,7 @@
 #define HTTPTYPE_MPEG "video/mpeg"
 #define HTTPTYPE_AVI "video/x-msvideo"
 #define HTTPTYPE_QUICKTIME "video/quicktime"
+#define HTTPTYPE_264 "video/H264"
 #define HTTPTYPE_OCTET "application/octet-stream"
 #define HTTPTYPE_STREAM "application/x-datastream"
 #define HTTP_CONTENTLENGTH "Content-Length:"
@@ -61,10 +62,11 @@
 #define FILEEXT_HTML DEFDWORD('H','T','M','L')
 #define FILEEXT_MPG DEFDWORD('M','P','G',0)
 #define FILEEXT_MPEG DEFDWORD('M','P','E','G')
-#define FILEEXT_MPA DEFDWORD('M','P',('3' - 32),0)
+#define FILEEXT_MPA DEFDWORD('M','P','3' - 32,0)
 #define FILEEXT_AVI DEFDWORD('A','V','I',0)
-#define FILEEXT_MP4 DEFDWORD('M','P',('4' - 32),0)
+#define FILEEXT_MP4 DEFDWORD('M','P','4' - 32,0)
 #define FILEEXT_MOV DEFDWORD('M','O','V',0)
+#define FILEEXT_264 DEFDWORD('2' - 32, '6' - 32, '4' - 32, 0)
 
 // Settings for http server
 #define HTTP_EXPIRATION_TIME (30/*secs*/)

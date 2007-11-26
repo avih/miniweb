@@ -39,10 +39,10 @@
 #define GETWORD(ptrData) (*(WORD*)(ptrData))
 #define SETWORD(ptrData,data) (*(WORD*)(ptrData)=data)
 #ifndef BIG_ENDINE
-#define DEFDWORD(char1,char2,char3,char4) (char1+(char2<<8)+(char3<<16)+(char4<<24))
+#define DEFDWORD(char1,char2,char3,char4) ((char1)+((char2)<<8)+((char3)<<16)+((char4)<<24))
 #define DEFWORD(char1,char2) (char1+(char2<<8))
 #else
-#define DEFDWORD(char1,char2,char3,char4) (char4+(char3<<8)+(char2<<16)+(char1<<24))
+#define DEFDWORD(char1,char2,char3,char4) ((char4)+((char3)<<8)+((char2)<<16)+((char1)<<24))
 #define DEFWORD(char1,char2) (char2+(char1<<8))
 #endif
 
@@ -71,6 +71,7 @@ typedef enum {
   HTTPFILETYPE_AVI,
   HTTPFILETYPE_MP4,
   HTTPFILETYPE_MOV,
+  HTTPFILETYPE_264,
   HTTPFILETYPE_JS,
   HTTPFILETYPE_OCTET,
   HTTPFILETYPE_STREAM,

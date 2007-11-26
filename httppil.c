@@ -50,7 +50,7 @@ char *GetTimeString()
 #ifndef NOTHREAD
 int ThreadCreate(pthread_t *pth, void* (*start_routine)(void*), void* arg)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	DWORD dwid;	    
 	*pth=CreateThread(0,0,(LPTHREAD_START_ROUTINE)start_routine,arg,0,&dwid);
 	return *pth!=NULL?0:1;
@@ -61,7 +61,7 @@ int ThreadCreate(pthread_t *pth, void* (*start_routine)(void*), void* arg)
 
 int ThreadKill(pthread_t pth)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	return TerminateThread(pth,0)?0:1;
 #else
 	return pthread_cancel(pth);
@@ -70,7 +70,7 @@ int ThreadKill(pthread_t pth)
 
 int ThreadWait(pthread_t pth,void** ret)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	if (WaitForSingleObject(pth,INFINITE)!=WAIT_OBJECT_0)
 		return GetLastError();
 	if (ret) GetExitCodeThread(pth,(LPDWORD)ret);
@@ -82,7 +82,7 @@ int ThreadWait(pthread_t pth,void** ret)
 
 void MutexCreate(pthread_mutex_t* mutex)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	*mutex = CreateMutex(0,FALSE,NULL);
 #else
 	pthread_mutex_init(mutex,NULL);
@@ -91,7 +91,7 @@ void MutexCreate(pthread_mutex_t* mutex)
 
 void MutexDestroy(pthread_mutex_t* mutex)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	CloseHandle(*mutex);
 #else
 	pthread_mutex_destroy(mutex);
@@ -100,7 +100,7 @@ void MutexDestroy(pthread_mutex_t* mutex)
 
 void MutexLock(pthread_mutex_t* mutex)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	WaitForSingleObject(*mutex,INFINITE);
 #else
 	pthread_mutex_lock(mutex);
@@ -109,7 +109,7 @@ void MutexLock(pthread_mutex_t* mutex)
 
 void MutexUnlock(pthread_mutex_t* mutex)
 {
-#ifdef WIN32
+#ifndef HAVE_PTHREAD
 	ReleaseMutex(*mutex);
 #else
 	pthread_mutex_unlock(mutex);
