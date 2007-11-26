@@ -3,16 +3,29 @@
 #include "httppil.h"
 #include "httpapi.h"
 
-int MyUrlHandler(UrlHandlerParam* param);
-int MyUrlHandlerInit(MW_EVENT msg, int argi, void* argp);
+static HttpParam httpParam;
 
-//URL handler list
-UrlHandler urlHandlerList[]={
-	{"cfg.htm",MyUrlHandler,MyUrlHandlerInit},
-	{NULL},
-};
+static int fdStream;
 
-HttpParam httpParam;
+int StreamHandlerEvent(MW_EVENT msg, int argi, void* argp)
+{
+	switch (msg) {
+	case MW_INIT:
+		fdStream = _open("test.txt", _O_BINARY | _O_RDONLY);
+		break;
+	case MW_UNINIT:
+		_close(fdStream);
+		break;
+	}
+	return 0;
+}
+
+int StreamHandler(UrlHandlerParam* param)
+{
+	param->iDataBytes = _read(fdStream, param->pucBuffer, param->iDataBytes);
+	param->fileType = HTTPFILETYPE_TEXT;
+	return FLAG_DATA_STREAM | FLAG_CONN_CLOSE;
+}
 
 struct {
 	int ethif;
@@ -21,7 +34,7 @@ struct {
 	char tvmode[4];
 } cfgdata;
 
-int MyUrlHandlerInit(MW_EVENT msg, int argi, void* argp)
+int MyUrlHandlerEvent(MW_EVENT msg, int argi, void* argp)
 {
 	switch (msg) {
 	case MW_INIT:
@@ -114,10 +127,45 @@ int DefaultWebSubstCallback(SubstParam* sp)
 	return -1;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// callback from the web server whenever it recevies posted data
+//////////////////////////////////////////////////////////////////////////
+int DefaultWebPostCallback(PostParam* pp)
+{
+  int iReturn=WEBPOST_OK;
+
+  // by default redirect to config page
+  strcpy(pp->chFilename,"index.htm");
+
+  return iReturn;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// callback from the web server whenever it receives a multipart 
+// upload file chunk
+//////////////////////////////////////////////////////////////////////////
+int DefaultWebFileUploadCallback(char *pchFilename,
+                                 OCTET oFileuploadStatus,
+                                 OCTET *poData,
+                                 DWORD dwDataChunkSize)
+{
+  // Do nothing with the data
+  printf("Received %lu bytes for multipart upload file %s\n",
+               dwDataChunkSize, pchFilename);
+  return 0;
+}
+
 void MiniWebQuit(int arg) {
 	printf("\nCaught signal (%d). MiniWeb shutting down...\n",arg);
 	httpParam.bKillWebserver=1;
 }
+
+//URL handler list
+static UrlHandler urlHandlerList[]={
+	{"cfg.htm",MyUrlHandler,MyUrlHandlerEvent},
+	{"stream",StreamHandler,StreamHandlerEvent},
+	{NULL},
+};
 
 int main(int argc,char* argv[])
 {

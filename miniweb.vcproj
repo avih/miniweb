@@ -589,6 +589,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\httppost.c"
+				>
+			</File>
+			<File
 				RelativePath=".\httpvod.c"
 				>
 				<FileConfiguration

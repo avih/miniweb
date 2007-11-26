@@ -111,14 +111,13 @@ int mwServerStart(HttpParam* hp)
 			}
 		}
 	}
-/*
 #ifdef HTTPPOST
 	if (!hp->pfnPost)
 		hp->pfnPost=DefaultWebPostCallback;
 	if (!hp->pfnFileUpload)
 		hp->pfnFileUpload=DefaultWebFileUploadCallback;
 #endif
-*/
+
 #ifdef _7Z
 	hp->szctx = SzInit();
 #endif
@@ -531,7 +530,7 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	SETWORD(p,DEFWORD('\r','\n'));
 	p+=2;
 	p+=sprintf(p,"Content-Type: %s\r\n",contentTypeTable[phsSocket->response.fileType]);
-	if (phsSocket->response.iContentLength >= 0) {
+	if (phsSocket->response.iContentLength > 0) {
 		p+=sprintf(p,"Content-Length: %d\r\n",phsSocket->response.iContentLength);
 	}
 	SETDWORD(p,DEFDWORD('\r','\n',0,0));
@@ -631,6 +630,11 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->iDataLength=up.iDataBytes;
 					phsSocket->response.iContentLength=up.iContentBytes>0?up.iContentBytes:up.iDataBytes;
 					DBG("URL handler: raw data)\n");
+				} else if (ret & FLAG_DATA_STREAM) {
+					SETFLAG(phsSocket, FLAG_DATA_STREAM);
+					phsSocket->pucData=up.pucBuffer;
+					phsSocket->iDataLength=up.iDataBytes;
+					DBG("URL handler: stream)\n");
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					if (up.pucBuffer[0])
@@ -765,7 +769,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		CLRFLAG(phsSocket,FLAG_RECEIVING)
 		SETFLAG(phsSocket,FLAG_SENDING);
 		hp->stats.reqGetCount++;
-		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW)) {
+
+		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW | FLAG_DATA_STREAM)) {
 			return _mwStartSendRawData(hp, phsSocket);
 		} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 			// send requested page
@@ -1179,9 +1184,7 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		phsSocket->pucData+=iBytesWritten;
 		phsSocket->iDataLength-=iBytesWritten;
 	}
-	if (phsSocket->iDataLength<=0 && 
-			ISFLAGSET(phsSocket,FLAG_DATA_STREAM) &&
-			phsSocket->response.iSentBytes<phsSocket->response.iContentLength) {
+	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM)) {
 		//load next chuck of raw data
 		UrlHandlerParam uhp;
 		memset(&uhp,0,sizeof(UrlHandlerParam));

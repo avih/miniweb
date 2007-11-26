@@ -15,8 +15,7 @@
 #include "httpint.h"
 
 #ifdef HTTPPOST
-
-extern HttpParam g_httpParam;
+#define DEBUG printf
 
 ////////////////////////////////////////////////////////////////////////////
 // _mwFindMultipartBoundary
@@ -42,13 +41,13 @@ OCTET* _mwFindMultipartBoundary(OCTET *poHaystack, int iHaystackSize, OCTET *poN
 // mwFileUploadRegister
 // Register a MULTIPART FILE UPLOAD callback
 ////////////////////////////////////////////////////////////////////////////
-PFNFILEUPLOADCALLBACK mwFileUploadRegister(PFNFILEUPLOADCALLBACK pfnUploadCb) 
+PFNFILEUPLOADCALLBACK mwFileUploadRegister(HttpParam *httpParam, PFNFILEUPLOADCALLBACK pfnUploadCb) 
 {
-  PFNFILEUPLOADCALLBACK pfnUploadPrevCb=g_httpParam.pfnFileUpload;
+  PFNFILEUPLOADCALLBACK pfnUploadPrevCb=httpParam->pfnFileUpload;
   
   // save new CB
   if (pfnUploadCb==NULL) return NULL;
-  g_httpParam.pfnFileUpload=pfnUploadCb;
+  httpParam->pfnFileUpload=pfnUploadCb;
   
   // return previous CB (so app can chain onto it)
   return pfnUploadPrevCb;
@@ -58,13 +57,13 @@ PFNFILEUPLOADCALLBACK mwFileUploadRegister(PFNFILEUPLOADCALLBACK pfnUploadCb)
 // mwPostRegister
 // Register a POST callback
 ////////////////////////////////////////////////////////////////////////////
-PFNPOSTCALLBACK mwPostRegister(PFNPOSTCALLBACK pfnPostCb) 
+PFNPOSTCALLBACK mwPostRegister(HttpParam *httpParam, PFNPOSTCALLBACK pfnPostCb) 
 {
-  PFNPOSTCALLBACK pfnPostPrevCb=g_httpParam.pfnPost;
+  PFNPOSTCALLBACK pfnPostPrevCb=httpParam->pfnPost;
 
   // save new CB
   if (pfnPostCb==NULL) return NULL;
-  g_httpParam.pfnPost=pfnPostCb;
+  httpParam->pfnPost=pfnPostCb;
 
   // return previous CB (so app can chain onto it)
   return pfnPostPrevCb;
@@ -82,7 +81,7 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
     
     // call app callback to process post vars
     //ASSERT(g_httpParam.pfnPost!=NULL);
-    iReturn=(*g_httpParam.pfnPost)(pp);
+	iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
     
 #ifdef HTTPAUTH
     switch(iReturn) {
@@ -139,14 +138,14 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
 // _mwProcessMultipartPost
 // Process a multipart POST request
 ////////////////////////////////////////////////////////////////////////////
-void _mwProcessMultipartPost(HttpSocket* phsSocket)
+void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
 {
   int sLength;
   char *pchBoundarySearch = NULL;
   HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
   
   if (phsSocket == NULL || pxMP == NULL) {
-    _mwCloseSocket(phsSocket);
+    _mwCloseSocket(httpParam, phsSocket);
     return;
   }
   
@@ -158,7 +157,7 @@ void _mwProcessMultipartPost(HttpSocket* phsSocket)
   
   if (sLength < 0) {
     DEBUG("Socket closed by peer\n");
-    _mwCloseSocket(phsSocket);
+    _mwCloseSocket(httpParam, phsSocket);
     return;
   }
   else if (sLength > 0) {
@@ -179,7 +178,7 @@ void _mwProcessMultipartPost(HttpSocket* phsSocket)
       // It's the last chunk of the posted file
       // Warning: MAY BE BIGGER THAN HTTPUPLOAD_CHUNKSIZE
       pxMP->oFileuploadStatus |= HTTPUPLOAD_LASTCHUNK;
-      (*g_httpParam.pfnFileUpload)(pxMP->pchFilename,
+      (httpParam->pfnFileUpload)(pxMP->pchFilename,
                          pxMP->oFileuploadStatus,
                          phsSocket->buffer, 
                          (DWORD)pchBoundarySearch - (DWORD)phsSocket->buffer);
@@ -304,7 +303,7 @@ void _mwProcessMultipartPost(HttpSocket* phsSocket)
   if (pxMP->iWriteLocation == HTTPMAXRECVBUFFER) {
     if (pxMP->pchFilename != NULL) {
       // callback with next chunk of posted file
-      (*g_httpParam.pfnFileUpload)(pxMP->pchFilename,
+      (httpParam->pfnFileUpload)(pxMP->pchFilename,
                          pxMP->oFileuploadStatus,
                          phsSocket->buffer, 
                          HTTPUPLOAD_CHUNKSIZE);
@@ -316,7 +315,7 @@ void _mwProcessMultipartPost(HttpSocket* phsSocket)
     } 
     else {
       // error, posted variable too large?
-      _mwCloseSocket(phsSocket);
+      _mwCloseSocket(httpParam, phsSocket);
     }
   }
   
@@ -328,7 +327,7 @@ void _mwProcessMultipartPost(HttpSocket* phsSocket)
 // Extract and process POST variables
 // NOTE: the function damages the recvd data
 ////////////////////////////////////////////////////////////////////////////
-void _mwProcessPostVars(HttpSocket* phsSocket,
+void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
                           int iContentOffset,
                           int iContentLength)
 {
@@ -343,7 +342,7 @@ void _mwProcessPostVars(HttpSocket* phsSocket,
   //ASSERT(iContentOffset+iContentLength<=phsSocket->iDataLength);
 
   // extract the posted vars
-  if (g_httpParam.pfnPost!=NULL) {
+  if (httpParam->pfnPost!=NULL) {
     int i;
     char* pchPos;
     char* pchVar=phsSocket->buffer+iContentOffset;
@@ -351,6 +350,7 @@ void _mwProcessPostVars(HttpSocket* phsSocket,
     
     // init number of param block
     memset(&pp, 0, sizeof(PostParam));
+	pp.httpParam = httpParam;
     
     // null terminate content data
     *(pchVar+iContentLength)='\0';
@@ -377,7 +377,7 @@ void _mwProcessPostVars(HttpSocket* phsSocket,
       if (bAuthenticated || 
           (*pp.stParams[pp.iNumParams].pchParamName=='.')) {
         // convert any encoded characters
-        _mwDecodeString(pp.stParams[pp.iNumParams].pchParamValue);
+        mwDecodeString(pp.stParams[pp.iNumParams].pchParamValue);
         
         DEBUG("Http POST var %d [%s]=[%s]\n",
                pp.iNumParams,
@@ -413,7 +413,7 @@ void _mwProcessPostVars(HttpSocket* phsSocket,
 // _mwProcessPost
 // Process a POST request 
 ////////////////////////////////////////////////////////////////////////////
-void _mwProcessPost(HttpSocket* phsSocket)
+void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket)
 {
   int iContentLength=-1;
   int iHeaderLength=0;
@@ -459,29 +459,29 @@ void _mwProcessPost(HttpSocket* phsSocket)
           //ASSERT((HttpMultipart*)phsSocket->ptr != NULL);
           
           // What is the 'boundary' value
-          strcpy((HttpMultipart*)phsSocket->ptr->pchBoundaryValue,"--");
+          strcpy(((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue,"--");
           pchBoundarySearch = _mwStrStrNoCase(phsSocket->buffer, 
                                                 HTTP_MULTIPARTBOUNDARY);
           if (pchBoundarySearch != NULL) {
             sscanf(pchBoundarySearch+9,"%s",
-                   (HttpMultipart*)phsSocket->ptr->pchBoundaryValue+2);
+                   ((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue+2);
           } else {
             DEBUG("Error! Http multipart POST header recvd on socket %d does not contain a boundary value\n",
                    phsSocket->socket);
-            _mwCloseSocket(phsSocket);
+            _mwCloseSocket(httpParam, phsSocket);
             return;
           }
           
           //ASSERT(phsSocket->buffer != NULL);
           
           // Shift window to start at first boundary indicator
-          (HttpMultipart*)phsSocket->ptr->iWriteLocation = 
+          ((HttpMultipart*)phsSocket->ptr)->iWriteLocation = 
             phsSocket->iDataLength - iHttpHeaderLength;
-          //ASSERT((HttpMultipart*)phsSocket->ptr->iWriteLocation >= 0);
+          //ASSERT(((HttpMultipart*)phsSocket->ptr)->iWriteLocation >= 0);
           memmove(phsSocket->buffer, pchHttpHeaderEnd + 2, 
-                  (HttpMultipart*)phsSocket->ptr->iWriteLocation);
-          memset(phsSocket->buffer + (HttpMultipart*)phsSocket->ptr->iWriteLocation, 0,
-                HTTPMAXRECVBUFFER - (HttpMultipart*)phsSocket->ptr->iWriteLocation);
+                  ((HttpMultipart*)phsSocket->ptr)->iWriteLocation);
+          memset(phsSocket->buffer + ((HttpMultipart*)phsSocket->ptr)->iWriteLocation, 0,
+                HTTPMAXRECVBUFFER - ((HttpMultipart*)phsSocket->ptr)->iWriteLocation);
         } 
         else {
           DEBUG("Http multipart POST on socket %d waiting for additional header info\n",
@@ -505,7 +505,7 @@ void _mwProcessPost(HttpSocket* phsSocket)
     // check if we have the whole message
     if (iHeaderLength+iContentLength <= phsSocket->iDataLength) {
       // process the variables
-      _mwProcessPostVars(phsSocket,iHeaderLength,iContentLength);
+      _mwProcessPostVars(httpParam, phsSocket,iHeaderLength,iContentLength);
     } else {
       // not enough content received yet
       DEBUG("Http POST on socket %d waiting for additional data (%d of %d recvd)\n",

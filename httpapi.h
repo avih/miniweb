@@ -89,6 +89,7 @@ typedef struct _tagPostParam {
     char* pchParamName;
     char* pchParamValue;
   } stParams[MAXPOSTPARAMS];
+  void *httpParam;
   int iNumParams;
   char chFilename[MAXPOSTREDIRECTFILENAME];
 } PostParam;
@@ -304,13 +305,13 @@ int mwSetRcvBufSize(WORD wSize);
 // mwPostRegister. Specify the callback to be called when a POST is
 // recevied.
 ///////////////////////////////////////////////////////////////////////
-PFNPOSTCALLBACK mwPostRegister(PFNPOSTCALLBACK);
+PFNPOSTCALLBACK mwPostRegister(HttpParam *httpParam, PFNPOSTCALLBACK);
 
 ///////////////////////////////////////////////////////////////////////
 // mwFileUploadRegister. Specify the callback to be called whenever the 
 // server has the next data chunk available from a multipart file upload.
 ///////////////////////////////////////////////////////////////////////
-PFNFILEUPLOADCALLBACK mwFileUploadRegister(PFNFILEUPLOADCALLBACK);
+PFNFILEUPLOADCALLBACK mwFileUploadRegister(HttpParam *httpParam, PFNFILEUPLOADCALLBACK);
 
 ///////////////////////////////////////////////////////////////////////
 // Default subst, post and file-upload callback processing
