@@ -734,6 +734,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		DBG("%s",phsSocket->buffer);
 	}
 	if ( phsSocket->iDataLength < phsSocket->response.iContentLength ) {
+		// there is more data
 		return 0;
 	}
 	p=phsSocket->buffer + phsSocket->request.siHeaderSize + 4;
