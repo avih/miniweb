@@ -258,8 +258,10 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
           pchEnd=_mwStrDword(pchFilename, HTTP_HEADEREND, 0) + 4;  //move past "\r\n\r\n"
           pxMP->iWriteLocation -= (DWORD)pchEnd - (DWORD)phsSocket->buffer;
           memmove(phsSocket->buffer, pchEnd, pxMP->iWriteLocation);
+		  /*
           memset(phsSocket->buffer + pxMP->iWriteLocation, 0,
                 HTTPMAXRECVBUFFER - pxMP->iWriteLocation);
+				*/
           continue;
         } 
         else {
@@ -275,6 +277,10 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
     memset(phsSocket->buffer + pxMP->iWriteLocation, 0, HTTPMAXRECVBUFFER - pxMP->iWriteLocation);
     
     // check if this is the last boundary indicator?
+	{
+		char *p = phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2;
+		p = p;
+	}
     if (strncmp(phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2, "--\r\n",4) == 0) {
       // yes, we're all done
       int i;

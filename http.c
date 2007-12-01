@@ -756,6 +756,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					} else if (ret > 0) {
 						goto done;
 					}
+					return 0;
 				} else {
 					phsSocket->request.pucPayload=malloc(phsSocket->response.iContentLength+1);
 					phsSocket->request.pucPayload[phsSocket->response.iContentLength]=0;
