@@ -22,7 +22,7 @@
 #define min(x,y) (x>y?y:x)
 #endif
 
-#ifndef NODEBUG
+#ifdef _DEBUG
 #define DBG printf
 #else
 #define DBG
@@ -92,7 +92,7 @@ typedef struct _tagPostParam {
   } stParams[MAXPOSTPARAMS];
   void *httpParam;
   int iNumParams;
-  char chFilename[MAXPOSTREDIRECTFILENAME];
+  char *pchFilename;
 } PostParam;
 
 // multipart file upload post (per socket) structure
@@ -201,7 +201,7 @@ typedef struct _HttpSocket{
 	int iDataLength;
 
 	int fd;
-	unsigned long flags;
+	unsigned int flags;
 	void* ptr;
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
@@ -213,11 +213,11 @@ typedef struct _HttpSocket{
 typedef struct {
 	void* hp;
 	HttpSocket* hs;
-	char *pucRequest;
+	unsigned char *pucRequest;
 	HttpVariables* pxVars;
 	int iVarCount;
-	char *pucHeader;
-	char *pucBuffer;
+	unsigned char *pucHeader;
+	unsigned char *pucBuffer;
 	int iDataBytes;
 	int iContentBytes;
 	int iSentBytes;

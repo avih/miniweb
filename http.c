@@ -521,7 +521,7 @@ SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 
 int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateTime, unsigned char* buffer)
 {
-	char *p=buffer;
+	unsigned char *p=buffer;
 	p+=sprintf(p,HTTP200_HEADER,
 		(phsSocket->request.iStartByte==0)?"200 OK":"206 Partial content",
 		HTTP_KEEPALIVE_TIME,hp->maxReqPerConn,
@@ -658,11 +658,9 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 ////////////////////////////////////////////////////////////////////////////
 int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
-	char *p;
-
 #ifdef HTTPPOST
     if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && (HttpMultipart*)phsSocket->ptr != NULL) {
-		int ret = _mwProcessMultipartPost(hp, phsSocket);
+		int ret = _mwProcessMultipartPost(hp, phsSocket, FALSE);
 		if (!ret) return 0;
 		if (ret < 0) {
 		SETFLAG(phsSocket, FLAG_CONN_CLOSE);
@@ -697,12 +695,12 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	switch (GETDWORD(phsSocket->pucData)) {
 	case HTTP_GET:
 		SETFLAG(phsSocket,FLAG_REQUEST_GET);
-		phsSocket->request.pucPath=phsSocket->pucData+5;
+		phsSocket->request.pucPath = phsSocket->pucData + 5;
 		break;
 #ifdef HTTPPOST
 	case HTTP_POST:
 		SETFLAG(phsSocket,FLAG_REQUEST_POST);
-		phsSocket->request.pucPath=phsSocket->pucData+6;
+		phsSocket->request.pucPath = phsSocket->pucData + 6;
 		break;
 #endif
 	}
@@ -725,14 +723,47 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SYSLOG(LOG_INFO,"Error parsing request\n");
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return -1;
+		} else {
+			char *path;
+			// keep request path
+			for (i = 0; i < MAX_REQUEST_PATH_LEN && phsSocket->request.pucPath[i] !=' ' && phsSocket->request.pucPath[i] != '?'; i++);
+			if (i >= MAX_REQUEST_PATH_LEN) {
+				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+				return -1;
+			}
+			path = malloc(i + 1);
+			memcpy(path, phsSocket->request.pucPath, i);
+			path[i] = 0;
+			phsSocket->request.pucPath = path;
 #ifdef HTTPPOST
-		} else if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
-			hp->stats.reqPostCount++;
-			phsSocket->request.pucPayload=malloc(phsSocket->response.iContentLength+1);
-			phsSocket->request.pucPayload[phsSocket->response.iContentLength]=0;
-			phsSocket->iDataLength -= phsSocket->request.siHeaderSize;
-			memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.siHeaderSize, phsSocket->iDataLength);
-			phsSocket->pucData = phsSocket->request.pucPayload;
+			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
+				hp->stats.reqPostCount++;
+				if ((HttpMultipart*)phsSocket->ptr) {
+					// is multipart request
+					int ret;
+					HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
+					phsSocket->iDataLength -= (phsSocket->request.siHeaderSize - 2);
+					memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.siHeaderSize - 2, phsSocket->iDataLength);
+					phsSocket->pucData = phsSocket->buffer;
+					pxMP->pp.httpParam = hp;
+					pxMP->pp.pchFilename = phsSocket->request.pucPath;
+					pxMP->iWriteLocation = phsSocket->iDataLength;
+
+					ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
+					if (ret < 0) {
+						SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+						return -1;
+					} else if (ret > 0) {
+						goto done;
+					}
+				} else {
+					phsSocket->request.pucPayload=malloc(phsSocket->response.iContentLength+1);
+					phsSocket->request.pucPayload[phsSocket->response.iContentLength]=0;
+					phsSocket->iDataLength -= phsSocket->request.siHeaderSize;
+					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.siHeaderSize, phsSocket->iDataLength);
+					phsSocket->pucData = phsSocket->request.pucPayload;
+				}
+			}
 #endif
 		}
 		// add header zero terminator
@@ -744,27 +775,9 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		return 0;
 	}
 done:
-	p=phsSocket->buffer + phsSocket->request.siHeaderSize + 4;
-	p=(unsigned char*)((unsigned long)p & (-4));	//keep 4-byte aligned
-	*p=0;
-	//keep request path
-	{
-		char *q;
-		int iPathLen;
-		for (q=phsSocket->request.pucPath;*q && *q!=' ';q++);
-		iPathLen=(int)q-(int)(phsSocket->request.pucPath);
-		if (iPathLen>=MAX_REQUEST_PATH_LEN) {
-			DBG("Request path too long and is stripped\n");
-			iPathLen=MAX_REQUEST_PATH_LEN-1;
-		}
-		if (iPathLen>0)
-			memcpy(p,phsSocket->request.pucPath,iPathLen);
-		*(p+iPathLen)=0;
-		phsSocket->request.pucPath=p;
-		p=(unsigned char*)(((unsigned long)(p+iPathLen+4+1))&(-4));	//keep 4-byte aligned
-	}
-	phsSocket->pucData=p;	//free buffer space
-	phsSocket->response.iBufferSize=(HTTP_BUFFER_SIZE-(phsSocket->pucData-phsSocket->buffer)-1)&(-4);
+
+	phsSocket->pucData = phsSocket->buffer + phsSocket->request.siHeaderSize + 4;
+	phsSocket->response.iBufferSize = HTTP_BUFFER_SIZE- phsSocket->request.siHeaderSize - 4;
 
 	SYSLOG(LOG_INFO,"[%d] request path: /%s\n",phsSocket->socket,phsSocket->request.pucPath);
 	hp->stats.reqCount++;
@@ -824,9 +837,13 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->ptr);
 		phsSocket->ptr=NULL;
 	}
+	if (phsSocket->request.pucPath) free(phsSocket->request.pucPath);
 #ifdef HTTPPOST
-	if (phsSocket->request.pucPayload) {
-		free(phsSocket->request.pucPayload);
+	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
+		if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
+		if (phsSocket->ptr) {
+			free(phsSocket->ptr);
+		}
 	}
 #endif
 	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount<hp->maxReqPerConn) {
@@ -839,7 +856,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
     if (phsSocket->socket != 0) {
 		closesocket(phsSocket->socket);
 	} else {
-		SYSLOG(LOG_INFO,"[%d] bug: socket=0 (structure: 0x%x \n",phsSocket->socket,phsSocket);
+		SYSLOG(LOG_INFO,"[%d] bug: socket=0 (structure: 0x%x \n", phsSocket->socket, (unsigned int)phsSocket);
 	}
 
 	hp->stats.clientCount--;
@@ -900,7 +917,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 			p+=sprintf(p,"<tr><td width=35%%><a href='%s/'>%s</a></td><td width=15%%>&lt;dir&gt;</td><td width=15%%>",
 				cFileName,cFileName);
 		} else {
-			p+=sprintf(p,"<tr><td width=35%%><a href='%s'>%s</a></td><td width=15%%>%d bytes</td><td width=15%%>",
+			p+=sprintf(p,"<tr><td width=35%%><a href='%s'>%s</a></td><td width=15%%>%u bytes</td><td width=15%%>",
 				cFileName,cFileName,st.st_size);
 			s=strrchr(cFileName,'.');
 			if (s) {
@@ -928,7 +945,6 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 
 void _mwSend404Page(HttpSocket* phsSocket)
 {
-	int offset=0;
 	char hdr[128];
 	int hdrsize = snprintf(hdr, sizeof(hdr), HTTP404_HEADER, sizeof(HTTP404_BODY) - 1);
 	SYSLOG(LOG_INFO,"[%d] Http file not found\n",phsSocket->socket);
@@ -1313,7 +1329,6 @@ char* _mwStrStrNoCase(char* pchHaystack, char* pchNeedle)
 ////////////////////////////////////////////////////////////////////////////
 char* _mwStrDword(char* pchHaystack, DWORD dwSub, DWORD dwCharMask)
 {
-	char* pchReturn=NULL;
 	dwCharMask = dwCharMask?(dwCharMask & 0xdfdfdfdf):0xdfdfdfdf;
 	dwSub &= dwCharMask;
 	while(*pchHaystack) {
@@ -1466,10 +1481,12 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				phsSocket->response.iContentLength=atoi(buf);
 			} else if (!memcmp(p, "ontent-Type: ", 13)) {
 				p += 13;
-				if (!memcmp(p, "multipart/form-data; ", 21)) {
+				if (!memcmp(p, "multipart/form-data; boundary=", 30)) {
 					// request is a multipart POST
-					p += 21;
-					p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
+					p += 30;
+					buf[0] = '-';
+					buf[1] = '-';
+					p += _mwGrabToken(p ,'\r', buf + 2, sizeof(buf) - 2);
 					phsSocket->ptr = calloc(1, sizeof(HttpMultipart));
 					strcpy(((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue, buf);
 				}

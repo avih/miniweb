@@ -77,7 +77,7 @@
 #define HTTPHEADERSIZE (512/*bytes*/)
 #define HTTPSMALLBUFFER (256/*bytes*/)
 #define HTTPMAXRECVBUFFER HTTP_BUFFER_SIZE
-#define HTTPUPLOAD_CHUNKSIZE (1024/*bytes*/)
+#define HTTPUPLOAD_CHUNKSIZE (HTTPMAXRECVBUFFER / 2/*bytes*/)
 #define MAX_REQUEST_PATH_LEN (512/*bytes*/)
 #define MAX_REQUEST_SIZE (2*1024 /*bytes*/)
 
@@ -103,7 +103,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
 int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket);
 int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket);
 void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket);
-int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket);
+int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fNoRecv);
 int _mwSubstVariables(HttpParam* hp, char* pchData, int iLength, int* piBytesUsed);
 char* _mwStrStrNoCase(char* pchHaystack, char* pchNeedle);
 void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,

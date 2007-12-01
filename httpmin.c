@@ -135,7 +135,7 @@ int DefaultWebPostCallback(PostParam* pp)
   int iReturn=WEBPOST_OK;
 
   // by default redirect to config page
-  strcpy(pp->chFilename,"index.htm");
+  //strcpy(pp->pchFilename,"index.htm");
 
   return iReturn;
 }
@@ -150,9 +150,19 @@ int DefaultWebFileUploadCallback(char *pchFilename,
                                  DWORD dwDataChunkSize)
 {
   // Do nothing with the data
-  printf("Received %lu bytes for multipart upload file %s\n",
-               dwDataChunkSize, pchFilename);
-  return 0;
+	static int fd = 0;
+	if (!fd && pchFilename) {
+		fd = open(pchFilename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
+	}
+	if (fd) {
+		write(fd, poData, dwDataChunkSize);
+	}
+	if (oFileuploadStatus & HTTPUPLOAD_LASTCHUNK) {
+		close(fd);
+		fd = 0;
+	}
+	printf("Received %lu bytes for multipart upload file %s\n", dwDataChunkSize, pchFilename);
+	return 0;
 }
 
 void MiniWebQuit(int arg) {

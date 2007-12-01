@@ -10,7 +10,9 @@
 #define _HTTPPIL_H_
 
 #ifdef SYS_MINGW
+#ifndef WIN32
 #define WIN32
+#endif
 #endif
 
 #ifdef WIN32
