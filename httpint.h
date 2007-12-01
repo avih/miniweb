@@ -103,7 +103,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
 int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket);
 int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket);
 void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket);
-void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket);
+int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket);
 int _mwSubstVariables(HttpParam* hp, char* pchData, int iLength, int* piBytesUsed);
 char* _mwStrStrNoCase(char* pchHaystack, char* pchNeedle);
 void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,

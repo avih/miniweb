@@ -138,7 +138,7 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
 // _mwProcessMultipartPost
 // Process a multipart POST request
 ////////////////////////////////////////////////////////////////////////////
-void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
+int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
 {
   int sLength;
   char *pchBoundarySearch = NULL;
@@ -146,7 +146,7 @@ void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
   
   if (phsSocket == NULL || pxMP == NULL) {
     _mwCloseSocket(httpParam, phsSocket);
-    return;
+    return -1;
   }
   
   // Grab more POST data from the socket
@@ -158,7 +158,7 @@ void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
   if (sLength < 0) {
     DEBUG("Socket closed by peer\n");
     _mwCloseSocket(httpParam, phsSocket);
-    return;
+    return -1;
   }
   else if (sLength > 0) {
     // reset expiration timer
@@ -290,7 +290,7 @@ void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
       DEBUG("Multipart POST on socket %d complete!\n",
                    phsSocket->socket);
       
-      return;
+      return 1;
     }
     
     // Search for next boundary indicator
@@ -319,7 +319,7 @@ void _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket)
     }
   }
   
-  return;
+  return 0;
 } // end of _mwProcessMultipartPost
 
 ////////////////////////////////////////////////////////////////////////////

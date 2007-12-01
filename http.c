@@ -661,11 +661,17 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	char *p;
 
 #ifdef HTTPPOST
-    if ((HttpMultipart*)phsSocket->ptr != NULL) {
-      //_mwProcessMultipartPost(phsSocket);
-      return 0;
+    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && (HttpMultipart*)phsSocket->ptr != NULL) {
+		int ret = _mwProcessMultipartPost(hp, phsSocket);
+		if (!ret) return 0;
+		if (ret < 0) {
+		SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+		return -1;
+		}
+		goto done;
     }
 #endif
+
 	// check if receive buffer full
 	if (phsSocket->iDataLength>=MAX_REQUEST_SIZE) {
 		// close connection
@@ -737,6 +743,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		// there is more data
 		return 0;
 	}
+done:
 	p=phsSocket->buffer + phsSocket->request.siHeaderSize + 4;
 	p=(unsigned char*)((unsigned long)p & (-4));	//keep 4-byte aligned
 	*p=0;
@@ -1428,14 +1435,14 @@ int _mwGrabToken(char *pchToken, char chDelimiter, char *pchBuffer, int iMaxToke
 		*(pchBuffer++)=*(p++);
 		iCharCopied++;
 	}
-	pchBuffer='\0';
+	*pchBuffer='\0';
 	return (*p==chDelimiter)?iCharCopied:0;
 }
 
 int _mwParseHttpHeader(HttpSocket* phsSocket)
 {
 	int iLen;
-	char buf[12];
+	char buf[128];
 	char *p=phsSocket->buffer;		//pointer to header data
 	HttpRequest *req=&phsSocket->request;
 
@@ -1453,10 +1460,19 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 					SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 					p+=5;
 				}
-			} else if (!memcmp(p,"ontent-Length: ",15)) {
+			} else if (!memcmp(p, "ontent-Length: ", 15)) {
 				p+=15;
 				p+=_mwGrabToken(p,'\r',buf,sizeof(buf));
 				phsSocket->response.iContentLength=atoi(buf);
+			} else if (!memcmp(p, "ontent-Type: ", 13)) {
+				p += 13;
+				if (!memcmp(p, "multipart/form-data; ", 21)) {
+					// request is a multipart POST
+					p += 21;
+					p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
+					phsSocket->ptr = calloc(1, sizeof(HttpMultipart));
+					strcpy(((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue, buf);
+				}
 			}
 			break;
 		case 'R':
