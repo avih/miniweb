@@ -286,7 +286,7 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->flags=FLAG_RECEIVING;
 	phsSocket->pucData=phsSocket->buffer;
 	phsSocket->iDataLength=0;
-	phsSocket->response.iBufferSize=HTTP_BUFFER_SIZE;
+	phsSocket->iBufferSize=HTTP_BUFFER_SIZE;
 	phsSocket->ptr=NULL;
 #if HTTPPOST
 	phsSocket->request.pucPayload = 0;
@@ -605,7 +605,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			memset(&up, 0, sizeof(up));
 			up.hp=hp;
 			up.hs = phsSocket;
-			up.iDataBytes=phsSocket->response.iBufferSize;
+			up.iDataBytes=phsSocket->iBufferSize;
 			up.pucRequest=phsSocket->request.pucPath+iPrefixLen;
 			up.pucHeader=phsSocket->buffer;
 			up.pucBuffer=phsSocket->pucData;
@@ -659,59 +659,66 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
 #ifdef HTTPPOST
-    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && (HttpMultipart*)phsSocket->ptr != NULL) {
-		int ret = _mwProcessMultipartPost(hp, phsSocket, FALSE);
-		if (!ret) return 0;
-		if (ret < 0) {
-		SETFLAG(phsSocket, FLAG_CONN_CLOSE);
-		return -1;
+    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
+		HttpMultipart* pxMP = (HttpMultipart*)phsSocket->ptr;
+		if (pxMP && pxMP->pchBoundaryValue[0]) {
+			// multipart and has valid boundary string
+			int ret = _mwProcessMultipartPost(hp, phsSocket, FALSE);
+			if (!ret) return 0;
+			if (ret < 0) {
+				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+				return -1;
+			}
+			goto done;
 		}
-		goto done;
     }
 #endif
 
-	// check if receive buffer full
-	if (phsSocket->iDataLength>=MAX_REQUEST_SIZE) {
-		// close connection
-		SYSLOG(LOG_INFO,"Invalid request header size (%d bytes)\n",phsSocket->iDataLength);
-		SETFLAG(phsSocket, FLAG_CONN_CLOSE);
-		return -1;
-	}
 	// read next chunk of data
 	{
-		int sLength;
-		sLength=recv(phsSocket->socket, 
+		int iLength = recv(phsSocket->socket, 
 						phsSocket->pucData+phsSocket->iDataLength,
-						phsSocket->response.iBufferSize-phsSocket->iDataLength, 0);
-		if (sLength <= 0) {
+						phsSocket->iBufferSize-phsSocket->iDataLength, 0);
+		if (iLength <= 0) {
+			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->ptr) {
+				HttpMultipart* pxMP = (HttpMultipart*)phsSocket->ptr;
+				if (!pxMP->pchBoundaryValue[0]) {
+					// no boundary, commit remaining data
+					pxMP->oFileuploadStatus = HTTPUPLOAD_LASTCHUNK;
+					(hp->pfnFileUpload)(phsSocket->ptr, phsSocket->pucData, phsSocket->iDataLength);
+				}
+			}
+
 			SYSLOG(LOG_INFO,"[%d] socket closed by client\n",phsSocket->socket);
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
-			return -1;
+			return iLength;
 		}
 		// add in new data received
-		phsSocket->iDataLength+=sLength;
-	}
-	//check request type
-	switch (GETDWORD(phsSocket->pucData)) {
-	case HTTP_GET:
-		SETFLAG(phsSocket,FLAG_REQUEST_GET);
-		phsSocket->request.pucPath = phsSocket->pucData + 5;
-		break;
-#ifdef HTTPPOST
-	case HTTP_POST:
-		SETFLAG(phsSocket,FLAG_REQUEST_POST);
-		phsSocket->request.pucPath = phsSocket->pucData + 6;
-		break;
-#endif
+		phsSocket->iDataLength += iLength;
 	}
 
 	// check if end of request
 	if (phsSocket->request.siHeaderSize==0) {
 		int i=0;
+
 		while (GETDWORD(phsSocket->buffer + i) != HTTP_HEADEREND) {
 			if (++i > phsSocket->iDataLength - 3) return 0;
 		}
 		// reach the end of the header
+		//check request type
+		switch (GETDWORD(phsSocket->buffer)) {
+		case HTTP_GET:
+			SETFLAG(phsSocket,FLAG_REQUEST_GET);
+			phsSocket->request.pucPath = phsSocket->pucData + 5;
+			break;
+#ifdef HTTPPOST
+		case HTTP_POST:
+			SETFLAG(phsSocket,FLAG_REQUEST_POST);
+			phsSocket->request.pucPath = phsSocket->pucData + 6;
+			break;
+#endif
+		}
+
 		if (!ISFLAGSET(phsSocket,FLAG_REQUEST_GET|FLAG_REQUEST_POST)) {
 			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);		
 			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
@@ -742,21 +749,33 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					// is multipart request
 					int ret;
 					HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
-					phsSocket->iDataLength -= (phsSocket->request.siHeaderSize - 2);
-					memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.siHeaderSize - 2, phsSocket->iDataLength);
-					phsSocket->pucData = phsSocket->buffer;
-					pxMP->pp.httpParam = hp;
-					pxMP->pp.pchFilename = phsSocket->request.pucPath;
-					pxMP->iWriteLocation = phsSocket->iDataLength;
 
-					ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
-					if (ret < 0) {
-						SETFLAG(phsSocket, FLAG_CONN_CLOSE);
-						return -1;
-					} else if (ret > 0) {
-						goto done;
+					if (!pxMP->pchFilename) {
+						// multipart POST
+						phsSocket->iDataLength -= (phsSocket->request.siHeaderSize - 2);
+						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.siHeaderSize - 2, phsSocket->iDataLength);
+						phsSocket->pucData = phsSocket->buffer;
+						pxMP->pp.httpParam = hp;
+						pxMP->pp.pchFilename = phsSocket->request.pucPath;
+						pxMP->iWriteLocation = phsSocket->iDataLength;
+
+						ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
+						if (ret < 0) {
+							SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+							return -1;
+						} else if (ret > 0) {
+							goto done;
+						}
+						return 0;
+					} else {
+						// direct POST with filename in Content-Type
+						pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
+						(hp->pfnFileUpload)(pxMP, phsSocket->buffer + phsSocket->request.siHeaderSize, phsSocket->iDataLength);
+						pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
+						phsSocket->pucData = phsSocket->buffer;
+						phsSocket->iBufferSize = HTTP_BUFFER_SIZE;
+						phsSocket->iDataLength = 0;
 					}
-					return 0;
 				} else {
 					phsSocket->request.pucPayload=malloc(phsSocket->response.iContentLength+1);
 					phsSocket->request.pucPayload[phsSocket->response.iContentLength]=0;
@@ -771,6 +790,16 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		phsSocket->buffer[phsSocket->request.siHeaderSize]=0;
 		DBG("%s",phsSocket->buffer);
 	}
+    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->ptr) {
+		if (!((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue[0]) {
+			// no boundary, simply receive raw data
+			if (phsSocket->iDataLength == phsSocket->iBufferSize) {
+				(hp->pfnFileUpload)(phsSocket->ptr, phsSocket->pucData, phsSocket->iDataLength);
+				phsSocket->iDataLength = 0;
+			}
+		}
+		return 0;
+	}
 	if ( phsSocket->iDataLength < phsSocket->response.iContentLength ) {
 		// there is more data
 		return 0;
@@ -778,7 +807,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 done:
 
 	phsSocket->pucData = phsSocket->buffer + phsSocket->request.siHeaderSize + 4;
-	phsSocket->response.iBufferSize = HTTP_BUFFER_SIZE- phsSocket->request.siHeaderSize - 4;
+	phsSocket->iBufferSize = HTTP_BUFFER_SIZE- phsSocket->request.siHeaderSize - 4;
 
 	SYSLOG(LOG_INFO,"[%d] request path: /%s\n",phsSocket->socket,phsSocket->request.pucPath);
 	hp->stats.reqCount++;
@@ -836,11 +865,13 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	phsSocket->fd = 0;
 #ifdef HTTPPOST
 	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
-		(hp->pfnFileUpload)(phsSocket->ptr, 0, 0);
-		if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
-		if (phsSocket->ptr) {
+		HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
+		if (pxMP) {
+			(hp->pfnFileUpload)(pxMP , 0, 0);
+			if (pxMP->pchFilename) free(pxMP->pchFilename);
 			free(phsSocket->ptr);
 		}
+		if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
 	}
 #endif
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
@@ -886,7 +917,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 	char *p=phsSocket->pucData;
 	int ret;
 	char *pagebuf=phsSocket->pucData;
-	int bufsize=phsSocket->response.iBufferSize;
+	int bufsize=phsSocket->iBufferSize;
 	
 	p+=sprintf(p,"<html><head><title>/%s</title></head><body><table border=0 cellpadding=0 cellspacing=0 width=100%%><h2>Directory of /%s</h2><hr>",
 		phsSocket->request.pucPath,phsSocket->request.pucPath);
@@ -1491,6 +1522,16 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 					p += _mwGrabToken(p ,'\r', buf + 2, sizeof(buf) - 2);
 					phsSocket->ptr = calloc(1, sizeof(HttpMultipart));
 					strcpy(((HttpMultipart*)phsSocket->ptr)->pchBoundaryValue, buf);
+				} else {
+					for (; *p != '\r'; p++) {
+						if (!memcmp(p, "; filename=", 11)) {
+							p += 11;
+							p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
+							phsSocket->ptr = calloc(1, sizeof(HttpMultipart));
+							((HttpMultipart*)phsSocket->ptr)->pchFilename = strdup(buf);
+							break;
+						}
+					}
 				}
 			}
 			break;

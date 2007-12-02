@@ -289,6 +289,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
         free(pxMP->pp.stParams[i].pchParamName);
         free(pxMP->pp.stParams[i].pchParamValue);
       }
+	  pxMP->pchFilename = 0;
       
       DEBUG("Multipart POST on socket %d complete!\n",
                    phsSocket->socket);

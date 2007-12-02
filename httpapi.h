@@ -151,7 +151,6 @@ typedef struct {
 	int iSentBytes;
 	int iContentLength;
 	HttpFileType fileType;
-	int iBufferSize;			// the size of buffer pucData pointing to
 } HttpResponse;
 
 typedef struct {
@@ -199,6 +198,7 @@ typedef struct _HttpSocket{
 	HttpRequest request;
 	HttpResponse response;
 	unsigned char *pucData;
+	int iBufferSize;			// the size of buffer pucData pointing to
 	int iDataLength;
 
 	int fd;

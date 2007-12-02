@@ -23,10 +23,11 @@
 #define CONN_RETRIES 3
 #define HTTP_GET_HEADER "%s %s HTTP/1.0\r\nAccept: */*\r\nConnection: %s\r\nUser-Agent: Mozilla/5.0\r\nHost: %s\r\n%s\r\n"
 #define HTTP_POST_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0\r\nContent-Length: %d\r\n\r\n"
-#define HTTP_POST_MULTIPART_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\n\r\n"
+#define HTTP_POST_MULTIPART_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\n\r\n"
 #define MULTIPART_BOUNDARY "---------------------------24464570528145"
+#define HTTP_POST_STREAM_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: close\r\nContent-Type: application/octet-stream; filename=%s\r\nContent-Length: %d\r\n\r\n"
 
-void InitHttpReq(HTTP_REQUEST* req, char* url, char* proxy)
+void httpInitReq(HTTP_REQUEST* req, char* url, char* proxy)
 {
 	memset(req, 0, sizeof(HTTP_REQUEST));
 	req->url = url;
@@ -69,7 +70,7 @@ static char* parseURL(char* url, HTTP_REQUEST* param)
 	
 #define MAX_HEADER_SIZE 4095
 
-size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
+static size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
 {
 	size_t offset = 0;
 	size_t bytes;
@@ -82,7 +83,7 @@ size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
 	return offset;
 }
 
-void HttpClean(HTTP_REQUEST* param)
+void httpClean(HTTP_REQUEST* param)
 {
 	if (param->sockfd) {
 		closesocket(param->sockfd);
@@ -98,10 +99,9 @@ void HttpClean(HTTP_REQUEST* param)
 	}
 }
 
-int RequestHTTP(HTTP_REQUEST* param)
+int httpRequest(HTTP_REQUEST* param)
 {
 	char *path;
-	int rspHeaderBytes, receivedBytes;
 	struct hostent *target_host;
 	int ret = 0;
 	int bytes;
@@ -132,6 +132,10 @@ int RequestHTTP(HTTP_REQUEST* param)
 		case HM_POST:
 			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->iPostDataSize);
 			break;
+		case HM_POST_STREAM: {
+			sprintf(param->header,HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0);
+			break;
+			} break;
 		case HM_POST_MULTIPART: {
 			size_t bytes = 0;
 			int i;
@@ -158,16 +162,15 @@ int RequestHTTP(HTTP_REQUEST* param)
 	}
 	
 	do {
-
-	if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
-		ret = -1;
-		continue;
-	}
-
-	{
 		int offset=0;
 		int hdrsize = (int)strlen(param->header);
 		char *p=NULL;
+
+		if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
+			ret = -1;
+			continue;
+		}
+
 
 		if (!param->sockfd) {
 			struct sockaddr_in server_addr;
@@ -228,12 +231,23 @@ int RequestHTTP(HTTP_REQUEST* param)
 				if (LoopSend(param, "\r\n", 2) != 2) break;
 			}
 			free(sendbuf);
-			if (param->state == HS_STOPPING) break;
 			LoopSend(param, "--", 2);
 			LoopSend(param, MULTIPART_BOUNDARY, sizeof(MULTIPART_BOUNDARY) - 1);
 			LoopSend(param, "--\r\n", 4);
 		}
-		if (param->state == HS_STOPPING) break;
+	} while(0);
+
+	return ret;
+}
+
+int httpGetResponse(HTTP_REQUEST* param)
+{
+	int receivedBytes;
+	int rspHeaderBytes;
+	int ret;
+	char *p = 0;
+
+	do {
 		//receive header
 		DEBUG("Receiving response...\n");
 		receivedBytes=0;
@@ -260,7 +274,6 @@ int RequestHTTP(HTTP_REQUEST* param)
 			p+=4;
 		}
 		rspHeaderBytes = (int)(p - param->header);
-	}
 
 	//process header
 	{
@@ -371,19 +384,20 @@ char* PostFile(char* url, char* fieldname, char* filename)
 	int ret;
 	POST_CHUNK chunk;
 	HTTP_REQUEST req;
-	char *fn;
+	char *html;
 
 	fd = _open(filename, _O_BINARY | _O_RDONLY);
-	fn = strrchr(filename, '\\');
-	if (!fn)
-		fn = filename;
-	else
-		fn++;
-
 	if (fd <= 0) return 0;
+
+	req.filename = strrchr(filename, '\\');
+	if (!req.filename)
+		req.filename = filename;
+	else
+		req.filename++;
+
 	filelen = _lseek(fd, 0, SEEK_END);
 	chunk.data = (void*)ReadData;
-	chunk.length = filelen + _snprintf(fileheader, sizeof(fileheader), FILE_CHUNK_HEADER, fieldname, fn);
+	chunk.length = filelen + _snprintf(fileheader, sizeof(fileheader), FILE_CHUNK_HEADER, fieldname, req.filename);
 	chunk.type = POSTDATA_CALLBACK;
 	_lseek(fd, 0, SEEK_SET );
 	memset(&req, 0, sizeof(req));
@@ -391,7 +405,43 @@ char* PostFile(char* url, char* fieldname, char* filename)
 	req.method = HM_POST_MULTIPART;
 	req.chunk = &chunk;
 	req.iChunkCount = 1;
-	ret = RequestHTTP(&req);
+	ret = httpRequest(&req);
 	_close(fd);
-	return ret ? 0 : req.buffer;
+	if (!ret) {
+		ret = httpGetResponse(&req);
+	}
+	html = !ret ? _strdup(req.buffer) : 0;
+	httpClean(&req);
+	return html;
+}
+
+int PostFileStream(char* url, char* filename)
+{
+	int ret;
+	HTTP_REQUEST req;
+	
+	char buf[1024];
+	int bytes;
+
+	memset(&req, 0, sizeof(req));
+
+	fd = _open(filename, _O_BINARY | _O_RDONLY);
+	if (fd <= 0) return 0;
+
+	req.filename = strrchr(filename, '\\');
+	if (!req.filename)
+		req.filename = filename;
+	else
+		req.filename++;
+
+	req.url = url;
+	req.method = HM_POST_STREAM;
+	req.iChunkCount = 1;
+	ret = httpRequest(&req);
+
+	while ((bytes = _read(fd, buf, sizeof(buf))) > 0 
+		&& LoopSend(&req, buf, bytes) == bytes);
+
+	_close(fd);
+	return ret;
 }

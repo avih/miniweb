@@ -19,9 +19,10 @@ typedef enum {
 
 typedef enum {
 	HM_GET = 0,
-	HM_POST,
-	HM_POST_MULTIPART,
 	HM_HEAD,
+	HM_POST,
+	HM_POST_STREAM,
+	HM_POST_MULTIPART,
 } HTTP_METHOD;
 
 #define POSTDATA_STRING 0
@@ -61,16 +62,18 @@ typedef struct {
 	//Multipart-Post 
 	POST_CHUNK* chunk;
 	int iChunkCount;
+	char* filename;
 } HTTP_REQUEST;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void InitHttpReq(HTTP_REQUEST* req, char* url, char* proxy);
-int RequestHTTP(HTTP_REQUEST* param);
+void httpInitReq(HTTP_REQUEST* req, char* url, char* proxy);
+int httpRequest(HTTP_REQUEST* param);
 void HttpClean(HTTP_REQUEST* param);
 char* PostFile(char* url, char* fieldname, char* filename);
+int PostFileStream(char* url, char* filename);
 
 #ifdef __cplusplus
 }
