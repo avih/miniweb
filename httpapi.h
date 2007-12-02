@@ -102,6 +102,7 @@ typedef struct {
   int iWriteLocation;
   PostParam pp;
   char *pchFilename;
+  void *pxCallBackData;
 } HttpMultipart;
 
 typedef struct _tagSubstParam {
@@ -161,7 +162,7 @@ typedef struct {
 // Callback function protos
 typedef int (*PFNPOSTCALLBACK)(PostParam*);
 typedef int (*PFNSUBSTCALLBACK)(SubstParam*);
-typedef int (*PFNFILEUPLOADCALLBACK)(char*, OCTET, OCTET*, DWORD);
+typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, OCTET*, DWORD);
 
 typedef enum {
 	MW_INIT = 0,
@@ -319,10 +320,7 @@ PFNFILEUPLOADCALLBACK mwFileUploadRegister(HttpParam *httpParam, PFNFILEUPLOADCA
 ///////////////////////////////////////////////////////////////////////
 int DefaultWebSubstCallback(SubstParam* sp);
 int DefaultWebPostCallback(PostParam* pp);
-int DefaultWebFileUploadCallback(char *pchFilename,
-                                 OCTET oFileuploadStatus,
-                                 OCTET *poData, 
-                                 DWORD dwDataChunkSize);
+int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, DWORD dwDataChunkSize);
 
 int mwGetHttpDateTime(time_t tm, char *buf);
 int mwGetLocalFileName(HttpFilePath* hfp);

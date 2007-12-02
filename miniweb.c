@@ -173,40 +173,6 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
-int itoc(int num, char *pbuf, int type)
-{
-	static const char *chNum[]={"零","一","二","三","四","五","六","七","八","九"};
-	static const char *chUnit[]={"亿","万","千","百","十","",NULL};
-	char *p=pbuf;
-	int c=1000000000,unit=4,d,last=0;
-	if (num==0) return sprintf(pbuf,chNum[0]);
-	if (num<0) {
-		p+=sprintf(pbuf,"负");
-		num=-num;
-	}
-	d=num;
-	for (;;) {
-		do {
-			int tmp=d/c;
-			if (tmp>0) {
-				p+=sprintf(p,"%s%s",(unit==2 && tmp==1)?"":chNum[tmp],chUnit[unit]);
-				d%=c;
-			} else if (last!=0 && c>=10 && d>0) {
-				p+=sprintf(p,chNum[0]);
-			}
-			last=tmp;
-			c/=10;
-		} while(chUnit[++unit]);
-		if (c==0) break;
-		if (c==1000 && num>=10000)
-			p+=sprintf(p,chUnit[1]);
-		else if (c==10000000 && num>=100000000)
-			p+=sprintf(p,chUnit[0]);
-		unit=2;
-	}
-	return (int)(p-pbuf);
-}
-
 //////////////////////////////////////////////////////////////////////////
 // callback from the web server whenever it needs to substitute variables
 //////////////////////////////////////////////////////////////////////////
@@ -237,24 +203,29 @@ int DefaultWebPostCallback(PostParam* pp)
 // callback from the web server whenever it receives a multipart 
 // upload file chunk
 //////////////////////////////////////////////////////////////////////////
-int DefaultWebFileUploadCallback(char *pchFilename,
-                                 OCTET oFileuploadStatus,
-                                 OCTET *poData,
-                                 DWORD dwDataChunkSize)
+int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, DWORD dwDataChunkSize)
 {
   // Do nothing with the data
-	static int fd = 0;
-	if (!fd && pchFilename) {
-		fd = open(pchFilename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
+	int fd = (int)pxMP->pxCallBackData;
+	if (!poData) {
+		// to cleanup
+		if (fd > 0) {
+			close(fd);
+			pxMP->pxCallBackData = NULL;
+		}
+		return 0;
 	}
-	if (fd) {
-		write(fd, poData, dwDataChunkSize);
+	if (!fd) {
+		fd = open(pxMP->pchFilename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
+		pxMP->pxCallBackData = (void*)fd;
 	}
-	if (oFileuploadStatus & HTTPUPLOAD_LASTCHUNK) {
+	if (fd <= 0) return -1;
+	write(fd, poData, dwDataChunkSize);
+	if (pxMP->oFileuploadStatus & HTTPUPLOAD_LASTCHUNK) {
 		close(fd);
-		fd = 0;
+		pxMP->pxCallBackData = NULL;
 	}
-	printf("Received %lu bytes for multipart upload file %s\n", dwDataChunkSize, pchFilename);
+	printf("Received %lu bytes for multipart upload file %s\n", dwDataChunkSize, pxMP->pchFilename);
 	return 0;
 }
 

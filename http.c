@@ -834,19 +834,20 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		close(phsSocket->fd);
 	}
 	phsSocket->fd = 0;
-	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
-		free(phsSocket->ptr);
-		phsSocket->ptr=NULL;
-	}
-	if (phsSocket->request.pucPath) free(phsSocket->request.pucPath);
 #ifdef HTTPPOST
 	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
+		(hp->pfnFileUpload)(phsSocket->ptr, 0, 0);
 		if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
 		if (phsSocket->ptr) {
 			free(phsSocket->ptr);
 		}
 	}
 #endif
+	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
+		free(phsSocket->ptr);
+		phsSocket->ptr=NULL;
+	}
+	if (phsSocket->request.pucPath) free(phsSocket->request.pucPath);
 	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount<hp->maxReqPerConn) {
 		_mwInitSocketData(phsSocket);
 		//reset flag bits
