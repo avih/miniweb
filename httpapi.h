@@ -92,7 +92,7 @@ typedef struct _tagPostParam {
   } stParams[MAXPOSTPARAMS];
   void *httpParam;
   int iNumParams;
-  char *pchFilename;
+  char *pchPath;
 } PostParam;
 
 // multipart file upload post (per socket) structure

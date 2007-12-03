@@ -680,6 +680,9 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						phsSocket->pucData+phsSocket->iDataLength,
 						phsSocket->iBufferSize-phsSocket->iDataLength, 0);
 		if (iLength <= 0) {
+			SYSLOG(LOG_INFO,"[%d] socket closed by client\n",phsSocket->socket);
+			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->ptr) {
 				HttpMultipart* pxMP = (HttpMultipart*)phsSocket->ptr;
 				if (!pxMP->pchBoundaryValue[0]) {
@@ -687,10 +690,10 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					pxMP->oFileuploadStatus = HTTPUPLOAD_LASTCHUNK;
 					(hp->pfnFileUpload)(phsSocket->ptr, phsSocket->pucData, phsSocket->iDataLength);
 				}
+				_mwCloseSocket(hp, phsSocket);
+				return 0;
 			}
 
-			SYSLOG(LOG_INFO,"[%d] socket closed by client\n",phsSocket->socket);
-			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return iLength;
 		}
 		// add in new data received
@@ -749,6 +752,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					// is multipart request
 					int ret;
 					HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
+					pxMP->pp.pchPath = phsSocket->request.pucPath;
 
 					if (!pxMP->pchFilename) {
 						// multipart POST
@@ -756,7 +760,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.siHeaderSize - 2, phsSocket->iDataLength);
 						phsSocket->pucData = phsSocket->buffer;
 						pxMP->pp.httpParam = hp;
-						pxMP->pp.pchFilename = phsSocket->request.pucPath;
 						pxMP->iWriteLocation = phsSocket->iDataLength;
 
 						ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
@@ -867,7 +870,13 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
 		HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
 		if (pxMP) {
+			int i;
 			(hp->pfnFileUpload)(pxMP , 0, 0);
+			// clear multipart structure
+			for (i=0; i<pxMP->pp.iNumParams; i++) {
+				free(pxMP->pp.stParams[i].pchParamName);
+				free(pxMP->pp.stParams[i].pchParamValue);
+			}
 			if (pxMP->pchFilename) free(pxMP->pchFilename);
 			free(phsSocket->ptr);
 		}

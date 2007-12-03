@@ -74,6 +74,7 @@ int httpRequest(HTTP_REQUEST* param);
 void HttpClean(HTTP_REQUEST* param);
 char* PostFile(char* url, char* fieldname, char* filename);
 int PostFileStream(char* url, char* filename);
+size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length);
 
 #ifdef __cplusplus
 }

@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <io.h>
 #include <fcntl.h>
+#ifdef WIN32
 #include <Winsock2.h>
-#include "httpget.h"
+#endif
+#include "httpclient.h"
 
 /****************************************************************************
 * HTTP protocol client
@@ -70,7 +72,7 @@ static char* parseURL(char* url, HTTP_REQUEST* param)
 	
 #define MAX_HEADER_SIZE 4095
 
-static size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
+size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
 {
 	size_t offset = 0;
 	size_t bytes;
@@ -146,7 +148,7 @@ int httpRequest(HTTP_REQUEST* param)
 				bytes += param->chunk[i].length;
 				bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
 			}
-			bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 4;
+			bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
 			sprintf(param->header,HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes);
 			} break;
 		}
@@ -158,13 +160,11 @@ int httpRequest(HTTP_REQUEST* param)
 		} else {
 			strcpy(p,"\r\n");
 		}
-		sprintf(param->header, HTTP_GET_HEADER, path, param->hostname, tokenRange);
+		sprintf(param->header, HTTP_GET_HEADER, path, "close", param->hostname, tokenRange);
 	}
 	
 	do {
-		int offset=0;
 		int hdrsize = (int)strlen(param->header);
-		char *p=NULL;
 
 		if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
 			ret = -1;
@@ -197,7 +197,6 @@ int httpRequest(HTTP_REQUEST* param)
 			if (LoopSend(param, param->postData, param->iPostDataSize) != param->iPostDataSize) break;
 		} else if (param->method == HM_POST_MULTIPART) {
 			POST_CHUNK* chunk;
-			int ret = 0;
 			int i;
 			char* sendbuf = (char*)malloc(POST_BUFFER_SIZE);
 			for (i = 0; i < param->iChunkCount && param->state != HS_STOPPING; i++) {
@@ -436,7 +435,6 @@ int PostFileStream(char* url, char* filename)
 
 	req.url = url;
 	req.method = HM_POST_STREAM;
-	req.iChunkCount = 1;
 	ret = httpRequest(&req);
 
 	while ((bytes = _read(fd, buf, sizeof(buf))) > 0 
@@ -445,3 +443,4 @@ int PostFileStream(char* url, char* filename)
 	_close(fd);
 	return ret;
 }
+

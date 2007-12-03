@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
-#include "httpget.h"
+#include "httpclient.h"
 
 int main(int argc, char* argv[])
 {
@@ -10,8 +10,10 @@ int main(int argc, char* argv[])
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) ) {
 		return 0;
 	}
-	data = PostFile(argv[1], "file", argv[2]);
-	printf("%s\n", data);
+
+	//PostFileStream(argv[1], argv[2]);
+	PostFile(argv[1], "file", argv[2]);
+
 	WSACleanup( );
 	getchar();
 	return 0;

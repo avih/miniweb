@@ -126,7 +126,7 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
   
 
   // was a redirect filename returned
-  if (strlen(pp->pchFilename) == 0) {
+  if (strlen(pp->pchPath) == 0) {
     // redirect to index page
     _mwRedirect(phsSocket, "/");
   }
@@ -193,9 +193,15 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       char *pchFilename = _mwStrStrNoCase(phsSocket->buffer, HTTP_FILENAME);
       
       if (pchStart == NULL || pchEnd == NULL) {
-        DEBUG("Waiting for multipart header description on socket %d\n",
-                     phsSocket->socket);
-        break;
+		if (strncmp(phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2, "--\r\n",4) == 0) {
+			// yes, we're all done
+			_mwNotifyPostVars(phsSocket, &(pxMP->pp));
+			DEBUG("Multipart POST on socket %d complete!\n", phsSocket->socket);
+			return 1;
+		} else {
+			DEBUG("Waiting for multipart header description on socket %d\n", phsSocket->socket);
+			break;
+		}
       }
       
       if (pchFilename == NULL || 
@@ -273,28 +279,11 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
     memmove(phsSocket->buffer, pchBoundarySearch, pxMP->iWriteLocation);
     memset(phsSocket->buffer + pxMP->iWriteLocation, 0, HTTPMAXRECVBUFFER - pxMP->iWriteLocation);
     
-    // check if this is the last boundary indicator?
-	{
-		char *p = phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2;
-		p = p;
-	}
     if (strncmp(phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2, "--\r\n",4) == 0) {
-      // yes, we're all done
-      int i;
-      
-      _mwNotifyPostVars(phsSocket, &(pxMP->pp));
-      
-      // clear multipart structure
-      for (i=0; i<pxMP->pp.iNumParams; i++) {
-        free(pxMP->pp.stParams[i].pchParamName);
-        free(pxMP->pp.stParams[i].pchParamValue);
-      }
-	  pxMP->pchFilename = 0;
-      
-      DEBUG("Multipart POST on socket %d complete!\n",
-                   phsSocket->socket);
-      
-      return 1;
+		// yes, we're all done
+		_mwNotifyPostVars(phsSocket, &(pxMP->pp));
+		DEBUG("Multipart POST on socket %d complete!\n", phsSocket->socket);
+		return 1;
     }
     
   }
