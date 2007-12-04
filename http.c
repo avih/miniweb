@@ -111,7 +111,7 @@ int mwServerStart(HttpParam* hp)
 			}
 		}
 	}
-#ifdef HTTPPOST
+#ifndef _NO_POST
 	if (!hp->pfnPost)
 		hp->pfnPost=DefaultWebPostCallback;
 	if (!hp->pfnFileUpload)
@@ -548,7 +548,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 			if (s) {
 				*(s++) = 0;
 			}
-#ifdef HTTPPOST
+#ifndef _NO_POST
 		} else {
 			s = up->hs->request.pucPayload;
 #endif
@@ -658,7 +658,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 ////////////////////////////////////////////////////////////////////////////
 int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
-#ifdef HTTPPOST
+#ifndef _NO_POST
     if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 		HttpMultipart* pxMP = (HttpMultipart*)phsSocket->ptr;
 		if (pxMP && pxMP->pchBoundaryValue[0]) {
@@ -714,7 +714,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SETFLAG(phsSocket,FLAG_REQUEST_GET);
 			phsSocket->request.pucPath = phsSocket->pucData + 5;
 			break;
-#ifdef HTTPPOST
+#ifndef _NO_POST
 		case HTTP_POST:
 			SETFLAG(phsSocket,FLAG_REQUEST_POST);
 			phsSocket->request.pucPath = phsSocket->pucData + 6;
@@ -745,7 +745,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			memcpy(path, phsSocket->request.pucPath, i);
 			path[i] = 0;
 			phsSocket->request.pucPath = path;
-#ifdef HTTPPOST
+#ifndef _NO_POST
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 				hp->stats.reqPostCount++;
 				if ((HttpMultipart*)phsSocket->ptr) {
@@ -866,7 +866,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		close(phsSocket->fd);
 	}
 	phsSocket->fd = 0;
-#ifdef HTTPPOST
+#ifndef _NO_POST
 	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
 		HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
 		if (pxMP) {

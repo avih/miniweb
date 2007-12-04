@@ -14,7 +14,7 @@
 #include "httpapi.h"
 #include "httpint.h"
 
-#ifdef HTTPPOST
+#ifndef _NO_POST
 #define DEBUG printf
 
 ////////////////////////////////////////////////////////////////////////////
