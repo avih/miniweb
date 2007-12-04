@@ -111,12 +111,6 @@ int mwServerStart(HttpParam* hp)
 			}
 		}
 	}
-#ifndef _NO_POST
-	if (!hp->pfnPost)
-		hp->pfnPost=DefaultWebPostCallback;
-	if (!hp->pfnFileUpload)
-		hp->pfnFileUpload=DefaultWebFileUploadCallback;
-#endif
 
 #ifdef _7Z
 	hp->szctx = SzInit();

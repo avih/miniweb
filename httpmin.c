@@ -195,8 +195,12 @@ int main(int argc,char* argv[])
 	httpParam.maxReqPerConn=99;
 	httpParam.pchWebPath="webroot";
 	httpParam.pxUrlHandler=urlHandlerList;
-	//set web variable substitution callback
+	//set web callbacks
 	httpParam.pfnSubst=DefaultWebSubstCallback;
+#ifndef _NO_POST
+	httpParam.pfnPost = DefaultWebPostCallback;
+	httpParam.pfnFileUpload = DefaultWebFileUploadCallback;
+#endif
 	
 	InitSocket();
 	//start server

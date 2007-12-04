@@ -286,11 +286,15 @@ int main(int argc,char* argv[])
 	{
 		int i;
 		for (i=0;i<nInst;i++) {
-			(httpParam+i)->maxClients=32;
-			(httpParam+i)->maxReqPerConn=99;
-			(httpParam+i)->pchWebPath="webroot";
-			(httpParam+i)->pxUrlHandler=urlHandlerList;
-			(httpParam+i)->flags=FLAG_DIR_LISTING;
+			httpParam[i].maxClients=32;
+			httpParam[i].maxReqPerConn=99;
+			httpParam[i].pchWebPath="webroot";
+			httpParam[i].pxUrlHandler=urlHandlerList;
+			httpParam[i].flags=FLAG_DIR_LISTING;
+#ifndef _NO_POST
+			httpParam[i].pfnPost = DefaultWebPostCallback;
+			httpParam[i].pfnFileUpload = DefaultWebFileUploadCallback;
+#endif
 		}
 	}
 
@@ -342,10 +346,10 @@ int main(int argc,char* argv[])
 		int i;
 		short int port=80;
 		for (i=0;i<nInst;i++) {
-			if ((httpParam+i)->httpPort)
-				port=(httpParam+i)->httpPort+1;
+			if (httpParam[i].httpPort)
+				port=httpParam[i].httpPort+1;
 			else
-				(httpParam+i)->httpPort=port++;
+				httpParam[i].httpPort=port++;
 		}
 	}
 
@@ -358,15 +362,15 @@ int main(int argc,char* argv[])
 		for (i=0;i<nInst;i++) {
 			int n;
 			if (nInst>1) printf("\nInstance %d\n",i);
-			printf("Listening port: %d\n",(httpParam+i)->httpPort);
-			printf("Web root: %s\n",(httpParam+i)->pchWebPath);
-			printf("Max clients: %d\n",(httpParam+i)->maxClients);
+			printf("Listening port: %d\n",httpParam[i].httpPort);
+			printf("Web root: %s\n",httpParam[i].pchWebPath);
+			printf("Max clients: %d\n",httpParam[i].maxClients);
 			for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
 			printf("URL handlers: %d\n",n);
-			if ((httpParam+i)->flags & FLAG_DIR_LISTING) printf("Dir listing: on\n");
+			if (httpParam[i].flags & FLAG_DIR_LISTING) printf("Dir listing: on\n");
 
 			//register page variable substitution callback
-			//(httpParam+i)->pfnSubst=DefaultWebSubstCallback;
+			//httpParam[i].pfnSubst=DefaultWebSubstCallback;
 
 			//start server
 			if (mwServerStart(&httpParam[i])) {
