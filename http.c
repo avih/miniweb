@@ -633,7 +633,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					if (up.pucBuffer[0])
-						phsSocket->request.pucPath=up.pucBuffer;
+						phsSocket->request.pucPath=strdup(up.pucBuffer);
 					DBG("URL handler: file\n");
 				} else if (ret & FLAG_DATA_FD) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
@@ -715,13 +715,13 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			phsSocket->request.pucPath = phsSocket->pucData + 6;
 			break;
 #endif
-		}
-
-		if (!ISFLAGSET(phsSocket,FLAG_REQUEST_GET|FLAG_REQUEST_POST)) {
+		default:
 			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);		
 			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
+			phsSocket->request.pucPath = 0;
 			return -1;
 		}
+
 		phsSocket->request.siHeaderSize = i + 4;
 		DBG("[%d] header size: %d bytes\n",phsSocket->socket,phsSocket->request.siHeaderSize);
 		if (_mwParseHttpHeader(phsSocket)) {
@@ -731,7 +731,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		} else {
 			char *path;
 			// keep request path
-			for (i = 0; i < MAX_REQUEST_PATH_LEN && phsSocket->request.pucPath[i] !=' ' && phsSocket->request.pucPath[i] != '?'; i++);
+			for (i = 0; i < MAX_REQUEST_PATH_LEN && phsSocket->request.pucPath[i] !=' '; i++);
 			if (i >= MAX_REQUEST_PATH_LEN) {
 				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 				return -1;

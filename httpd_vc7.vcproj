@@ -274,6 +274,9 @@
 			<File
 				RelativePath=".\httppil.c">
 			</File>
+			<File
+				RelativePath=".\httppost.c">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

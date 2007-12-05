@@ -216,11 +216,11 @@ typedef struct _HttpSocket{
 typedef struct {
 	void* hp;
 	HttpSocket* hs;
-	unsigned char *pucRequest;
+	char *pucRequest;
 	HttpVariables* pxVars;
 	int iVarCount;
-	unsigned char *pucHeader;
-	unsigned char *pucBuffer;
+	char *pucHeader;
+	char *pucBuffer;
 	int iDataBytes;
 	int iContentBytes;
 	int iSentBytes;
