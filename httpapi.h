@@ -207,7 +207,9 @@ typedef struct _HttpSocket{
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
 	int iRequestCount;
-
+#ifndef _NO_POST
+	HttpMultipart* pxMP;
+#endif
 	unsigned char buffer[HTTP_BUFFER_SIZE];
 } HttpSocket;
 
