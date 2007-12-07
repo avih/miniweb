@@ -624,12 +624,12 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->pucData=up.pucBuffer;
 					phsSocket->iDataLength=up.iDataBytes;
 					phsSocket->response.iContentLength=up.iContentBytes>0?up.iContentBytes:up.iDataBytes;
-					DBG("URL handler: raw data)\n");
+					DBG("URL handler: raw data\n");
 				} else if (ret & FLAG_DATA_STREAM) {
 					SETFLAG(phsSocket, FLAG_DATA_STREAM);
 					phsSocket->pucData=up.pucBuffer;
 					phsSocket->iDataLength=up.iDataBytes;
-					DBG("URL handler: stream)\n");
+					DBG("URL handler: stream\n");
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					if (up.pucBuffer[0])
@@ -655,8 +655,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
 #ifndef _NO_POST
     if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
-		HttpMultipart* pxMP = phsSocket->pxMP;
-		if (pxMP && pxMP->pchBoundaryValue[0]) {
+		if (phsSocket->pxMP && phsSocket->pxMP->pchBoundaryValue[0]) {
 			// multipart and has valid boundary string
 			int ret = _mwProcessMultipartPost(hp, phsSocket, FALSE);
 			if (!ret) return 0;
@@ -688,8 +687,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 				_mwCloseSocket(hp, phsSocket);
 				return 0;
 			}
-
-			return iLength;
+			_mwCloseSocket(hp, phsSocket);
+			return -1;
 		}
 		// add in new data received
 		phsSocket->iDataLength += iLength;
