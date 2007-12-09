@@ -70,7 +70,7 @@
 
 // Settings for http server
 #define HTTP_EXPIRATION_TIME (30/*secs*/)
-#define HTTP_KEEPALIVE_TIME (15/*secs*/)
+#define HTTP_KEEPALIVE_TIME (20/*secs*/)
 #define MAX_RECV_RETRIES (3/*times*/)
 #define HTTPAUTHTIMEOUT   (300/*secs*/)
 #define HTTPSUBSTEXPANSION (0/*bytes*/)

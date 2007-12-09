@@ -236,7 +236,6 @@ typedef struct {
 } UrlHandler;
 
 #define FLAG_DIR_LISTING 1
-#define FLAG_LOCAL_BIND 2
 
 typedef struct _httpParam {
 	HttpSocket *phsSocketHead;				/* head of the socket linked list */
@@ -259,6 +258,7 @@ typedef struct _httpParam {
 	time_t tmAuthExpireTime;
 	pthread_t tidHttpThread;
 	HttpStats stats;
+	u_long hlBindIP;
 	void* szctx;
 } HttpParam;
 

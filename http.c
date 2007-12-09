@@ -241,8 +241,10 @@ SOCKET _mwStartListening(HttpParam* hp)
       struct sockaddr_in sinAddress;
       memset(&sinAddress,0,sizeof(struct sockaddr_in));
       sinAddress.sin_family=AF_INET;
-	  sinAddress.sin_addr.s_addr=htonl((hp->flags & FLAG_LOCAL_BIND) ? 0x7f000001 : INADDR_ANY);
-      sinAddress.sin_port=htons(hp->httpPort); // http port
+	  // INADDR_ANY is 0
+	  //sinAddress.sin_addr.s_addr=htonl(hp->dwBindIP);
+	  sinAddress.sin_addr.s_addr = hp->hlBindIP;
+      sinAddress.sin_port = htons(hp->httpPort); // http port
       iRc=bind(listenSocket,(struct sockaddr*)&sinAddress,
                sizeof(struct sockaddr_in));
 	  if (iRc<0) {
