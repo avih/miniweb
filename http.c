@@ -781,6 +781,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->iDataLength -= phsSocket->request.siHeaderSize;
 					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.siHeaderSize, phsSocket->iDataLength);
 					phsSocket->pucData = phsSocket->request.pucPayload;
+					phsSocket->iBufferSize = phsSocket->response.iContentLength;
 				}
 			}
 #endif
