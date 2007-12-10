@@ -277,7 +277,9 @@ SOCKET _mwStartListening(HttpParam* hp)
 void _mwInitSocketData(HttpSocket *phsSocket)
 {
 	memset(&phsSocket->response,0,sizeof(HttpResponse));
-	memset(&phsSocket->request,0,sizeof(HttpRequest));
+	phsSocket->request.iStartByte = 0;
+	phsSocket->request.ofHost = 0;
+	phsSocket->request.siHeaderSize = 0;
 	phsSocket->fd=0;
 	phsSocket->flags=FLAG_RECEIVING;
 	phsSocket->pucData=phsSocket->buffer;
@@ -285,9 +287,6 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->iBufferSize=HTTP_BUFFER_SIZE;
 	phsSocket->ptr=NULL;
 	phsSocket->pxMP=NULL;
-#if HTTPPOST
-	phsSocket->request.pucPayload = 0;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -776,6 +775,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						phsSocket->iDataLength = 0;
 					}
 				} else {
+					if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
 					phsSocket->request.pucPayload=malloc(phsSocket->response.iContentLength+1);
 					phsSocket->request.pucPayload[phsSocket->response.iContentLength]=0;
 					phsSocket->iDataLength -= phsSocket->request.siHeaderSize;
@@ -878,7 +878,10 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 			free(pxMP);
 			phsSocket->pxMP = 0;
 		}
-		if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
+		if (phsSocket->request.pucPayload) {
+			free(phsSocket->request.pucPayload);
+			phsSocket->request.pucPayload = 0;
+		}
 	}
 #endif
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
