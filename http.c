@@ -633,8 +633,10 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					DBG("URL handler: stream\n");
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
-					if (up.pucBuffer[0])
+					if (up.pucBuffer[0]) {
+						free(phsSocket->request.pucPath);
 						phsSocket->request.pucPath=strdup(up.pucBuffer);
+					}
 					DBG("URL handler: file\n");
 				} else if (ret & FLAG_DATA_FD) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
@@ -698,6 +700,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	// check if end of request
 	if (phsSocket->request.siHeaderSize==0) {
 		int i=0;
+		char *path = 0;
 
 		while (GETDWORD(phsSocket->buffer + i) != HTTP_HEADEREND) {
 			if (++i > phsSocket->iDataLength - 3) return 0;
@@ -707,12 +710,12 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		switch (GETDWORD(phsSocket->buffer)) {
 		case HTTP_GET:
 			SETFLAG(phsSocket,FLAG_REQUEST_GET);
-			phsSocket->request.pucPath = phsSocket->pucData + 5;
+			path = phsSocket->pucData + 5;
 			break;
 #ifndef _NO_POST
 		case HTTP_POST:
 			SETFLAG(phsSocket,FLAG_REQUEST_POST);
-			phsSocket->request.pucPath = phsSocket->pucData + 6;
+			path = phsSocket->pucData + 6;
 			break;
 #endif
 		default:
@@ -729,17 +732,15 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return -1;
 		} else {
-			char *path;
 			// keep request path
-			for (i = 0; i < MAX_REQUEST_PATH_LEN && phsSocket->request.pucPath[i] !=' '; i++);
+			for (i = 0; i < MAX_REQUEST_PATH_LEN && path[i] !=' '; i++);
 			if (i >= MAX_REQUEST_PATH_LEN) {
 				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 				return -1;
 			}
-			path = malloc(i + 1);
-			memcpy(path, phsSocket->request.pucPath, i);
-			path[i] = 0;
-			phsSocket->request.pucPath = path;
+			phsSocket->request.pucPath = malloc(i + 1);
+			memcpy(phsSocket->request.pucPath, path, i);
+			phsSocket->request.pucPath[i] = 0;
 #ifndef _NO_POST
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 				hp->stats.reqPostCount++;
@@ -888,7 +889,10 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->ptr);
 		phsSocket->ptr=NULL;
 	}
-	if (phsSocket->request.pucPath) free(phsSocket->request.pucPath);
+	if (phsSocket->request.pucPath) {
+		free(phsSocket->request.pucPath);
+		phsSocket->request.pucPath = 0;
+	}
 	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount<hp->maxReqPerConn) {
 		_mwInitSocketData(phsSocket);
 		//reset flag bits
