@@ -25,13 +25,13 @@ typedef enum {
 	HM_POST_MULTIPART,
 } HTTP_METHOD;
 
-#define POSTDATA_STRING 0
-#define POSTDATA_BINARY 1
-#define POSTDATA_FD 2
-#define POSTDATA_CALLBACK 3
+#define postPayload_STRING 0
+#define postPayload_BINARY 1
+#define postPayload_FD 2
+#define postPayload_CALLBACK 3
 
 #define POST_BUFFER_SIZE 1024
-typedef int (*PFNPOSTDATACALLBACK)(void* buffer, int bufsize);
+typedef int (*PFNpostPayloadCALLBACK)(void* buffer, int bufsize);
 
 typedef struct {
 	void* data;
@@ -49,19 +49,20 @@ typedef struct {
 	unsigned short port;
 	char* header;
 	char* buffer;
-	char* postData;
+	int bufferSize;
+	char* postPayload;
 	char* hostname;
-	int iPostDataSize;
-	int iDataSize;
-	int iBytesStart;
-	int iBytesEnd;
-	int iPayloadSize;
+	int postPayloadBytes;
+	int dataSize;
+	int bytesStart;
+	int bytesEnd;
+	int payloadSize;
 	//info parsed from response header
 	char* contentType;
-	int iHttpCode;
+	int httpCode;
 	//Multipart-Post 
 	POST_CHUNK* chunk;
-	int iChunkCount;
+	int chunkCount;
 	char* filename;
 } HTTP_REQUEST;
 
@@ -71,10 +72,11 @@ extern "C" {
 
 void httpInitReq(HTTP_REQUEST* req, char* url, char* proxy);
 int httpRequest(HTTP_REQUEST* param);
-void HttpClean(HTTP_REQUEST* param);
+int httpGetResponse(HTTP_REQUEST* param);
+void httpClean(HTTP_REQUEST* param);
+size_t httpSend(HTTP_REQUEST* param, char* data, size_t length);
 char* PostFile(char* url, char* fieldname, char* filename);
 int PostFileStream(char* url, char* filename);
-size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,6 @@
 int main(int argc, char* argv[])
 {
 	WSADATA wsaData;
-	char *data;
 	if (argc <= 2) return -1;
 	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) ) {
 		return 0;

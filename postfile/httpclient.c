@@ -55,7 +55,7 @@ static char* parseURL(char* url, HTTP_REQUEST* param)
 		len = (int)(ptr - url);
 		path = ptr;
 	}
-	ptr = strrchr(url, ':');
+	ptr = strchr(url, ':');
 	if (ptr && *(ptr + 1) != '/') {
 		unsigned short int port = atoi(ptr + 1);
 		if (port) {
@@ -72,7 +72,7 @@ static char* parseURL(char* url, HTTP_REQUEST* param)
 	
 #define MAX_HEADER_SIZE 4095
 
-size_t LoopSend(HTTP_REQUEST* param, char* data, size_t length)
+size_t httpSend(HTTP_REQUEST* param, char* data, size_t length)
 {
 	size_t offset = 0;
 	size_t bytes;
@@ -109,7 +109,7 @@ int httpRequest(HTTP_REQUEST* param)
 	int bytes;
 
 	param->state = HS_REQUESTING;
-	param->iPayloadSize=0;
+	param->payloadSize=0;
 
 	if (param->proxy) {
 		parseURL(param->proxy, param);
@@ -121,7 +121,7 @@ int httpRequest(HTTP_REQUEST* param)
 
 	if (param->header) free(param->header);
 	param->header = malloc(MAX_HEADER_SIZE + 1);
-	if ((param->iBytesStart|param->iBytesEnd) == 0) {
+	if ((param->bytesStart|param->bytesEnd) == 0) {
 		switch (param->method) {
 		case HM_GET:
 			sprintf(param->header, HTTP_GET_HEADER, "GET",
@@ -132,7 +132,7 @@ int httpRequest(HTTP_REQUEST* param)
 				path, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname,"");
 			break;
 		case HM_POST:
-			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->iPostDataSize);
+			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes);
 			break;
 		case HM_POST_STREAM: {
 			sprintf(param->header,HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0);
@@ -141,8 +141,8 @@ int httpRequest(HTTP_REQUEST* param)
 		case HM_POST_MULTIPART: {
 			size_t bytes = 0;
 			int i;
-			for (i = 0; i < param->iChunkCount; i++) {
-				if (param->chunk[i].type == POSTDATA_STRING) {
+			for (i = 0; i < param->chunkCount; i++) {
+				if (param->chunk[i].type == postPayload_STRING) {
 					param->chunk[i].length = strlen(param->chunk[i].data);
 				}
 				bytes += param->chunk[i].length;
@@ -154,9 +154,9 @@ int httpRequest(HTTP_REQUEST* param)
 		}
 	} else {
 		char tokenRange[48],*p=tokenRange;
-		p+=sprintf(p, "Range: bytes=%u-", param->iBytesStart);
-		if (param->iBytesEnd>0) {
-			sprintf(p,"%u\r\n",param->iBytesEnd);
+		p+=sprintf(p, "Range: bytes=%u-", param->bytesStart);
+		if (param->bytesEnd>0) {
+			sprintf(p,"%u\r\n",param->bytesEnd);
 		} else {
 			strcpy(p,"\r\n");
 		}
@@ -191,50 +191,53 @@ int httpRequest(HTTP_REQUEST* param)
 			}
 		}
 		DEBUG("Sending request...\n");
-		if (LoopSend(param, param->header, hdrsize) != hdrsize) break;
+		if (httpSend(param, param->header, hdrsize) != hdrsize) break;
 
 		if (param->method == HM_POST) {
-			if (LoopSend(param, param->postData, param->iPostDataSize) != param->iPostDataSize) break;
+			if (httpSend(param, param->postPayload, param->postPayloadBytes) != param->postPayloadBytes) break;
 		} else if (param->method == HM_POST_MULTIPART) {
 			POST_CHUNK* chunk;
 			int i;
 			char* sendbuf = (char*)malloc(POST_BUFFER_SIZE);
-			for (i = 0; i < param->iChunkCount && param->state != HS_STOPPING; i++) {
+			for (i = 0; i < param->chunkCount && param->state != HS_STOPPING; i++) {
 				chunk = param->chunk + i;
 				bytes = sprintf(sendbuf, "--%s\r\n", MULTIPART_BOUNDARY);
-				if (LoopSend(param, sendbuf, bytes) != bytes) break;
+				if (httpSend(param, sendbuf, bytes) != bytes) break;
 				switch (chunk->type) {
-				case POSTDATA_STRING:
-				case POSTDATA_BINARY:
-					if (LoopSend(param, chunk->data, chunk->length) != chunk->length) break;
+				case postPayload_STRING:
+				case postPayload_BINARY:
+					if (httpSend(param, chunk->data, chunk->length) != chunk->length) break;
 					break;
-				case POSTDATA_FD:
+				case postPayload_FD:
 					for(;;) {
 						bytes = _read((int)chunk->data, sendbuf, POST_BUFFER_SIZE);
 						if (bytes <= 0) break;
-						if (LoopSend(param, sendbuf, bytes) != bytes) break;
+						if (httpSend(param, sendbuf, bytes) != bytes) break;
 					}
 					break;
-				case POSTDATA_CALLBACK:
+				case postPayload_CALLBACK:
 					for(;;) {
-						bytes = (*(PFNPOSTDATACALLBACK)chunk->data)(sendbuf, POST_BUFFER_SIZE);
+						bytes = (*(PFNpostPayloadCALLBACK)chunk->data)(sendbuf, POST_BUFFER_SIZE);
 						if (bytes < 0) {
 							param->state = HS_STOPPING;
 							break;
 						}
 						if (bytes == 0) break;
-						if (LoopSend(param, sendbuf, bytes) != bytes) break;
+						if (httpSend(param, sendbuf, bytes) != bytes) break;
 					}
 					break;
 				}
-				if (LoopSend(param, "\r\n", 2) != 2) break;
+				if (httpSend(param, "\r\n", 2) != 2) break;
 			}
 			free(sendbuf);
-			LoopSend(param, "--", 2);
-			LoopSend(param, MULTIPART_BOUNDARY, sizeof(MULTIPART_BOUNDARY) - 1);
-			LoopSend(param, "--\r\n", 4);
+			httpSend(param, "--", 2);
+			httpSend(param, MULTIPART_BOUNDARY, sizeof(MULTIPART_BOUNDARY) - 1);
+			httpSend(param, "--\r\n", 4);
 		}
 	} while(0);
+
+	if (param->method != HM_POST_STREAM && param->method != HM_POST_MULTIPART)
+		return httpGetResponse(param);
 
 	return ret;
 }
@@ -279,9 +282,9 @@ int httpGetResponse(HTTP_REQUEST* param)
 		char *p;
 		DEBUG("Response header:\n%s\n", param->header);
 		if (p = strstr(param->header,"HTTP/1.")) {
-			param->iHttpCode = atoi(p+9);
+			param->httpCode = atoi(p+9);
 		}
-		if (param->iHttpCode == 404) {
+		if (param->httpCode == 404) {
 			DEBUG("Invalid response or file not found on server\n");
 			closesocket(param->sockfd);
 			param->sockfd=0;
@@ -296,7 +299,7 @@ int httpGetResponse(HTTP_REQUEST* param)
 			if (!q) continue;
 			*q = 0;
 			if (!_stricmp(p,"Content-length")) {
-				param->iPayloadSize=atoi(q+2);
+				param->payloadSize=atoi(q+2);
 			} else if (!_stricmp(p,"Content-type")) {
 				param->contentType = q+2;
 			} else if (!_stricmp(p, "Transfer-Encoding")) {
@@ -307,9 +310,9 @@ int httpGetResponse(HTTP_REQUEST* param)
 			*q = ':';
 		}
 	}
-	DEBUG("Payload bytes: %d\n",param->iPayloadSize);
-	if (param->iPayloadSize == 0)
-		param->iPayloadSize = param->iDataSize ? param->iDataSize - 1 : receivedBytes - rspHeaderBytes;
+	DEBUG("Payload bytes: %d\n",param->payloadSize);
+	if (param->payloadSize == 0)
+		param->payloadSize = param->dataSize ? param->dataSize - 1 : receivedBytes - rspHeaderBytes;
 	if (param->flags & FLAG_REQUEST_ONLY) {
 		closesocket(param->sockfd);
 		param->state=HS_IDLE;
@@ -317,16 +320,19 @@ int httpGetResponse(HTTP_REQUEST* param)
 	}
 	// receive payload
 	if (param->method != HM_HEAD) {
-		int iPayLoadBytes;
 		int bytes;
 		int recvBytes = 0;
 		param->state=HS_RECEIVING;
 		if (param->buffer) {
-			iPayLoadBytes=param->iPayloadSize>=param->iDataSize?param->iDataSize-1:param->iPayloadSize;
+			if (param->bufferSize < param->payloadSize + 1) {
+				free(param->buffer);
+				param->bufferSize = param->payloadSize + 1;
+				param->buffer = calloc(1, param->bufferSize);
+			}
 		} else {
-			DEBUG("Allocating %d bytes for payload buffer\n",param->iPayloadSize);
-			param->buffer = calloc(1, param->iPayloadSize+1);
-			iPayLoadBytes=param->iPayloadSize;
+			DEBUG("Allocating %d bytes for payload buffer\n",param->payloadSize);
+			param->bufferSize = param->payloadSize + 1;
+			param->buffer = calloc(1, param->bufferSize);
 		}
 		recvBytes = receivedBytes - rspHeaderBytes;
 		if (recvBytes > 0) {
@@ -334,8 +340,8 @@ int httpGetResponse(HTTP_REQUEST* param)
 			memcpy(param->buffer, param->header + rspHeaderBytes, recvBytes);
 		}
 		//receive payload data
-		for (; recvBytes < iPayLoadBytes; recvBytes += bytes) {
-			int bytesToRecv = iPayLoadBytes - recvBytes;
+		for (; recvBytes < param->payloadSize; recvBytes += bytes) {
+			int bytesToRecv = param->payloadSize - recvBytes;
 			DEBUG("Received: %d To receive: %d\n", recvBytes, bytesToRecv);
 			bytes = recv(param->sockfd, param->buffer + recvBytes, bytesToRecv, 0);
 			if (bytes<=0) {
@@ -345,7 +351,7 @@ int httpGetResponse(HTTP_REQUEST* param)
 		}
 		DEBUG("Payload received: %d bytes\n", recvBytes);
 		*(param->buffer + recvBytes)=0;
-		param->iDataSize = recvBytes;
+		param->dataSize = recvBytes;
 	}
 	
 	} while(0);
@@ -397,13 +403,13 @@ char* PostFile(char* url, char* fieldname, char* filename)
 	filelen = _lseek(fd, 0, SEEK_END);
 	chunk.data = (void*)ReadData;
 	chunk.length = filelen + _snprintf(fileheader, sizeof(fileheader), FILE_CHUNK_HEADER, fieldname, req.filename);
-	chunk.type = POSTDATA_CALLBACK;
+	chunk.type = postPayload_CALLBACK;
 	_lseek(fd, 0, SEEK_SET );
 	memset(&req, 0, sizeof(req));
 	req.url = url;
 	req.method = HM_POST_MULTIPART;
 	req.chunk = &chunk;
-	req.iChunkCount = 1;
+	req.chunkCount = 1;
 	ret = httpRequest(&req);
 	_close(fd);
 	if (!ret) {
@@ -438,7 +444,7 @@ int PostFileStream(char* url, char* filename)
 	ret = httpRequest(&req);
 
 	while ((bytes = _read(fd, buf, sizeof(buf))) > 0 
-		&& LoopSend(&req, buf, bytes) == bytes);
+		&& httpSend(&req, buf, bytes) == bytes);
 
 	_close(fd);
 	return ret;
