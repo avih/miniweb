@@ -420,6 +420,7 @@ void* _mwHttpThread(HttpParam *hp)
 				hp->phsSocketHead=phsSocketCur;	//set new header of the list
 				//fill structure with data
 				_mwInitSocketData(phsSocketCur);
+				phsSocketCur->request.pucPayload = 0;
 				phsSocketCur->tmAcceptTime=time(NULL);
 				phsSocketCur->socket=socket;
 				phsSocketCur->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
@@ -768,6 +769,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						return 0;
 					} else {
 						// direct POST with filename in Content-Type
+						phsSocket->iDataLength -= phsSocket->request.siHeaderSize;
 						pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
 						(hp->pfnFileUpload)(pxMP, phsSocket->buffer + phsSocket->request.siHeaderSize, phsSocket->iDataLength);
 						pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
@@ -865,24 +867,22 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	}
 	phsSocket->fd = 0;
 #ifndef _NO_POST
-	if (ISFLAGSET(phsSocket, FLAG_REQUEST_POST)) {
+	if (phsSocket->pxMP) {
+		int i;
 		HttpMultipart *pxMP = phsSocket->pxMP;
-		if (pxMP) {
-			int i;
-			(hp->pfnFileUpload)(pxMP , 0, 0);
-			// clear multipart structure
-			for (i=0; i<pxMP->pp.iNumParams; i++) {
-				free(pxMP->pp.stParams[i].pchParamName);
-				free(pxMP->pp.stParams[i].pchParamValue);
-			}
-			if (pxMP->pchFilename) free(pxMP->pchFilename);
-			free(pxMP);
-			phsSocket->pxMP = 0;
+		(hp->pfnFileUpload)(pxMP , 0, 0);
+		// clear multipart structure
+		for (i=0; i<pxMP->pp.iNumParams; i++) {
+			free(pxMP->pp.stParams[i].pchParamName);
+			free(pxMP->pp.stParams[i].pchParamValue);
 		}
-		if (phsSocket->request.pucPayload) {
-			free(phsSocket->request.pucPayload);
-			phsSocket->request.pucPayload = 0;
-		}
+		if (pxMP->pchFilename) free(pxMP->pchFilename);
+		free(pxMP);
+		phsSocket->pxMP = 0;
+	}
+	if (phsSocket->request.pucPayload) {
+		free(phsSocket->request.pucPayload);
+		phsSocket->request.pucPayload = 0;
 	}
 #endif
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {

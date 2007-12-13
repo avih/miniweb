@@ -36,6 +36,7 @@
 				Name="VCLibrarianTool"
 				AdditionalDependencies="wsock32.lib 7zDec.lib"
 				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="TRUE"
 				IgnoreDefaultLibraryNames=""/>
 			<Tool
@@ -234,6 +235,7 @@
 				Name="VCLibrarianTool"
 				AdditionalDependencies="wsock32.lib 7zDec.lib"
 				OutputFile="$(SolutionDir)lib/httpd.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="TRUE"/>
 			<Tool
 				Name="VCMIDLTool"/>

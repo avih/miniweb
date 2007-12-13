@@ -68,6 +68,7 @@
 				Name="VCLibrarianTool"
 				AdditionalDependencies="wsock32.lib 7zDec.lib "
 				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
+				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="true"
 				IgnoreDefaultLibraryNames="libcmtd.lib"
 			/>
