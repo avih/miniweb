@@ -24,7 +24,7 @@
 OCTET* _mwFindMultipartBoundary(OCTET *poHaystack, int iHaystackSize, OCTET *poNeedle)
 {
   int i;
-  int iNeedleLength = strlen(poNeedle);
+  int iNeedleLength = (int)strlen(poNeedle);
   
   ASSERT(iNeedleLength > 0);
   for (i=0; i <= (iHaystackSize-iNeedleLength-2); i++){
@@ -483,7 +483,7 @@ void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket)
       int iLineLength;
       
       do {
-        iLineLength=strcspn(phsSocket->buffer+iHeaderLength,"\r\n");
+        iLineLength=(int)strcspn(phsSocket->buffer+iHeaderLength,"\r\n");
         iHeaderLength+=(iLineLength+2); // move to next line
       } while (iLineLength>0 && iHeaderLength<=phsSocket->iDataLength);
     }
