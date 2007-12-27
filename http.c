@@ -1109,9 +1109,11 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		}
 	}
 	if (phsSocket->fd > 0) {
-		phsSocket->response.iContentLength = !fstat(phsSocket->fd, &st) ? st.st_size - phsSocket->request.iStartByte : 0;
-		if (phsSocket->response.iContentLength <= 0) {
-			phsSocket->request.iStartByte = 0;
+		if (phsSocket->response.iContentLength <= 0 && !fstat(phsSocket->fd, &st)) {
+			phsSocket->response.iContentLength = st.st_size - phsSocket->request.iStartByte;
+			if (phsSocket->response.iContentLength <= 0) {
+				phsSocket->request.iStartByte = 0;
+			}
 		}
 		if (phsSocket->request.iStartByte) {
 			lseek(phsSocket->fd, phsSocket->request.iStartByte, SEEK_SET);
@@ -1504,7 +1506,7 @@ int _mwGrabToken(char *pchToken, char chDelimiter, char *pchBuffer, int iMaxToke
 int _mwParseHttpHeader(HttpSocket* phsSocket)
 {
 	int iLen;
-	char buf[128];
+	char buf[256];
 	char *p=phsSocket->buffer;		//pointer to header data
 	HttpRequest *req=&phsSocket->request;
 
@@ -1512,7 +1514,8 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 	for(;;) {
 		//look for a valid field name
 		while (*p && *p!='\r') p++;		//travel to '\r'
-		if (!*p || GETDWORD(p)==HTTP_HEADEREND) break;
+		if (!*p || GETDWORD(p)==HTTP_HEADEREND)
+			break;
 		p+=2;							//skip "\r\n"
 		switch (*(p++)) {
 		case 'C':
@@ -1554,6 +1557,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				p+=8;
 				phsSocket->request.ofReferer=(int)p-(int)phsSocket->buffer;
 			} else if (!memcmp(p,"ange: bytes=",12)) {
+				int iEndByte;
 				p+=12;
 				iLen=_mwGrabToken(p,'-',buf,sizeof(buf));
 				if (iLen==0) continue;
@@ -1562,7 +1566,9 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				iLen=_mwGrabToken(p,'/',buf,sizeof(buf));
 				if (iLen==0) continue;
 				p+=iLen;
-                phsSocket->response.iContentLength=atoi(buf)-phsSocket->request.iStartByte+1;
+				iEndByte = atoi(buf);
+				if (iEndByte > 0)
+					phsSocket->response.iContentLength = iEndByte-phsSocket->request.iStartByte+1;
 			}
 			break;
 		case 'H':
