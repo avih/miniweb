@@ -417,6 +417,15 @@ int uhVodStream(UrlHandlerParam* param)
 	return 0;
 }
 
+int uhStream(UrlHandlerParam* param)
+{
+	char* file;
+	mwParseQueryString(param);
+	file = mwGetVarValue(param->pxVars, "file", 0);
+	param->hs->fd = _open(file, _O_BINARY|_O_RDONLY);
+	return FLAG_DATA_FD;
+}
+
 static void OutputItemInfo(char** pbuf, int* pbufsize, char* id)
 {
 	char buf[256];

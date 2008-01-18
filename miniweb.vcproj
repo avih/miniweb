@@ -550,6 +550,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\httphandler.c"
+				>
+			</File>
+			<File
 				RelativePath=".\httpmin.c"
 				>
 				<FileConfiguration

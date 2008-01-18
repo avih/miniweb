@@ -676,7 +676,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	{
 		int iLength = recv(phsSocket->socket, 
 						phsSocket->pucData+phsSocket->iDataLength,
-						phsSocket->iBufferSize-phsSocket->iDataLength, 0);
+						phsSocket->iBufferSize - phsSocket->iDataLength - 1, 0);
 		if (iLength <= 0) {
 			SYSLOG(LOG_INFO,"[%d] socket closed by client\n",phsSocket->socket);
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
@@ -696,6 +696,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		}
 		// add in new data received
 		phsSocket->iDataLength += iLength;
+		phsSocket->pucData[phsSocket->iDataLength] = 0;
 	}
 
 	// check if end of request
@@ -1495,7 +1496,7 @@ int _mwGrabToken(char *pchToken, char chDelimiter, char *pchBuffer, int iMaxToke
 	char *p=pchToken;
 	int iCharCopied=0;
 
-	while (*p && *p!=chDelimiter && iCharCopied<iMaxTokenSize) {
+	while (*p && *p!=chDelimiter && iCharCopied < iMaxTokenSize - 1) {
 		*(pchBuffer++)=*(p++);
 		iCharCopied++;
 	}
