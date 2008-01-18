@@ -279,14 +279,16 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	memset(&phsSocket->response,0,sizeof(HttpResponse));
 	phsSocket->request.iStartByte = 0;
 	phsSocket->request.ofHost = 0;
+	phsSocket->request.pucPath = 0;
 	phsSocket->request.siHeaderSize = 0;
-	phsSocket->fd=0;
-	phsSocket->flags=FLAG_RECEIVING;
-	phsSocket->pucData=phsSocket->buffer;
-	phsSocket->iDataLength=0;
-	phsSocket->iBufferSize=HTTP_BUFFER_SIZE;
-	phsSocket->ptr=NULL;
-	phsSocket->pxMP=NULL;
+	phsSocket->fd = 0;
+	phsSocket->flags = FLAG_RECEIVING;
+	phsSocket->pucData = phsSocket->buffer;
+	phsSocket->iDataLength = 0;
+	phsSocket->iBufferSize = HTTP_BUFFER_SIZE;
+	phsSocket->ptr = NULL;
+	phsSocket->handler = NULL;
+	phsSocket->pxMP = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -530,6 +532,9 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	if (phsSocket->response.iContentLength > 0) {
 		p+=sprintf(p,"Content-Length: %d\r\n",phsSocket->response.iContentLength);
 	}
+	if (phsSocket->flags & FLAG_CHUNK) {
+		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
+	}
 	SETDWORD(p,DEFDWORD('\r','\n',0,0));
 	return (int)p-(int)buffer+2;
 }
@@ -608,8 +613,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.pucBuffer=phsSocket->pucData;
 			up.pucBuffer[0]=0;
 			up.iVarCount=-1;
-			phsSocket->ptr=(void*)puh->pfnUrlHandler;
-			ret=(*(PFNURLCALLBACK)phsSocket->ptr)(&up);
+			ret=(*puh->pfnUrlHandler)(&up);
 			if (!ret) continue;
 			if (ret & FLAG_DATA_REDIRECT) {
 				_mwRedirect(phsSocket, up.pucBuffer);
@@ -621,6 +625,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 				if (ret & FLAG_TO_FREE) {
 					phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
 				}
+				phsSocket->handler = puh;
 				if (ret & FLAG_DATA_RAW) {
 					SETFLAG(phsSocket, FLAG_DATA_RAW);
 					phsSocket->pucData=up.pucBuffer;
@@ -629,8 +634,8 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					DBG("URL handler: raw data\n");
 				} else if (ret & FLAG_DATA_STREAM) {
 					SETFLAG(phsSocket, FLAG_DATA_STREAM);
-					phsSocket->pucData=up.pucBuffer;
-					phsSocket->iDataLength=up.iDataBytes;
+					phsSocket->pucData = up.pucBuffer;
+					phsSocket->iDataLength = up.iDataBytes;
 					DBG("URL handler: stream\n");
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
@@ -1153,6 +1158,11 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 	int iBytesWritten;
 	int iBytesRead;
 
+	if (phsSocket->flags & FLAG_CHUNK) {
+		char buf[16];
+		iBytesRead = sprintf(buf, "%x\r\n", phsSocket->iDataLength);
+		iBytesWritten = send(phsSocket->socket, buf, iBytesRead, 0);
+	}
 	// send a chunk of data
 	iBytesWritten=send(phsSocket->socket, phsSocket->pucData,phsSocket->iDataLength, 0);
 	if (iBytesWritten<=0) {
@@ -1187,6 +1197,9 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 			phsSocket->iDataLength=iRemainBytes;
 			return 0;
 		} else {
+			if (phsSocket->flags & FLAG_CHUNK) {
+				send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+			}
 			DBG("Closing file (fd=%d)\n",phsSocket->fd);
 			hp->stats.fileSentBytes+=phsSocket->response.iSentBytes;
 			if (phsSocket->fd > 0) close(phsSocket->fd);
@@ -1238,14 +1251,12 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 {
 	int  iBytesWritten;
 
-    // send a chunk of data
-	if (phsSocket->iDataLength==0) {
-		if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->ptr) {
-			//FIXME: further implementation of FLAG_DATA_STREAM case
-		}
-		hp->stats.fileSentBytes+=phsSocket->response.iSentBytes;
-		return 1;
+	if (phsSocket->flags & FLAG_CHUNK) {
+		char buf[16];
+		int bytes = sprintf(buf, "%x\r\n", phsSocket->iDataLength);
+		iBytesWritten = send(phsSocket->socket, buf, bytes, 0);
 	}
+    // send a chunk of data
 	iBytesWritten=(int)send(phsSocket->socket, phsSocket->pucData,phsSocket->iDataLength, 0);
     if (iBytesWritten<=0) {
 		// failure - close connection
@@ -1258,19 +1269,28 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		phsSocket->pucData+=iBytesWritten;
 		phsSocket->iDataLength-=iBytesWritten;
 	}
-	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM)) {
+	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
 		//load next chuck of raw data
-		UrlHandlerParam uhp;
-		memset(&uhp,0,sizeof(UrlHandlerParam));
-		uhp.hp=hp;
-		uhp.iContentBytes=phsSocket->response.iContentLength;
-		uhp.iSentBytes=phsSocket->response.iSentBytes;
-		uhp.pucBuffer=phsSocket->buffer;
-		uhp.iDataBytes=HTTP_BUFFER_SIZE;
-		if ((*(PFNURLCALLBACK)(phsSocket->ptr))(&uhp)) {
-			phsSocket->pucData=uhp.pucBuffer;
-			phsSocket->iDataLength=uhp.iDataBytes;
+		UrlHandlerParam up;
+		UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
+		up.hs = phsSocket;
+		up.hp = hp;
+		up.iSentBytes = hp->stats.fileSentBytes;
+		up.pucBuffer=phsSocket->buffer;
+		up.iDataBytes=HTTP_BUFFER_SIZE;
+		if ((pfnHandler->pfnUrlHandler)(&up) == 0) {
+			if (phsSocket->flags & FLAG_CHUNK) {
+				send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+			}
+			return 1;	// EOF
 		}
+		phsSocket->iDataLength=up.iDataBytes;
+		phsSocket->pucData = up.pucBuffer;
+	} else if (phsSocket->iDataLength == 0) {
+		if (phsSocket->flags & FLAG_CHUNK) {
+			send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+		}
+		return 1;
 	}
 	return 0;
 } // end of _mwSendRawDataChunk
@@ -1284,7 +1304,6 @@ void _mwRedirect(HttpSocket* phsSocket, char* pchPath)
 	char* path;
 	// raw (not file) data send mode
 	SETFLAG(phsSocket,FLAG_DATA_RAW);
-
 	// messages is HTML
 	phsSocket->response.fileType=HTTPFILETYPE_HTML;
 

@@ -22,20 +22,22 @@ int uhStream(UrlHandlerParam* param);
 int ehVod(MW_EVENT msg, int argi, void* argp);
 int uhTest(UrlHandlerParam* param);
 int uh7Zip(UrlHandlerParam* param);
+int uhFileStream(UrlHandlerParam* param);
 
 UrlHandler urlHandlerList[]={
-	{"stats",uhStats,NULL},
+	{"stats", uhStats, NULL},
+	{"getfile", uhFileStream, NULL},
 #ifdef _7Z
-	//{"7z",uh7Zip,NULL},
+	{"7z", uh7Zip, NULL},
 #endif
 #ifdef _MPD
-	{"mpd",uhMpd,ehMpd},
+	{"mpd", uhMpd, ehMpd},
 #endif
 #ifdef _VOD
-	{"vodstream",uhVodStream,NULL},
-	{"vodlib",uhLib,0},
-	{"vodplay",uhVod,ehVod},
-	{"stream",uhStream,NULL},
+	{"vodstream", uhVodStream,NULL},
+	{"vodlib", uhLib,0},
+	{"vodplay", uhVod,ehVod},
+	{"stream", uhStream,NULL},
 #endif
 	{NULL},
 };

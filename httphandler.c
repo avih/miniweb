@@ -133,3 +133,18 @@ int uh7Zip(UrlHandlerParam* param)
 }
 
 #endif
+
+int uhFileStream(UrlHandlerParam* param)
+{
+	if (!param->hs->ptr) {
+		// first request
+		char* file;
+		if (mwParseQueryString(param) <= 0 || !(file = mwGetVarValue(param->pxVars, "file", 0)))
+			return 0;	// no file specified
+		param->hs->ptr = (void*)open(file, O_BINARY | O_RDONLY);
+		if (!param->hs->ptr) return 0;
+	}
+	param->iDataBytes = read((int)param->hs->ptr, param->pucBuffer, param->iDataBytes);
+	param->fileType = HTTPFILETYPE_XML;
+	return param->iDataBytes > 0 ? (FLAG_DATA_STREAM | FLAG_CHUNK) : 0;
+}

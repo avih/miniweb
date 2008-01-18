@@ -118,6 +118,7 @@ typedef struct _tagSubstParam {
 #define FLAG_AUTHENTICATION	0x40
 #define FLAG_MORE_CONTENT	0x80
 #define FLAG_TO_FREE		0x100
+#define FLAG_CHUNK			0x200
 
 #define FLAG_DATA_FILE		0x10000
 #define FLAG_DATA_RAW		0x20000
@@ -203,7 +204,8 @@ typedef struct _HttpSocket{
 
 	int fd;
 	unsigned int flags;
-	void* ptr;
+	void* handler;				// http handler function address
+	void* ptr;					
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
 	int iRequestCount;
