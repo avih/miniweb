@@ -829,7 +829,11 @@ done:
 		CLRFLAG(phsSocket,FLAG_RECEIVING)
 		SETFLAG(phsSocket,FLAG_SENDING);
 		hp->stats.reqGetCount++;
-
+		if (phsSocket->request.iHttpVer == 0) {
+			CLRFLAG(phsSocket, FLAG_CHUNK);
+			if (phsSocket->response.iContentLength == 0)
+				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+		}
 		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW | FLAG_DATA_STREAM)) {
 			return _mwStartSendRawData(hp, phsSocket);
 		} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
@@ -1530,6 +1534,10 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 	char *p=phsSocket->buffer;		//pointer to header data
 	HttpRequest *req=&phsSocket->request;
 
+	p = strstr(phsSocket->buffer, "HTTP/1.");
+	if (!p) return -1;
+	p += 7;
+	req->iHttpVer = (*p - '0');
 	//analyze rest of the header
 	for(;;) {
 		//look for a valid field name

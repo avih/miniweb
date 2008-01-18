@@ -140,6 +140,7 @@ typedef union {
 } IP;
 
 typedef struct {
+	int iHttpVer;
 	int iStartByte;
 	unsigned char *pucPath;
 	int ofReferer;
