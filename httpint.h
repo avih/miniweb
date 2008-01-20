@@ -107,7 +107,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
 int _mwSubstVariables(HttpParam* hp, char* pchData, int iLength, int* piBytesUsed);
 char* _mwStrStrNoCase(char* pchHaystack, char* pchNeedle);
 void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
-			  int iContentOffset, int iContentLength);
+			  int iContentOffset, int contentLength);
 void _mwRedirect(HttpSocket* phsSocket, char* pchFilename);
 int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket);
 int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket);

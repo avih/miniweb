@@ -164,7 +164,7 @@ int SzExtractContent(void* ctx, char* archive, char* filename, void** pbuf)
 				&archiveStream->allocImp, &archiveStream->allocTempImp);
 			if (res != SZ_OK) return -1;
 			if (pbuf) *pbuf = (void*)(archiveStream->outBuffer + offset);
-			return outSizeProcessed;
+			return (int)outSizeProcessed;
 		}
 		return -1;
 	} else {

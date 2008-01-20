@@ -99,7 +99,7 @@ typedef struct _tagPostParam {
 typedef struct {
   char pchBoundaryValue[80];
   OCTET oFileuploadStatus;
-  int iWriteLocation;
+  size_t writeLocation;
   PostParam pp;
   char *pchFilename;
   void *pxCallBackData;
@@ -141,17 +141,18 @@ typedef union {
 
 typedef struct {
 	int iHttpVer;
-	int iStartByte;
+	size_t startByte;
 	unsigned char *pucPath;
 	int ofReferer;
 	int ofHost;
-	int siHeaderSize;
+	int headerSize;
 	unsigned char* pucPayload;
 } HttpRequest;
 
 typedef struct {
-	int iSentBytes;
-	int iContentLength;
+	int headerBytes;
+	int sentBytes;
+	int contentLength;
 	HttpFileType fileType;
 } HttpResponse;
 
@@ -163,7 +164,7 @@ typedef struct {
 // Callback function protos
 typedef int (*PFNPOSTCALLBACK)(PostParam*);
 typedef int (*PFNSUBSTCALLBACK)(SubstParam*);
-typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, OCTET*, DWORD);
+typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, OCTET*, size_t);
 
 typedef enum {
 	MW_INIT = 0,
@@ -180,7 +181,7 @@ typedef struct {
 	int reqCount;
 	int reqGetCount;
 	int fileSentCount;
-	int fileSentBytes;
+	size_t fileSentBytes;
 	int varSubstCount;
 	int urlProcessCount;
 	int timeOutCount;
@@ -200,8 +201,8 @@ typedef struct _HttpSocket{
 	HttpRequest request;
 	HttpResponse response;
 	unsigned char *pucData;
-	int iBufferSize;			// the size of buffer pucData pointing to
-	int iDataLength;
+	int bufferSize;			// the size of buffer pucData pointing to
+	int dataLength;
 
 	int fd;
 	unsigned int flags;
@@ -224,9 +225,9 @@ typedef struct {
 	int iVarCount;
 	char *pucHeader;
 	char *pucBuffer;
-	int iDataBytes;
-	int iContentBytes;
-	int iSentBytes;
+	int dataBytes;
+	int contentBytes;
+	int sentBytes;
 	HttpFileType fileType;
 } UrlHandlerParam;
 
@@ -325,7 +326,7 @@ PFNFILEUPLOADCALLBACK mwFileUploadRegister(HttpParam *httpParam, PFNFILEUPLOADCA
 ///////////////////////////////////////////////////////////////////////
 int DefaultWebSubstCallback(SubstParam* sp);
 int DefaultWebPostCallback(PostParam* pp);
-int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, DWORD dwDataChunkSize);
+int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dataChunkSize);
 
 int mwGetHttpDateTime(time_t tm, char *buf);
 int mwGetLocalFileName(HttpFilePath* hfp);
