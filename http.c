@@ -785,12 +785,12 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					}
 				} else {
 					if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
-					phsSocket->request.pucPayload=malloc(phsSocket->response.contentLength+1);
+					phsSocket->bufferSize = phsSocket->response.contentLength + 1;
+					phsSocket->request.pucPayload=malloc(phsSocket->bufferSize);
 					phsSocket->request.pucPayload[phsSocket->response.contentLength]=0;
 					phsSocket->dataLength -= phsSocket->request.headerSize;
 					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 					phsSocket->pucData = phsSocket->request.pucPayload;
-					phsSocket->bufferSize = phsSocket->response.contentLength;
 				}
 			}
 #endif
@@ -950,7 +950,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 	for (ret=ReadDir(dir,cFileName); !ret; ret=ReadDir(NULL,cFileName)) {
 		struct stat st;
 		char *s;
-		int bytes;
+		size_t bytes;
 		if (GETWORD(cFileName)==DEFWORD('.',0)) continue;
 		DBG("Checking %s ...\n",cFileName);
 		bytes=(int)(p-pagebuf);
@@ -1120,7 +1120,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 	}
 	if (phsSocket->fd > 0) {
 		if (phsSocket->response.contentLength <= 0 && !fstat(phsSocket->fd, &st)) {
-			phsSocket->response.contentLength = st.st_size - phsSocket->request.startByte;
+			phsSocket->response.contentLength = (int)(st.st_size - phsSocket->request.startByte);
 			if (phsSocket->response.contentLength <= 0) {
 				phsSocket->request.startByte = 0;
 			}
@@ -1272,7 +1272,6 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 			UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
 			up.hs = phsSocket;
 			up.hp = hp;
-			up.sentBytes = hp->stats.fileSentBytes;
 			up.pucBuffer = 0;	// indicate connection closed
 			up.dataBytes = -1;
 			(pfnHandler->pfnUrlHandler)(&up);
@@ -1290,7 +1289,6 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
 		up.hs = phsSocket;
 		up.hp = hp;
-		up.sentBytes = hp->stats.fileSentBytes;
 		up.pucBuffer=phsSocket->buffer;
 		up.dataBytes=HTTP_BUFFER_SIZE;
 		if ((pfnHandler->pfnUrlHandler)(&up) == 0) {
@@ -1607,7 +1605,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				p+=iLen;
 				iEndByte = atoi(buf);
 				if (iEndByte > 0)
-					phsSocket->response.contentLength = iEndByte-phsSocket->request.startByte+1;
+					phsSocket->response.contentLength = (int)(iEndByte-phsSocket->request.startByte+1);
 			}
 			break;
 		case 'H':

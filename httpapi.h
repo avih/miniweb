@@ -227,7 +227,6 @@ typedef struct {
 	char *pucBuffer;
 	int dataBytes;
 	int contentBytes;
-	int sentBytes;
 	HttpFileType fileType;
 } UrlHandlerParam;
 
