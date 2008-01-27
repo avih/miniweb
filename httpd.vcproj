@@ -142,7 +142,7 @@
 				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
 				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="true"
-				IgnoreDefaultLibraryNames="libcmtd.lib"
+				IgnoreDefaultLibraryNames=""
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -872,7 +872,7 @@
 				MinimalRebuild="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
@@ -890,7 +890,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="wsock32.lib 7zDec64.lib "
+				AdditionalDependencies="wsock32.lib 7zDec64_a.lib"
 				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
 				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="true"
