@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="gb2312"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="8.00"
 	Name="MiniWeb"
 	ProjectGUID="{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
 	RootNamespace="httpd"
@@ -731,7 +731,7 @@
 				StringPooling="true"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="0"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				BufferSecurityCheck="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -773,8 +773,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_7z|Win32"
-			OutputDirectory="$(IntDir)"
-			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -843,8 +843,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_7z|x64"
-			OutputDirectory="$(IntDir)"
-			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"

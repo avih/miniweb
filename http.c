@@ -787,7 +787,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
 					phsSocket->bufferSize = phsSocket->response.contentLength + 1;
 					phsSocket->request.pucPayload=malloc(phsSocket->bufferSize);
-					phsSocket->request.pucPayload[phsSocket->response.contentLength]=0;
+					phsSocket->request.payloadSize = phsSocket->response.contentLength;
+					phsSocket->request.pucPayload[phsSocket->request.payloadSize]=0;
 					phsSocket->dataLength -= phsSocket->request.headerSize;
 					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 					phsSocket->pucData = phsSocket->request.pucPayload;

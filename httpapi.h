@@ -147,6 +147,7 @@ typedef struct {
 	int ofHost;
 	int headerSize;
 	unsigned char* pucPayload;
+	int payloadSize;
 } HttpRequest;
 
 typedef struct {
