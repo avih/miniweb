@@ -140,7 +140,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
 {
   int sLength = 0;
   char *pchBoundarySearch = NULL;
-  HttpMultipart *pxMP = (HttpMultipart*)phsSocket->ptr;
+  HttpMultipart *pxMP = phsSocket->pxMP;
   
   if (phsSocket == NULL || pxMP == NULL) {
     _mwCloseSocket(httpParam, phsSocket);
@@ -153,17 +153,18 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
                  phsSocket->buffer + pxMP->writeLocation,
                  (int)(HTTPMAXRECVBUFFER - pxMP->writeLocation), 
                  0);
+	  if (sLength < 0) {
+		DEBUG("Socket closed by peer\n");
+		_mwCloseSocket(httpParam, phsSocket);
+		return -1;
+	  }  else if (sLength > 0) {
+		// reset expiration timer
+		phsSocket->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
+	  } else {
+		return 1;
+	  }
   }
   
-  if (sLength < 0) {
-    DEBUG("Socket closed by peer\n");
-    _mwCloseSocket(httpParam, phsSocket);
-    return -1;
-  }
-  else if (sLength > 0) {
-    // reset expiration timer
-    phsSocket->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
-  }
   
   pxMP->writeLocation += (sLength > 0 ? sLength : 0);
   //ASSERT(pxMP->writeLocation <= HTTPMAXRECVBUFFER);
@@ -216,7 +217,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
         }
       }
       
-      pchStart+=strlen(HTTP_MULTIPARTCONTENT)+1; // move past first quote
+      pchStart+=sizeof(HTTP_MULTIPARTCONTENT); // move past first quote
       pchEnd=strchr(pchStart,0x22);              // find end quote
       
       // Is peer authenticated to post this var?

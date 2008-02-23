@@ -764,7 +764,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						phsSocket->pucData = phsSocket->buffer;
 						pxMP->pp.httpParam = hp;
 						pxMP->writeLocation = phsSocket->dataLength;
-
 						ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
 						if (ret < 0) {
 							SETFLAG(phsSocket, FLAG_CONN_CLOSE);
