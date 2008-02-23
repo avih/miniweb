@@ -78,7 +78,7 @@ int DefaultWebPostCallback(PostParam* pp)
 // callback from the web server whenever it receives a multipart 
 // upload file chunk
 //////////////////////////////////////////////////////////////////////////
-int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, DWORD dwDataChunkSize)
+int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDataChunkSize)
 {
   // Do nothing with the data
 	int fd = (int)pxMP->pxCallBackData;

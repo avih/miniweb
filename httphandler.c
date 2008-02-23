@@ -19,7 +19,7 @@ int uhStats(UrlHandlerParam* param)
 	HttpRequest *req=&param->hs->request;
 	IP ip = param->hs->ipAddr;
 	HTTP_XML_NODE node;
-	int bufsize = param->iDataBytes;
+	int bufsize = param->dataBytes;
 	int ret=FLAG_DATA_RAW;
 
 	mwGetHttpDateTime(time(NULL),buf);
@@ -92,7 +92,7 @@ int uhStats(UrlHandlerParam* param)
 	mwWriteXmlString(&p, &bufsize, 0, "</ServerStats>");
 
 	//return data to server
-	param->iDataBytes=(int)p-(int)(param->pucBuffer);
+	param->dataBytes=(int)p-(int)(param->pucBuffer);
 	param->fileType=HTTPFILETYPE_XML;
 	return ret;
 }
@@ -127,7 +127,7 @@ int uh7Zip(UrlHandlerParam* param)
 
 	p = strrchr(filename, '.');
 	param->fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
-	param->iDataBytes = len;
+	param->dataBytes = len;
 	param->pucBuffer = content;
 	return FLAG_DATA_RAW;
 }
@@ -144,7 +144,7 @@ int uhFileStream(UrlHandlerParam* param)
 		param->hs->ptr = (void*)open(file, O_BINARY | O_RDONLY);
 		if (!param->hs->ptr) return 0;
 	}
-	param->iDataBytes = read((int)param->hs->ptr, param->pucBuffer, param->iDataBytes);
+	param->dataBytes = read((int)param->hs->ptr, param->pucBuffer, param->dataBytes);
 	param->fileType = HTTPFILETYPE_XML;
-	return param->iDataBytes > 0 ? (FLAG_DATA_STREAM | FLAG_CHUNK) : 0;
+	return param->dataBytes > 0 ? (FLAG_DATA_STREAM | FLAG_CHUNK) : 0;
 }

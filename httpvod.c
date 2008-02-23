@@ -408,11 +408,11 @@ int uhVodStream(UrlHandlerParam* param)
 	if (!file) {
 		CLIP_INFO* clip = GetClipByHash(id, 0);
 		if (clip) {
-			snprintf(param->pucBuffer, param->iDataBytes, "~%s/%s", vodroot, clip->filename);
+			snprintf(param->pucBuffer, param->dataBytes, "~%s/%s", vodroot, clip->filename);
 			return FLAG_DATA_FILE;
 		}
 	} else {
-		snprintf(param->pucBuffer, param->iDataBytes, "~%s/%s", vodroot, file);
+		snprintf(param->pucBuffer, param->dataBytes, "~%s/%s", vodroot, file);
 	}
 	return 0;
 }
@@ -581,7 +581,7 @@ int uhLib(UrlHandlerParam* param)
 
 	mwWriteXmlString(&pbuf, &bufsize, 0, "</response>");
 
-	param->iDataBytes=(int)(pbuf-param->pucBuffer);
+	param->dataBytes=(int)(pbuf-param->pucBuffer);
 	param->fileType=HTTPFILETYPE_XML;
 	return FLAG_DATA_RAW | FLAG_TO_FREE;
 }
@@ -611,7 +611,7 @@ int uhVod(UrlHandlerParam* param)
 	HTTP_XML_NODE node;
 	char *req=param->pucRequest;
 	char *pbuf = param->pucBuffer;
-	int bufsize = param->iDataBytes;
+	int bufsize = param->dataBytes;
 	char *action;
 	PL_ENTRY *ptr;
 	VOD_CTX* ctx;
@@ -724,7 +724,7 @@ int uhVod(UrlHandlerParam* param)
 	case DEFDWORD('c','m','d',0):
 		//action=ACT_SKIP;
 		strcpy(pbuf,"Play next");
-		param->iDataBytes=9;
+		param->dataBytes=9;
 		return FLAG_DATA_RAW;
 	case DEFDWORD('l','i','s','t'): {
 		PL_ENTRY *ptr = plhdr[session];
@@ -781,7 +781,7 @@ int uhVod(UrlHandlerParam* param)
 	}
 #endif	
 	mwWriteXmlString(&pbuf, &bufsize, 0, "</response>");
-	param->iDataBytes=(int)(pbuf-param->pucBuffer);
+	param->dataBytes=(int)(pbuf-param->pucBuffer);
 	param->fileType=HTTPFILETYPE_XML;
 	return FLAG_DATA_RAW;
 }

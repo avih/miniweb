@@ -121,8 +121,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
 				InlineFunctionExpansion="0"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;NODEBUG;_7Z;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;NODEBUG;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -142,10 +143,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="WSock32.Lib 7zDec.lib"
+				AdditionalDependencies="WSock32.Lib"
 				OutputFile="miniweb.exe"
 				LinkIncremental="1"
-				IgnoreDefaultLibraryNames="libcmt"
+				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
