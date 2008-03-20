@@ -23,10 +23,14 @@ int ehVod(MW_EVENT msg, int argi, void* argp);
 int uhTest(UrlHandlerParam* param);
 int uh7Zip(UrlHandlerParam* param);
 int uhFileStream(UrlHandlerParam* param);
+int uhMediaItems(UrlHandlerParam* param);
+int uhMediaItemsTranscode(UrlHandlerParam* param);
+int ehMediaItemsEvent(MW_EVENT msg, int argi, void* argp);
 
 UrlHandler urlHandlerList[]={
 	{"stats", uhStats, NULL},
 	{"getfile", uhFileStream, NULL},
+	{"MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent},
 #ifdef _7Z
 	{"7z", uh7Zip, NULL},
 #endif
@@ -91,7 +95,9 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 		return 0;
 	}
 	if (!fd) {
-		fd = open(pxMP->pchFilename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
+		char filename[256];
+		_snprintf(filename, sizeof(filename), "%s/%s", httpParam[0].pchWebPath, pxMP->pchFilename);
+		fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
 		pxMP->pxCallBackData = (void*)fd;
 	}
 	if (fd <= 0) return -1;
@@ -210,9 +216,16 @@ int main(int argc,char* argv[])
 	}
 	{
 		int i;
+		int error = 0;
 		for (i = 0; urlHandlerList[i].pchUrlPrefix; i++) {
-			if (urlHandlerList[i].pfnEventHandler)
-				urlHandlerList[i].pfnEventHandler(MW_PARSE_ARGS, argc, argv);
+			if (urlHandlerList[i].pfnEventHandler) {
+				if (urlHandlerList[i].pfnEventHandler(MW_PARSE_ARGS, argc, argv))
+					error++;
+			}
+		}
+		if (error > 0) {
+			printf("Error parsing command line options\n");
+			return -1;
 		}
 	}
 

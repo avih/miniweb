@@ -543,17 +543,13 @@ int mwParseQueryString(UrlHandlerParam* up)
 {
 	if (up->iVarCount==-1) {
 		//parsing variables from query string
-		char *p,*s = NULL;
-		if (ISFLAGSET(up->hs,FLAG_REQUEST_GET)) {
-			// get start of query string
-			s = strchr(up->pucRequest, '?');
-			if (s) {
-				*(s++) = 0;
-			}
-#ifndef _NO_POST
-		} else {
+		char *p,*s;
+		// get start of query string
+		s = strchr(up->pucRequest, '?');
+		if (s) {
+			*(s++) = 0;
+		} else if (ISFLAGSET(up->hs,FLAG_REQUEST_POST)){
 			s = up->hs->request.pucPayload;
-#endif
 		}
 		if (s && *s) {
 			int i;

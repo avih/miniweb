@@ -19,7 +19,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -99,7 +99,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="Release"
-			IntermediateDirectory="Release"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -180,7 +180,7 @@
 		<Configuration
 			Name="ReleaseMin|Win32"
 			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -259,7 +259,7 @@
 		<Configuration
 			Name="VOD_Release|Win32"
 			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -338,7 +338,7 @@
 		<Configuration
 			Name="DebugMin|Win32"
 			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -416,7 +416,7 @@
 		<Configuration
 			Name="VOD_Debug|Win32"
 			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -546,6 +546,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\httpclient.c"
+				>
+			</File>
+			<File
 				RelativePath=".\httphandler.c"
 				>
 			</File>
@@ -598,6 +602,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\mediaserver.c"
+				>
+			</File>
+			<File
 				RelativePath=".\miniweb.c"
 				>
 				<FileConfiguration
@@ -646,32 +654,8 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\procpil.c"
+				RelativePath=".\processpil.c"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ReleaseMin|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="DebugMin|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -681,6 +665,10 @@
 			>
 			<File
 				RelativePath=".\httpapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\httpclient.h"
 				>
 			</File>
 			<File
@@ -700,19 +688,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\procpil.h"
+				RelativePath=".\processpil.h"
 				>
 			</File>
 			<File
 				RelativePath=".\revision.h"
 				>
 			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
+			<Filter
+				Name="Resource Files"
+				Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
+				UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+				>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Web Pages"
