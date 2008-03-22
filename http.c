@@ -154,7 +154,7 @@ int mwServerShutdown(HttpParam* hp)
 	if (hp->listenSocket) closesocket(hp->listenSocket);
 
 	// and wait for thread to exit
-	for (i=0;hp->bWebserverRunning && i<10;i++) msleep(100);
+	for (i=0;hp->bWebserverRunning && i<30;i++) msleep(100);
 
 #ifdef _7Z
 	SzUninit(hp->szctx);
@@ -466,7 +466,7 @@ void* _mwHttpThread(HttpParam *hp)
 
 	for (phsSocketCur=hp->phsSocketHead; phsSocketCur;) {
 		HttpSocket *phsSocketNext;
-		phsSocketCur->flags=FLAG_CONN_CLOSE;
+		phsSocketCur->flags|=FLAG_CONN_CLOSE;
 		_mwCloseSocket(hp, phsSocketCur);
 		phsSocketNext=phsSocketCur->next;
 		free(phsSocketCur);
@@ -891,6 +891,15 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		phsSocket->request.pucPayload = 0;
 	}
 #endif
+	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
+		UrlHandlerParam up;
+		UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
+		up.hs = phsSocket;
+		up.hp = hp;
+		up.pucBuffer = 0;	// indicate connection closed
+		up.dataBytes = -1;
+		(pfnHandler->pfnUrlHandler)(&up);
+	}
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
 		free(phsSocket->ptr);
 		phsSocket->ptr=NULL;
@@ -1263,15 +1272,7 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		// failure - close connection
 		SYSLOG(LOG_INFO,"Connection closed\n");
 		SETFLAG(phsSocket,FLAG_CONN_CLOSE);
-		if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
-			UrlHandlerParam up;
-			UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
-			up.hs = phsSocket;
-			up.hp = hp;
-			up.pucBuffer = 0;	// indicate connection closed
-			up.dataBytes = -1;
-			(pfnHandler->pfnUrlHandler)(&up);
-		}
+		_mwCloseSocket(hp, phsSocket);
 		return -1;
     } else {
 		SYSLOG(LOG_INFO,"[%d] sent %d bytes of raw data\n",phsSocket->socket,iBytesWritten);

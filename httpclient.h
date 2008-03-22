@@ -47,6 +47,7 @@ typedef struct {
 	const char *proxy;
 	unsigned short flags;
 	unsigned short port;
+	char* referer;
 	char* header;
 	char* buffer;
 	int bufferSize;

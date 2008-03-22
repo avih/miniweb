@@ -24,10 +24,10 @@
 #endif
 #define CONN_RETRIES 3
 #define HTTP_GET_HEADER "%s %s HTTP/1.%d\r\nAccept: */*\r\nConnection: %s\r\nUser-Agent: Mozilla/5.0\r\nHost: %s\r\n%s\r\n"
-#define HTTP_POST_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0\r\nContent-Length: %d\r\n\r\n"
-#define HTTP_POST_MULTIPART_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\n\r\n"
+#define HTTP_POST_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0\r\nContent-Length: %d\r\n%s\r\n"
+#define HTTP_POST_MULTIPART_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\n%s\r\n"
 #define MULTIPART_BOUNDARY "---------------------------24464570528145"
-#define HTTP_POST_STREAM_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: close\r\nContent-Type: application/octet-stream; filename=%s\r\nContent-Length: %d\r\n\r\n"
+#define HTTP_POST_STREAM_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: close\r\nContent-Type: application/octet-stream; filename=%s\r\nContent-Length: %d\r\n%s\r\n"
 
 void httpInitReq(HTTP_REQUEST* req, const char* url, char* proxy)
 {
@@ -122,20 +122,25 @@ int httpRequest(HTTP_REQUEST* param)
 	if (param->header) free(param->header);
 	param->header = (char*)malloc(MAX_HEADER_SIZE + 1);
 	if ((param->bytesStart|param->bytesEnd) == 0) {
+		char headerAddition[128];
+		headerAddition[0] = 0;
+		if (param->referer) {
+			_snprintf(headerAddition, sizeof(headerAddition), "Referer: %s\r\n", param->referer);
+		}
 		switch (param->method) {
 		case HM_GET:
 			sprintf(param->header, HTTP_GET_HEADER, "GET",
-				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname,"");
+				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_HEAD:
 			sprintf(param->header, HTTP_GET_HEADER, "HEAD",
-				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname,"");
+				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_POST:
-			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes);
+			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes, headerAddition);
 			break;
 		case HM_POST_STREAM: {
-			sprintf(param->header,HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0);
+			sprintf(param->header,HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0, headerAddition);
 			break;
 			} break;
 		case HM_POST_MULTIPART: {
@@ -149,7 +154,7 @@ int httpRequest(HTTP_REQUEST* param)
 				bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
 			}
 			bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
-			sprintf(param->header,HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes);
+			sprintf(param->header,HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes, headerAddition);
 			} break;
 		}
 	} else {
@@ -169,13 +174,13 @@ int httpRequest(HTTP_REQUEST* param)
 		if (!param->sockfd) {
 			struct sockaddr_in server_addr;
 
-			if ((param->sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
-				DEBUG("Failed to open socket\n");
+			if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
 				ret = -1;
 				continue;
 			}
 
-			if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
+			if ((param->sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
+				DEBUG("Failed to open socket\n");
 				ret = -1;
 				continue;
 			}
