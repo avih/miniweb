@@ -34,7 +34,7 @@ int uhMediaItems(UrlHandlerParam* param)
 	return param->dataBytes > 0 ? (FLAG_DATA_STREAM) : 0;
 }
 
-#define TRANSCODE_CMD "mencoder \"%s\" -o - -really-quiet -ofps 25 -ovc lavc -oac lavc -vf scale=352:288,harddup -of mpeg -mpegopts format=mpeg2 -lavcopts vcodec=mpeg2video:vbitrate=1024:vrc_maxrate=4000:vrc_buf_size=917:acodec=mp2:abitrate=224"
+#define TRANSCODE_CMD "codecs/mencoder.exe \"%s\" -o - -really-quiet -ofps 25 -ovc lavc -oac lavc -vf scale=352:288,harddup -of mpeg -mpegopts format=mpeg2 -lavcopts vcodec=mpeg2video:vbitrate=1024:vrc_maxrate=4000:vrc_buf_size=917:acodec=mp2:abitrate=224"
 
 static char* ip = 0;
 
@@ -83,7 +83,7 @@ int ehMediaItemsEvent(MW_EVENT msg, int argi, void* argp)
 
 int uhMediaItemsTranscode(UrlHandlerParam* param)
 {
-	SHELL_PARAM* proc = (SHELL_PARAM*)param->hs->ptr;
+	SHELL_PARAM* proc;
 
 	if (!param->hs->ptr) {
 		// first request
@@ -102,9 +102,22 @@ int uhMediaItemsTranscode(UrlHandlerParam* param)
 			return 0;
 		//param->hs->ptr = (void*)open(path, O_BINARY | O_RDONLY);
 		if ((int)param->hs->ptr < 0) return 0;
-		if (startByte > 0)
-			lseek((int)param->hs->ptr, startByte, SEEK_SET);
+		if (startByte > 1) {
+			int n = 0;
+			int bytesToSkip = startByte - 1;
+			proc->buffer = param->pucBuffer;
+			proc->iBufferSize = param->dataBytes;
+			do {
+				int bytes;
+				proc->iBufferSize = min(proc->iBufferSize, bytesToSkip - n);
+				bytes = ShellRead(proc, 1000);
+				if (bytes <= 0) break;
+				n += bytes;
+			} while (n < proc->iBufferSize);
+		}
 		param->hs->ptr = proc;
+	} else {
+		proc = (SHELL_PARAM*)param->hs->ptr;
 	}
 	if (param->hs->ptr && param->pucBuffer) {
 		proc->buffer = param->pucBuffer;
@@ -115,8 +128,8 @@ int uhMediaItemsTranscode(UrlHandlerParam* param)
 		param->dataBytes = 0;
 	}
 	if (param->dataBytes <= 0) {
-		//close((int)param->hs->ptr);
-		ShellClean(param->hs->ptr);
+		ShellTerminate(proc);
+		ShellClean(proc);
 		free(param->hs->ptr);
 		param->hs->ptr = 0;
 	}
