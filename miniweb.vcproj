@@ -602,10 +602,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\mediaserver.c"
-				>
-			</File>
-			<File
 				RelativePath=".\miniweb.c"
 				>
 				<FileConfiguration

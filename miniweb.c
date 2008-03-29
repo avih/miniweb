@@ -23,14 +23,10 @@ int ehVod(MW_EVENT msg, int argi, void* argp);
 int uhTest(UrlHandlerParam* param);
 int uh7Zip(UrlHandlerParam* param);
 int uhFileStream(UrlHandlerParam* param);
-int uhMediaItems(UrlHandlerParam* param);
-int uhMediaItemsTranscode(UrlHandlerParam* param);
-int ehMediaItemsEvent(MW_EVENT msg, int argi, void* argp);
 
 UrlHandler urlHandlerList[]={
 	{"stats", uhStats, NULL},
 	{"getfile", uhFileStream, NULL},
-	{"MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent},
 #ifdef _7Z
 	{"7z", uh7Zip, NULL},
 #endif
