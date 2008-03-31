@@ -25,8 +25,26 @@
 const char g_chPasswordPage[]="password.htm";
 
 char* contentTypeTable[]={
-	HTTPTYPE_OCTET,HTTPTYPE_HTML,HTTPTYPE_XML,HTTPTYPE_TEXT,HTTPTYPE_XUL,HTTPTYPE_CSS,HTTPTYPE_PNG,HTTPTYPE_JPEG,HTTPTYPE_GIF,HTTPTYPE_SWF,
-	HTTPTYPE_MPA,HTTPTYPE_MPEG,HTTPTYPE_AVI,HTTPTYPE_QUICKTIME,HTTPTYPE_QUICKTIME,HTTPTYPE_264,HTTPTYPE_JS,HTTPTYPE_OCTET,HTTPTYPE_STREAM
+	"application/octet-stream",
+	"text/html",
+	"text/xml",
+	"text/plain",
+	"application/vnd.mozilla.xul+xml",
+	"text/css",
+	"application/x-javascript",
+	"image/png",
+	"image/jpeg",
+	"image/gif",
+	"application/x-shockwave-flash",
+	"audio/mpeg",
+	"video/mpeg",
+	"video/avi",
+	"video/mp4",
+	"video/quicktime",
+	"video/x-mpeg-avc",
+	"video/flv",
+	"application/octet-stream",
+	"application/x-datastream"
 };
 
 char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
@@ -289,6 +307,7 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->ptr = NULL;
 	phsSocket->handler = NULL;
 	phsSocket->pxMP = NULL;
+	phsSocket->mimeType = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -528,13 +547,11 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	p+=mwGetHttpDateTime(contentDateTime, p);
 	SETWORD(p,DEFWORD('\r','\n'));
 	p+=2;
-	p+=sprintf(p,"Content-Type: %s\r\n",contentTypeTable[phsSocket->response.fileType]);
-	if (phsSocket->response.contentLength > 0) {
+	p+=sprintf(p,"Content-Type: %s\r\n",phsSocket->mimeType ? phsSocket->mimeType : contentTypeTable[phsSocket->response.fileType]);
+	if (phsSocket->response.contentLength > 0 && !(phsSocket->flags & FLAG_CHUNK)) {
 		p+=sprintf(p,"Content-Length: %d\r\n",phsSocket->response.contentLength);
 	}
-	if (phsSocket->flags & FLAG_CHUNK) {
-		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
-	}
+	p += sprintf(p, "Transfer-Encoding: %s\r\n", (phsSocket->flags & FLAG_CHUNK) ? "chunked" : "none");
 	SETDWORD(p,DEFDWORD('\r','\n',0,0));
 	return (int)p-(int)buffer+2;
 }
@@ -1168,9 +1185,9 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 	int iBytesWritten;
 	int iBytesRead;
 
-	if (phsSocket->flags & FLAG_CHUNK) {
+	if ((phsSocket->flags & FLAG_CHUNK) && ISFLAGSET(phsSocket, FLAG_HEADER_SENT)) {
 		char buf[16];
-		iBytesRead = sprintf(buf, "%x\r\n", phsSocket->dataLength);
+		iBytesRead = sprintf(buf, "%X\r\n", phsSocket->dataLength);
 		iBytesWritten = send(phsSocket->socket, buf, iBytesRead, 0);
 	}
 	// send a chunk of data
@@ -1183,6 +1200,7 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 		phsSocket->fd = 0;
 		return -1;
 	}
+	SETFLAG(phsSocket, FLAG_HEADER_SENT);
 	phsSocket->response.sentBytes+=iBytesWritten;
 	phsSocket->pucData+=iBytesWritten;
 	phsSocket->dataLength-=iBytesWritten;
@@ -1509,6 +1527,7 @@ int mwGetContentType(char *pchExtname)
 		case FILEEXT_MP4:	return HTTPFILETYPE_MP4;
 		case FILEEXT_MOV:	return HTTPFILETYPE_MOV;
 		case FILEEXT_264:	return HTTPFILETYPE_264;
+		case FILEEXT_FLV:	return HTTPFILETYPE_FLV;
 		}
 	} else if (pchExtname[4]=='\0' || pchExtname[4]=='?') {
 		//logic-and with 0xdfdfdfdf gets the uppercase of 4 chars

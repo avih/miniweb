@@ -15,28 +15,11 @@
 /////////////////////////////////////////////////////////////////////////////
 
 // HTTP messages/part messages
-#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: MiniWeb\r\ncontentFeatures.dlna.org: \r\nEXT:\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\nLast-Modified: "
-#define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+128)&(-4))
+#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: MiniWeb\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\nLast-Modified: "
+#define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
 #define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: MiniWeb\r\nConnection: Keep-Alive\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
 #define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><i>MiniWeb - the mini HTTPd written by Stanley Huang</i></body></html>"
 #define HTTPBODY_REDIRECT "<html><head><meta http-equiv=\"refresh\" content=\"0; URL=%s\"></head><body></body></html>"
-#define HTTPTYPE_HTML "text/html"
-#define HTTPTYPE_XML "text/xml"
-#define HTTPTYPE_TEXT "text/plain"
-#define HTTPTYPE_XUL "application/vnd.mozilla.xul+xml"
-#define HTTPTYPE_GIF "image/gif"
-#define HTTPTYPE_JPEG "image/jpeg"
-#define HTTPTYPE_PNG "image/png"
-#define HTTPTYPE_JS "application/x-javascript"
-#define HTTPTYPE_CSS "text/css"
-#define HTTPTYPE_SWF "application/x-shockwave-flash"
-#define HTTPTYPE_MPA "audio/mpeg"
-#define HTTPTYPE_MPEG "video/mpeg"
-#define HTTPTYPE_AVI "video/x-msvideo"
-#define HTTPTYPE_QUICKTIME "video/quicktime"
-#define HTTPTYPE_264 "video/H264"
-#define HTTPTYPE_OCTET "application/octet-stream"
-#define HTTPTYPE_STREAM "application/x-datastream"
 #define HTTP_CONTENTLENGTH "Content-Length:"
 #define HTTP_MULTIPARTHEADER "multipart/form-data"
 #define HTTP_MULTIPARTCONTENT "Content-Disposition: form-data; name="
@@ -66,6 +49,7 @@
 #define FILEEXT_AVI DEFDWORD('A','V','I',0)
 #define FILEEXT_MP4 DEFDWORD('M','P','4' - 32,0)
 #define FILEEXT_MOV DEFDWORD('M','O','V',0)
+#define FILEEXT_FLV DEFDWORD('F','L','V',0)
 #define FILEEXT_264 DEFDWORD('2' - 32, '6' - 32, '4' - 32, 0)
 
 // Settings for http server

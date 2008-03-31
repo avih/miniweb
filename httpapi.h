@@ -62,6 +62,7 @@ typedef enum {
   HTTPFILETYPE_TEXT,
   HTTPFILETYPE_XUL,
   HTTPFILETYPE_CSS,
+  HTTPFILETYPE_JS,
   HTTPFILETYPE_PNG,
   HTTPFILETYPE_JPEG,
   HTTPFILETYPE_GIF,
@@ -72,7 +73,7 @@ typedef enum {
   HTTPFILETYPE_MP4,
   HTTPFILETYPE_MOV,
   HTTPFILETYPE_264,
-  HTTPFILETYPE_JS,
+  HTTPFILETYPE_FLV,
   HTTPFILETYPE_OCTET,
   HTTPFILETYPE_STREAM,
 } HttpFileType;
@@ -113,6 +114,7 @@ typedef struct _tagSubstParam {
 
 #define FLAG_REQUEST_GET	0x1
 #define FLAG_REQUEST_POST	0x2
+#define FLAG_HEADER_SENT	0x4
 #define FLAG_CONN_CLOSE		0x10
 #define FLAG_SUBST			0x20
 #define FLAG_AUTHENTICATION	0x40
@@ -212,6 +214,7 @@ typedef struct _HttpSocket{
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
 	int iRequestCount;
+	char* mimeType;
 #ifndef _NO_POST
 	HttpMultipart* pxMP;
 #endif
