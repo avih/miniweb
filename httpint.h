@@ -15,7 +15,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 // HTTP messages/part messages
-#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: MiniWeb\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\nLast-Modified: "
+#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: MiniWeb\r\nEXT:\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
 #define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: MiniWeb\r\nConnection: Keep-Alive\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
 #define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><i>MiniWeb - the mini HTTPd written by Stanley Huang</i></body></html>"

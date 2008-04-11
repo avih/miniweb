@@ -11,6 +11,9 @@
 #include "httppil.h"
 #include "httpapi.h"
 #include "revision.h"
+#ifdef MEDIA_SERVER
+#include "mediaserver.h"
+#endif
 
 int uhMpd(UrlHandlerParam* param);
 int ehMpd(MW_EVENT msg, int argi, void* argp);
@@ -27,6 +30,9 @@ int uhFileStream(UrlHandlerParam* param);
 UrlHandler urlHandlerList[]={
 	{"stats", uhStats, NULL},
 	{"getfile", uhFileStream, NULL},
+#ifdef MEDIA_SERVER
+	{"MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent},
+#endif
 #ifdef _7Z
 	{"7z", uh7Zip, NULL},
 #endif
@@ -170,7 +176,11 @@ int main(int argc,char* argv[])
 			httpParam[i].flags=FLAG_DIR_LISTING;
 #ifndef _NO_POST
 			httpParam[i].pfnPost = DefaultWebPostCallback;
+#ifdef MEDIA_SERVER
+			httpParam[i].pfnFileUpload = TranscodeUploadCallback;
+#else
 			httpParam[i].pfnFileUpload = DefaultWebFileUploadCallback;
+#endif
 #endif
 		}
 	}

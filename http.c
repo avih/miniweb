@@ -544,9 +544,12 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 		(phsSocket->request.startByte==0)?"200 OK":"206 Partial content",
 		HTTP_KEEPALIVE_TIME,hp->maxReqPerConn,
 		ISFLAGSET(phsSocket,FLAG_CONN_CLOSE)?"close":"Keep-Alive");
-	p+=mwGetHttpDateTime(contentDateTime, p);
-	SETWORD(p,DEFWORD('\r','\n'));
-	p+=2;
+	if (contentDateTime) {
+		p += sprintf(p , "Last-Modified: ");
+		p+=mwGetHttpDateTime(contentDateTime, p);
+		SETWORD(p,DEFWORD('\r','\n'));
+		p+=2;
+	}
 	p+=sprintf(p,"Content-Type: %s\r\n",phsSocket->mimeType ? phsSocket->mimeType : contentTypeTable[phsSocket->response.fileType]);
 	if (phsSocket->response.contentLength > 0 && !(phsSocket->flags & FLAG_CHUNK)) {
 		p+=sprintf(p,"Content-Length: %d\r\n",phsSocket->response.contentLength);
@@ -1063,21 +1066,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 	if (!(phsSocket->flags & FLAG_DATA_FD)) {
 		hfp.pchHttpPath=phsSocket->request.pucPath;
 		mwGetLocalFileName(&hfp);
-		// open file
-		phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
-	} else if (phsSocket->fd > 0) {
-		strcpy(hfp.cFilePath, phsSocket->request.pucPath);
-		hfp.pchExt = strrchr(hfp.cFilePath, '.');
-		if (hfp.pchExt) hfp.pchExt++;
-	} else {
-		_mwSend404Page(phsSocket);
-		return -1;
-	}
-
-	if (phsSocket->fd < 0) {
-		char *p;
-		int i;
-		if (stat(hfp.cFilePath,&st) < 0 || !(st.st_mode & S_IFDIR)) {
+		if (stat(hfp.cFilePath,&st) < 0) {
 #ifdef _7Z
 			char* szfile = 0;
 			char *p = strstr(hfp.cFilePath, ".7z/");
@@ -1103,6 +1092,30 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			}
 			if (p) *p = SLASH;
 #endif
+
+			// file/dir not found
+			_mwSend404Page(phsSocket);
+			return -1;
+		}
+
+
+		// open file
+		phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
+	} else if (phsSocket->fd > 0) {
+		strcpy(hfp.cFilePath, phsSocket->request.pucPath);
+		hfp.pchExt = strrchr(hfp.cFilePath, '.');
+		if (hfp.pchExt) hfp.pchExt++;
+		st.st_mtime = 0;
+	} else {
+		_mwSend404Page(phsSocket);
+		return -1;
+	}
+
+
+	if (phsSocket->fd < 0) {
+		char *p;
+		int i;
+		if (!(st.st_mode & S_IFDIR)) {
 			// file/dir not found
 			_mwSend404Page(phsSocket);
 			return -1;
@@ -1161,7 +1174,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		_mwSend404Page(phsSocket);
 	}
 
-	SYSLOG(LOG_INFO,"File/requested size: %d/%d\n",st.st_size,phsSocket->response.contentLength);
+	//SYSLOG(LOG_INFO,"File/requested size: %d/%d\n",st.st_size,phsSocket->response.contentLength);
 
 	// build http header
 	phsSocket->dataLength=_mwBuildHttpHeader(

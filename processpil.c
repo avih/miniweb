@@ -126,6 +126,12 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 	}
 }
 
+int ShellWrite(SHELL_PARAM* param, void* data, int bytes)
+{
+	DWORD written;
+	return WriteFile(param->fdWrite, data, bytes, &written, 0) ? written : -1;
+}
+
 int ShellTerminate(SHELL_PARAM* param)
 {
 	int ret;

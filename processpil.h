@@ -39,6 +39,7 @@ typedef struct {
 extern "C" {
 #endif
 int ShellRead(SHELL_PARAM* param, int timeout);
+int ShellWrite(SHELL_PARAM* param, void* data, int bytes);
 void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
 int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui);
