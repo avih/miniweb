@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="MiniWeb"
+	Name="Httpd"
 	ProjectGUID="{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
 	RootNamespace="httpd"
 	Keyword="Win32Proj"
@@ -927,10 +927,6 @@
 			</File>
 			<File
 				RelativePath=".\http.def"
-				>
-			</File>
-			<File
-				RelativePath=".\httpauth.c"
 				>
 			</File>
 			<File

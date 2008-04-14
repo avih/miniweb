@@ -19,6 +19,7 @@
 #include <windows.h>
 #include <io.h>
 
+#ifndef SYS_MINGW
 #define read _read
 #define open _open
 #define close _close
@@ -32,6 +33,10 @@
 #define spawnvpe _spawnvpe
 #define spawnvp _spawnvp
 #define snprintf _snprintf
+#else
+#include <winsock2.h>
+#endif
+
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -84,6 +89,11 @@ typedef unsigned char OCTET;
 #define msleep(ms) (usleep(ms<<10))
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int InitSocket();
 void UninitSocket();
 char *GetTimeString();
@@ -97,4 +107,9 @@ void MutexUnlock(pthread_mutex_t* mutex);
 int ReadDir(char* pchDir, char* pchFileNameBuf);
 int IsFileExist(char* filename);
 int IsDir(char* pchName);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

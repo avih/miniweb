@@ -331,7 +331,7 @@ int DefaultWebSubstCallback(SubstParam* sp);
 int DefaultWebPostCallback(PostParam* pp);
 int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dataChunkSize);
 
-int mwGetHttpDateTime(time_t tm, char *buf);
+int mwGetHttpDateTime(time_t tm, char *buf, int bufsize);
 int mwGetLocalFileName(HttpFilePath* hfp);
 char* mwGetVarValue(HttpVariables* vars, char *varname, int index);
 int mwGetVarValueInt(HttpVariables* vars, char *varname, int defval);

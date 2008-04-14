@@ -146,10 +146,12 @@ int ReadDir(char* pchDir, char* pchFileNameBuf)
 	}
 	if (pchDir) {
 		char *p;
+		int len;
 		if (!IsDir(pchDir)) return -1;
 		if (hFind) FindClose(hFind);
-		p = malloc(strlen(pchDir) + 5);
-		sprintf(p, "%s\\*.*", pchDir);
+		len = strlen(pchDir);
+		p = malloc(len + 5);
+		snprintf(p, len + 5, "%s\\*.*", pchDir);
 		hFind=FindFirstFile(p,&finddata);
 		free(p);
 		if (hFind==INVALID_HANDLE_VALUE) {

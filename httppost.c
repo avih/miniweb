@@ -143,7 +143,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   HttpMultipart *pxMP = phsSocket->pxMP;
   
   if (phsSocket == NULL || pxMP == NULL) {
-    _mwCloseSocket(httpParam, phsSocket);
+    //_mwCloseSocket(httpParam, phsSocket);
     return -1;
   }
   
@@ -293,7 +293,9 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   if (pxMP->writeLocation == HTTPMAXRECVBUFFER) {
     if (pxMP->pchFilename != NULL) {
       // callback with next chunk of posted file
-      (httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE);
+		if ((httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE)) {
+			return 1;
+		}
       pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
       pxMP->writeLocation -= HTTPUPLOAD_CHUNKSIZE;
       memmove(phsSocket->buffer, phsSocket->buffer + HTTPUPLOAD_CHUNKSIZE, 
@@ -442,7 +444,7 @@ void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket)
                  phsSocket->socket);
           
           // Allocate multipart structure information for socket
-          (HttpMultipart*)phsSocket->ptr = calloc(1,sizeof(HttpMultipart));
+          phsSocket->ptr = calloc(1,sizeof(HttpMultipart));
           //ASSERT((HttpMultipart*)phsSocket->ptr != NULL);
           
           // What is the 'boundary' value
