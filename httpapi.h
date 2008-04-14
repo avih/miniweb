@@ -193,7 +193,7 @@ typedef struct {
 	int fileUploadCount;
 } HttpStats;
 
-#define HTTP_BUFFER_SIZE (16*1024 /*bytes*/)
+#define HTTP_BUFFER_SIZE (32*1024 /*bytes*/)
 
 // per connection/socket structure
 typedef struct _HttpSocket{

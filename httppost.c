@@ -15,7 +15,7 @@
 #include "httpint.h"
 
 #ifndef _NO_POST
-#define DEBUG printf
+#define DEBUG
 
 ////////////////////////////////////////////////////////////////////////////
 // _mwFindMultipartBoundary
@@ -142,11 +142,10 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   char *pchBoundarySearch = NULL;
   HttpMultipart *pxMP = phsSocket->pxMP;
   
-  if (phsSocket == NULL || pxMP == NULL) {
-    //_mwCloseSocket(httpParam, phsSocket);
+  if (pxMP == NULL) {
     return -1;
   }
-  
+
   // Grab more POST data from the socket
   if (!fNoRecv) {
 	  sLength = recv(phsSocket->socket, 
@@ -155,7 +154,6 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
                  0);
 	  if (sLength < 0) {
 		DEBUG("Socket closed by peer\n");
-		_mwCloseSocket(httpParam, phsSocket);
 		return -1;
 	  }  else if (sLength > 0) {
 		// reset expiration timer
@@ -177,7 +175,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   for (; pchBoundarySearch != NULL; pchBoundarySearch = _mwFindMultipartBoundary(phsSocket->buffer, 
                                                    HTTPMAXRECVBUFFER, 
 												   pxMP->pchBoundaryValue)) {
-    if (pxMP->pchFilename != NULL) {
+    if (pxMP->pchFilename) {
       // It's the last chunk of the posted file
       // Warning: MAY BE BIGGER THAN HTTPUPLOAD_CHUNKSIZE
       pxMP->oFileuploadStatus |= HTTPUPLOAD_LASTCHUNK;
@@ -190,7 +188,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
     
     else {
       char *pchStart = _mwStrStrNoCase(phsSocket->buffer, HTTP_MULTIPARTCONTENT);
-      char *pchEnd = _mwStrDword(phsSocket->buffer, HTTP_HEADEREND, 0);
+      char *pchEnd = strstr(phsSocket->buffer, "\r\n\r\n");
       char *pchFilename = _mwStrStrNoCase(phsSocket->buffer, HTTP_FILENAME);
       
       if (pchStart == NULL || pchEnd == NULL) {
@@ -223,14 +221,14 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       // Is peer authenticated to post this var?
 	  if (
 #ifdef HTTPAUTH
-		_mwCheckAuthentication(phsSocket) ||
+		_mwCheckAuthentication(phsSocket)
+#else
+		1
 #endif
-		1) {
+		) {
         
-        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName = 
-          calloc(pchEnd-pchStart+1, sizeof(char));
-        memcpy(pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName, pchStart,
-               pchEnd-pchStart);
+        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName = calloc(pchEnd-pchStart+1, sizeof(char));
+        memcpy(pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName, pchStart, pchEnd-pchStart);
         
         if (pchFilename!=NULL) {
           // use filename as var value
@@ -238,12 +236,12 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
           pchEnd=strchr(pchStart,0x22);                  // find end quote
         } else {
           // use data as var value
-          pchStart=_mwStrDword(pchEnd, HTTP_HEADEREND, 0) + 4;
+          if (!(pchStart=strstr(pchEnd, "\r\n\r\n"))) return 0;
+          pchStart += 4;
           pchEnd=strstr(pchStart,"\r\n");
         }
         
-        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamValue = 
-          calloc(pchEnd-pchStart+1, sizeof(char));  
+        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamValue = calloc(pchEnd-pchStart+1, sizeof(char));  
         memcpy(pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamValue, pchStart, 
                pchEnd-pchStart);
         
@@ -259,7 +257,9 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
           
           // shift to start of file data
           pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
-          pchEnd=_mwStrDword(pchFilename, HTTP_HEADEREND, 0) + 4;  //move past "\r\n\r\n"
+          pchEnd=strstr(pchFilename, "\r\n\r\n");
+          if (!pchEnd) return 0;
+          pchEnd += 4; //move past "\r\n\r\n"
           pxMP->writeLocation -= (DWORD)pchEnd - (DWORD)phsSocket->buffer;
           memmove(phsSocket->buffer, pchEnd, pxMP->writeLocation);
 		  /*
@@ -303,8 +303,8 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       //memset(phsSocket->buffer + HTTPUPLOAD_CHUNKSIZE, 0, HTTPMAXRECVBUFFER - HTTPUPLOAD_CHUNKSIZE);
     } 
     else {
-      // error, posted variable too large?
-      _mwCloseSocket(httpParam, phsSocket);
+      DEBUG("Error, posted variable too large?\n");
+      return -1;
     }
   }
   
@@ -457,7 +457,7 @@ void _mwProcessPost(HttpParam* httpParam, HttpSocket* phsSocket)
           } else {
             DEBUG("Error! Http multipart POST header recvd on socket %d does not contain a boundary value\n",
                    phsSocket->socket);
-            _mwCloseSocket(httpParam, phsSocket);
+            SETFLAG(phsSocket, FLAG_CONN_CLOSE);
             return;
           }
           
