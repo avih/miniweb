@@ -150,7 +150,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   if (!fNoRecv) {
 	  sLength = recv(phsSocket->socket, 
                  phsSocket->buffer + pxMP->writeLocation,
-                 (int)(HTTPMAXRECVBUFFER - pxMP->writeLocation - 1), 
+                 (int)(HTTPMAXRECVBUFFER - pxMP->writeLocation), 
                  0);
 	  if (sLength < 0) {
 		DEBUG("Socket closed by peer\n");
@@ -159,7 +159,6 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
 		// reset expiration timer
 		phsSocket->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
 		pxMP->writeLocation += sLength;
-		*(phsSocket->buffer + pxMP->writeLocation) = 0;
 	  } else {
 		return 1;
 	  }
@@ -289,7 +288,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   }
   
   // check if buffer is full
-  if (pxMP->writeLocation == HTTPMAXRECVBUFFER - 1) {
+  if (pxMP->writeLocation == HTTPMAXRECVBUFFER) {
     if (pxMP->pchFilename != NULL) {
       // callback with next chunk of posted file
 		if ((httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE)) {

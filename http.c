@@ -779,9 +779,10 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						phsSocket->dataLength -= (phsSocket->request.headerSize);
 						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 						phsSocket->pucData = phsSocket->buffer;
+						phsSocket->request.headerSize = 0;
 						pxMP->pp.httpParam = hp;
 						pxMP->writeLocation = phsSocket->dataLength;
-						ret = _mwProcessMultipartPost(hp, phsSocket, TRUE);
+						ret = _mwProcessMultipartPost(hp, phsSocket, phsSocket->dataLength != 0);
 						if (ret < 0) {
 							SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 							return -1;
@@ -832,8 +833,13 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	}
 done:
 
-	phsSocket->pucData = phsSocket->buffer + phsSocket->request.headerSize + 4;
-	phsSocket->bufferSize = HTTP_BUFFER_SIZE- phsSocket->request.headerSize - 4;
+	if (phsSocket->request.headerSize) {
+		phsSocket->pucData = phsSocket->buffer + phsSocket->request.headerSize + 4;
+		phsSocket->bufferSize = HTTP_BUFFER_SIZE - phsSocket->request.headerSize - 4;
+	} else {
+		phsSocket->pucData = phsSocket->buffer;
+		phsSocket->bufferSize = HTTP_BUFFER_SIZE;
+	}
 
 	SYSLOG(LOG_INFO,"[%d] request path: /%s\n",phsSocket->socket,phsSocket->request.pucPath);
 	hp->stats.reqCount++;
