@@ -776,8 +776,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 
 					if (!pxMP->pchFilename) {
 						// multipart POST
-						phsSocket->dataLength -= (phsSocket->request.headerSize - 2);
-						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize - 2, phsSocket->dataLength);
+						phsSocket->dataLength -= (phsSocket->request.headerSize);
+						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 						phsSocket->pucData = phsSocket->buffer;
 						pxMP->pp.httpParam = hp;
 						pxMP->writeLocation = phsSocket->dataLength;
