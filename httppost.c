@@ -260,6 +260,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
           pchEnd=_mwStrDword(pchFilename, HTTP_HEADEREND, 0) + 4;  //move past "\r\n\r\n"
           pxMP->writeLocation -= (DWORD)pchEnd - (DWORD)phsSocket->buffer;
           memmove(phsSocket->buffer, pchEnd, pxMP->writeLocation);
+		  if (pxMP->writeLocation == 0) break;
 		  /*
           memset(phsSocket->buffer + pxMP->writeLocation, 0,
                 HTTPMAXRECVBUFFER - pxMP->writeLocation);
