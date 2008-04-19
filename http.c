@@ -1137,7 +1137,8 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			strcpy(p,defaultPages[i]);
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
 			if (phsSocket->fd > 0) {
-				phsSocket->response.fileType = mwGetContentType(strchr(defaultPages[i], '.') + 1);
+				fstat(phsSocket->fd, &st);
+				hfp.pchExt = strchr(defaultPages[i], '.') + 1;
 				break;
 			}
 		}
