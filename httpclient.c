@@ -129,18 +129,18 @@ int httpRequest(HTTP_REQUEST* param)
 		}
 		switch (param->method) {
 		case HM_GET:
-			sprintf(param->header, HTTP_GET_HEADER, "GET",
+			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "GET",
 				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_HEAD:
-			sprintf(param->header, HTTP_GET_HEADER, "HEAD",
+			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "HEAD",
 				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_POST:
-			sprintf(param->header,HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes, headerAddition);
+			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes, headerAddition);
 			break;
 		case HM_POST_STREAM: {
-			sprintf(param->header,HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0, headerAddition);
+			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0, headerAddition);
 			break;
 			} break;
 		case HM_POST_MULTIPART: {
@@ -154,18 +154,18 @@ int httpRequest(HTTP_REQUEST* param)
 				bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
 			}
 			bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
-			sprintf(param->header,HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes, headerAddition);
+			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes, headerAddition);
 			} break;
 		}
 	} else {
 		char tokenRange[48],*p=tokenRange;
-		p+=sprintf(p, "Range: bytes=%u-", param->bytesStart);
+		p+=snprintf(p, sizeof(tokenRange), "Range: bytes=%u-", param->bytesStart);
 		if (param->bytesEnd>0) {
-			sprintf(p,"%u\r\n",param->bytesEnd);
+			snprintf(p, 16, "%u\r\n",param->bytesEnd);
 		} else {
 			strcpy(p,"\r\n");
 		}
-		sprintf(param->header, HTTP_GET_HEADER, path, "close", param->hostname, tokenRange);
+		snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, path, "close", param->hostname, tokenRange);
 	}
 	
 	do {
@@ -211,7 +211,7 @@ int httpRequest(HTTP_REQUEST* param)
 			char* sendbuf = (char*)malloc(POST_BUFFER_SIZE);
 			for (i = 0; i < param->chunkCount && param->state != HS_STOPPING; i++) {
 				chunk = param->chunk + i;
-				bytes = sprintf(sendbuf, "--%s\r\n", MULTIPART_BOUNDARY);
+				bytes = snprintf(sendbuf, POST_BUFFER_SIZE, "--%s\r\n", MULTIPART_BOUNDARY);
 				if (httpSend(param, sendbuf, bytes) != bytes) break;
 				switch (chunk->type) {
 				case postPayload_STRING:

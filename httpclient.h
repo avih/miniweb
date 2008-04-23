@@ -5,6 +5,8 @@
 * All rights reserved.
 *******************************************************************/
 
+#ifndef _HTTPCLIENT_H
+#define _HTTPCLIENT_H
 #define FLAG_REQUEST_ONLY 0x1
 #define FLAG_KEEP_ALIVE 0x2
 #define FLAG_KEEP_HEADER 0x4
@@ -82,4 +84,6 @@ int PostFileStream(char* url, const char* filename);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
