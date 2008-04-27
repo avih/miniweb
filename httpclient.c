@@ -125,7 +125,7 @@ int httpRequest(HTTP_REQUEST* param)
 		char headerAddition[128];
 		headerAddition[0] = 0;
 		if (param->referer) {
-			_snprintf(headerAddition, sizeof(headerAddition), "Referer: %s\r\n", param->referer);
+			snprintf(headerAddition, sizeof(headerAddition), "Referer: %s\r\n", param->referer);
 		}
 		switch (param->method) {
 		case HM_GET:
