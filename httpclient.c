@@ -125,22 +125,22 @@ int httpRequest(HTTP_REQUEST* param)
 		char headerAddition[128];
 		headerAddition[0] = 0;
 		if (param->referer) {
-			snprintf(headerAddition, sizeof(headerAddition), "Referer: %s\r\n", param->referer);
+			_snprintf(headerAddition, sizeof(headerAddition), "Referer: %s\r\n", param->referer);
 		}
 		switch (param->method) {
 		case HM_GET:
-			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "GET",
+			_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "GET",
 				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_HEAD:
-			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "HEAD",
+			_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, "HEAD",
 				path, param->httpVer, (param->flags & FLAG_KEEP_ALIVE) ? "Keep-Alive" : "close", param->hostname, headerAddition);
 			break;
 		case HM_POST:
-			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes, headerAddition);
+			_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_HEADER, path, param->hostname, param->postPayloadBytes, headerAddition);
 			break;
 		case HM_POST_STREAM: {
-			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0, headerAddition);
+			_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_STREAM_HEADER, path, param->hostname, param->filename, 0, headerAddition);
 			break;
 			} break;
 		case HM_POST_MULTIPART: {
@@ -154,18 +154,18 @@ int httpRequest(HTTP_REQUEST* param)
 				bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
 			}
 			bytes += sizeof(MULTIPART_BOUNDARY) - 1 + 6;
-			snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes, headerAddition);
+			_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_POST_MULTIPART_HEADER, path, param->hostname, MULTIPART_BOUNDARY, bytes, headerAddition);
 			} break;
 		}
 	} else {
 		char tokenRange[48],*p=tokenRange;
-		p+=snprintf(p, sizeof(tokenRange), "Range: bytes=%u-", param->bytesStart);
+		p+=_snprintf(p, sizeof(tokenRange), "Range: bytes=%u-", param->bytesStart);
 		if (param->bytesEnd>0) {
-			snprintf(p, 16, "%u\r\n",param->bytesEnd);
+			_snprintf(p, 16, "%u\r\n",param->bytesEnd);
 		} else {
 			strcpy(p,"\r\n");
 		}
-		snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, path, "close", param->hostname, tokenRange);
+		_snprintf(param->header, MAX_HEADER_SIZE + 1, HTTP_GET_HEADER, path, "close", param->hostname, tokenRange);
 	}
 	
 	do {
@@ -211,7 +211,7 @@ int httpRequest(HTTP_REQUEST* param)
 			char* sendbuf = (char*)malloc(POST_BUFFER_SIZE);
 			for (i = 0; i < param->chunkCount && param->state != HS_STOPPING; i++) {
 				chunk = param->chunk + i;
-				bytes = snprintf(sendbuf, POST_BUFFER_SIZE, "--%s\r\n", MULTIPART_BOUNDARY);
+				bytes = _snprintf(sendbuf, POST_BUFFER_SIZE, "--%s\r\n", MULTIPART_BOUNDARY);
 				if (httpSend(param, sendbuf, bytes) != bytes) break;
 				switch (chunk->type) {
 				case postPayload_STRING:
@@ -434,7 +434,7 @@ int httpPostFile(HTTP_REQUEST* req, char* url, char* fieldname, const char* file
 	chunk.data = (void*)ReadData;
 	chunk.length = filelen + _snprintf(fileheader, sizeof(fileheader), FILE_CHUNK_HEADER, fieldname, req->filename);
 	chunk.type = postPayload_CALLBACK;
-	_lseek(fd, 0, SEEK_SET );
+	_lseek(fd, 0, SEEK_SET);
 	req->method = HM_POST_MULTIPART;
 	req->chunk = &chunk;
 	req->chunkCount = 1;

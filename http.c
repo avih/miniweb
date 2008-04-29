@@ -854,8 +854,7 @@ done:
 		hp->stats.reqGetCount++;
 		if (phsSocket->request.iHttpVer == 0) {
 			CLRFLAG(phsSocket, FLAG_CHUNK);
-			if (phsSocket->response.contentLength == 0)
-				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 		}
 		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW | FLAG_DATA_STREAM)) {
 			return _mwStartSendRawData(hp, phsSocket);
@@ -1599,6 +1598,9 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				if (!memcmp(p,"close",5)) {
 					SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 					p+=5;
+				} else if (!memcmp(p,"Keep-Alive",11)) {
+					CLRFLAG(phsSocket,FLAG_CONN_CLOSE);
+					p+=11;
 				}
 			} else if (!memcmp(p, "ontent-Length: ", 15)) {
 				p+=15;
