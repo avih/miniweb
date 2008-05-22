@@ -555,7 +555,9 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	if (phsSocket->response.contentLength > 0 && !(phsSocket->flags & FLAG_CHUNK)) {
 		p+=snprintf(p, 512,"Content-Length: %d\r\n", phsSocket->response.contentLength);
 	}
-	p += snprintf(p, 512, "Transfer-Encoding: %s\r\n", (phsSocket->flags & FLAG_CHUNK) ? "chunked" : "none");
+	if (phsSocket->flags & FLAG_CHUNK) {
+		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
+	}
 	SETDWORD(p,DEFDWORD('\r','\n',0,0));
 	return (int)p-(int)buffer+2;
 }
