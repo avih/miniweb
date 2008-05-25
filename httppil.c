@@ -34,7 +34,7 @@ int InitSocket()
 void UninitSocket()
 {
 #ifdef WIN32
-  WSACleanup( );
+	WSACleanup();
 #endif
 }
 

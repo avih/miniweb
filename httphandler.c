@@ -22,7 +22,7 @@ int uhStats(UrlHandlerParam* param)
 	int bufsize = param->dataBytes;
 	int ret=FLAG_DATA_RAW;
 
-	mwGetHttpDateTime(time(NULL),buf);
+	mwGetHttpDateTime(time(NULL), buf, sizeof(buf));
 
 	if (stats->clientCount>4) {
 		param->pucBuffer=(char*)malloc(stats->clientCount*256+1024);
