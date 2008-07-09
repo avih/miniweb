@@ -945,16 +945,14 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	}
     if (phsSocket->socket != 0) {
 		closesocket(phsSocket->socket);
+		hp->stats.clientCount--;
+		phsSocket->iRequestCount=0;
+		SYSLOG(LOG_INFO,"[%d] socket closed after responded for %d requests\n",phsSocket->socket,phsSocket->iRequestCount);
+		SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
+		phsSocket->socket=0;
 	} else {
 		SYSLOG(LOG_INFO,"[%d] bug: socket=0 (structure: 0x%x) \n", phsSocket->socket, (unsigned int)phsSocket);
 	}
-
-	hp->stats.clientCount--;
-	phsSocket->iRequestCount=0;
-	SYSLOG(LOG_INFO,"[%d] socket closed after responded for %d requests\n",phsSocket->socket,phsSocket->iRequestCount);
-	SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
-	phsSocket->socket=0;
-
 } // end of _mwCloseSocket
 
 __inline int _mwStrCopy(char *dest, char *src)
