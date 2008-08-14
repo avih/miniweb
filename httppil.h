@@ -19,6 +19,8 @@
 #include <windows.h>
 #include <io.h>
 
+#define snprintf _snprintf
+
 #ifndef SYS_MINGW
 #define read _read
 #define open _open
@@ -32,7 +34,6 @@
 #define pipe _pipe
 #define spawnvpe _spawnvpe
 #define spawnvp _spawnvp
-#define snprintf _snprintf
 #else
 #include <winsock2.h>
 #endif
@@ -47,6 +48,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/select.h>
+
+#if !defined(O_BINARY)
+#define O_BINARY 0
+#endif
 #endif
 
 #ifdef HAVE_PTHREAD

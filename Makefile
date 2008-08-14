@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-O2 -march=pentium2 -fomit-frame-pointer
-HTTPOBJ = httppil.o http.o httpxml.o
+CFLAGS=-O2
+HTTPOBJ = httppil.o http.o httpxml.o httphandler.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
 TARGET = miniweb
@@ -21,10 +21,10 @@ DEFINES+= -DNOTHREAD
 endif
 
 ifndef DEBUG
-DEFINES+= -DNODEBUG
-LDFLAGS += -s
+DFLAGS += -s
 else
-LDFLAGS += -g
+DEFINES+= -D_DEBUG
+LLDFLAGS += -g
 endif
 
 ifdef MPD

@@ -733,18 +733,17 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		}
 		// reach the end of the header
 		//check request type
-		switch (GETDWORD(phsSocket->buffer)) {
-		case HTTP_GET:
+		fprintf(stderr, "%s\n", phsSocket->buffer);
+		if (!memcmp(phsSocket->buffer, "GET", 3)) {
 			SETFLAG(phsSocket,FLAG_REQUEST_GET);
 			path = phsSocket->pucData + 5;
-			break;
 #ifndef _NO_POST
-		case HTTP_POST:
+		} else if (!memcmp(phsSocket->buffer, "POST", 4)) {
+			fprintf(stderr, "POST\n");
 			SETFLAG(phsSocket,FLAG_REQUEST_POST);
 			path = phsSocket->pucData + 6;
-			break;
 #endif
-		default:
+		} else {
 			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);		
 			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 			phsSocket->request.pucPath = 0;

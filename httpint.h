@@ -28,8 +28,6 @@
 #define HTTP_MULTIPARTCONTENT "Content-Disposition: form-data; name="
 #define HTTP_MULTIPARTBOUNDARY "boundary="
 #define HTTP_FILENAME "filename="
-#define HTTP_GET DEFDWORD('G','E','T',' ')
-#define HTTP_POST DEFDWORD('P','O','S','T')
 #define HTTP_HEADEREND DEFDWORD('\r','\n','\r','\n')
 #define HTTP_HEADEREND_STR "\r\n\r\n"
 #define HTTP_SUBST_PATTERN (WORD)(('$' << 8) + '$')
