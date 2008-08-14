@@ -8,8 +8,18 @@
 #include <stdio.h>
 #include <io.h>
 #include <fcntl.h>
+#include <string.h>
 #ifdef WIN32
 #include <Winsock2.h>
+#else
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#define closesocket close
+#define CloseHandle close
 #endif
 #include "httpclient.h"
 
@@ -308,11 +318,11 @@ int httpGetResponse(HTTP_REQUEST* param)
 			q=strchr((p += 2),':');
 			if (!q) continue;
 			*q = 0;
-			if (!_stricmp(p,"Content-length")) {
+			if (!stricmp(p,"Content-length")) {
 				param->payloadSize=atoi(q+2);
-			} else if (!_stricmp(p,"Content-type")) {
+			} else if (!stricmp(p,"Content-type")) {
 				param->contentType = q+2;
-			} else if (!_stricmp(p, "Transfer-Encoding")) {
+			} else if (!stricmp(p, "Transfer-Encoding")) {
 				if (!strncmp(p + 19, "chunked", 7)) {
 					param->flags |= FLAG_CHUNKED;
 				}
@@ -434,7 +444,7 @@ int httpPostFile(HTTP_REQUEST* req, char* url, char* fieldname, const char* file
 	chunk.data = (void*)ReadData;
 	chunk.length = filelen + _snprintf(fileheader, sizeof(fileheader), FILE_CHUNK_HEADER, fieldname, req->filename);
 	chunk.type = postPayload_CALLBACK;
-	_lseek(fd, 0, SEEK_SET);
+	_lseek(fd, 0, SEEK_SET );
 	req->method = HM_POST_MULTIPART;
 	req->chunk = &chunk;
 	req->chunkCount = 1;

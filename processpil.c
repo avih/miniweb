@@ -7,6 +7,13 @@
 
 #ifdef WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/time.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/select.h>
 #endif
 #include <stdio.h>
 #include <fcntl.h>
@@ -86,6 +93,7 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 		return ret;
 #endif
 	} else {
+#ifdef WIN32
 		int fSuccess;
 		for(;;) {
 			int i;
@@ -123,13 +131,18 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 		}
 		param->buffer[offset]=0;
 		return offset;
+#endif
 	}
 }
 
 int ShellWrite(SHELL_PARAM* param, void* data, int bytes)
 {
+#ifdef WIN32
 	DWORD written;
 	return WriteFile(param->fdWrite, data, bytes, &written, 0) ? written : -1;
+#else
+	return write(param->fdWrite, data, bytes);
+#endif
 }
 
 int ShellTerminate(SHELL_PARAM* param)
@@ -186,10 +199,11 @@ int ShellWait(SHELL_PARAM* param, int iTimeout)
 #endif
 }
 
-static TCHAR* GetAppName(TCHAR* commandLine)
+#ifdef WIN32
+static char* GetAppName(char* commandLine)
 {
-	TCHAR *appname;
-	TCHAR *p;
+	char* appname;
+	char* p;
 
 	p = strrchr(commandLine, '.');
 	if (p && !_stricmp(p + 1, "bat")) {
@@ -238,14 +252,15 @@ static HWND GetWindowHandle(SHELL_PARAM* param)
 	EnumWindows( EnumWindowCallBack, (LPARAM)param ) ;
 	return 0;
 }
+#endif
 
-int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui)
+int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
 {
 #ifdef WIN32
 	SECURITY_ATTRIBUTES saAttr;
 	STARTUPINFO siStartInfo;
 	BOOL fSuccess;
-	char newPath[512],prevPath[512];
+	char newPath[256],prevPath[256];
 	HANDLE hChildStdinRd, hChildStdinWr, hChildStdoutRd, hChildStdoutWr;
 #else
 	int fdin[2], fdout[2],pid,i;
@@ -253,7 +268,8 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui)
 	int fdStdoutChild;
 	char **args=NULL,*argString=NULL, *p;
 	char *filePath;
- 	char *newPath,*prevPath,*env[2];
+	char newPath[256],*prevPath;
+ 	char *env[2];
 #endif
 
 #ifdef WIN32
@@ -265,7 +281,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui)
 	// modify path variable
 	if (param->pchPath) {
 		GetEnvironmentVariable("PATH",prevPath,sizeof(prevPath));
-		sprintf(newPath,"%s;s",param->pchPath,prevPath);
+		_snprintf(newPath, sizeof(newPath), "%s;s", param->pchPath, prevPath);
 		SetEnvironmentVariable("PATH",newPath);
 	}
 
@@ -379,11 +395,11 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui)
 	if (pid == -1) return -1;
 	if (pid == 0) { /* chid process */
 		//generate argument list
-		for (p=param->pchCommandLine,i=2;*p;p++) {
+		for (p=cmdline,i=2;*p;p++) {
 			if (*p==' ') i++;
 		}
 		args=malloc(i*sizeof(char*));
-		argString=strdup(param->pchCommandLine);
+		argString=strdup(cmdline);
 		i=0;
 		if (argString) {
 			p=strtok(argString," ");
@@ -417,6 +433,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui)
 			close(fdout[0]);
 			dup2(fdStdoutChild, 1);
 		}
+		printf("exec: %s\n", filePath);
 		if (execve(filePath, args, env)<0) {
 			printf("Error starting specified program\n");
 		}

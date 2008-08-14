@@ -4,6 +4,8 @@
 * Copyright (c) 2005-06 Stanley Huang <stanleyhuangyc@yahoo.com.cn>
 * All rights reserved.
 *******************************************************************/
+#ifndef _PROCESSPIL_H
+#define _PROCESSPIL_H
 
 #define SF_ALLOC 0x1
 #define SF_SHOW_WINDOW 0x2
@@ -42,9 +44,10 @@ int ShellRead(SHELL_PARAM* param, int timeout);
 int ShellWrite(SHELL_PARAM* param, void* data, int bytes);
 void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
-int ShellExec(SHELL_PARAM* param, char* cmdline, BOOL hasGui);
+int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui);
 int ShellTerminate(SHELL_PARAM* param);
 #ifdef __cplusplus
 }
 #endif
 
+#endif

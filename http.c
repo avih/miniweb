@@ -951,7 +951,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
 		phsSocket->socket=0;
 	} else {
-		SYSLOG(LOG_INFO,"[%d] bug: socket=0 (structure: 0x%x) \n", phsSocket->socket, (unsigned int)phsSocket);
+		SYSLOG(LOG_INFO,"[%d] [warning] socket=0 (structure: 0x%x) \n", phsSocket->socket, (unsigned int)phsSocket);
 	}
 } // end of _mwCloseSocket
 
