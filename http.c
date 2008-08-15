@@ -909,7 +909,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 			free(pxMP->pp.stParams[i].pchParamName);
 			free(pxMP->pp.stParams[i].pchParamValue);
 		}
-		if (pxMP->pchFilename) free(pxMP->pchFilename);
+		//if (pxMP->pchFilename) free(pxMP->pchFilename);
 		free(pxMP);
 		phsSocket->pxMP = 0;
 	}

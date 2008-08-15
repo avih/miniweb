@@ -8,6 +8,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
+#define snprintf _snprintf
 #else
 #include <unistd.h>
 #include <sys/time.h>
@@ -194,8 +195,7 @@ int ShellWait(SHELL_PARAM* param, int iTimeout)
 	}
 #else
 	int ret=-1;
-	waitpid(param->pid,&ret,0);
-	return ret;
+	return waitpid(param->pid,&ret,iTimeout==0?WNOHANG:0);
 #endif
 }
 
@@ -414,7 +414,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
 			filePath=args[0];
 			args[0]=p+1;
 		} else {
-			filePath=NULL;
+			filePath=args[0];
 		}
 
 		//set PATH
@@ -433,11 +433,16 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
 			close(fdout[0]);
 			dup2(fdStdoutChild, 1);
 		}
-		printf("exec: %s\n", filePath);
 		if (execve(filePath, args, env)<0) {
 			printf("Error starting specified program\n");
 		}
 		return 0;
+	}
+	if (param->flags & SF_REDIRECT_STDIN) {
+		close(fdin[0]);
+	}
+	if (param->flags & SF_REDIRECT_STDOUT) {
+		close(fdout[1]);
 	}
 	param->pid=pid;
 #endif
