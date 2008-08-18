@@ -24,7 +24,8 @@ int InitSocket()
 {
 #ifdef WIN32
 	WSADATA wsaData;
-	if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) ) {
+	if (WSAStartup(MAKEWORD(2, 1), &wsaData) && 
+		WSAStartup(MAKEWORD(1, 1), &wsaData )) {
 		return 0;
 	}
 #endif
