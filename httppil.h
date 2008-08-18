@@ -39,6 +39,7 @@
 #endif
 
 #else
+#include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -77,7 +78,7 @@ typedef DWORD (WINAPI *PFNGetProcessId)(HANDLE hProcess);
 #define TRUE 1
 
 typedef int SOCKET;
-typedef unsigned long DWORD;
+typedef unsigned int DWORD;
 typedef unsigned short int WORD;
 typedef unsigned char BYTE;
 typedef int BOOL;

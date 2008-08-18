@@ -733,13 +733,11 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		}
 		// reach the end of the header
 		//check request type
-		fprintf(stderr, "%s\n", phsSocket->buffer);
 		if (!memcmp(phsSocket->buffer, "GET", 3)) {
 			SETFLAG(phsSocket,FLAG_REQUEST_GET);
 			path = phsSocket->pucData + 5;
 #ifndef _NO_POST
 		} else if (!memcmp(phsSocket->buffer, "POST", 4)) {
-			fprintf(stderr, "POST\n");
 			SETFLAG(phsSocket,FLAG_REQUEST_POST);
 			path = phsSocket->pucData + 6;
 #endif
