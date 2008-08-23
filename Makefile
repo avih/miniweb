@@ -6,7 +6,7 @@ ifndef TARGET
 TARGET = miniweb
 endif
 
-ifdef POST
+ifndef NOPOST
 HTTPOBJ+= httppost.o
 DEFINES+= -DHTTPPOST
 endif

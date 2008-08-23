@@ -198,7 +198,7 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 			*(++p)=0;
 		}
 	}
-	while ((ch=*s) && ch!='?' && (int)p-(int)hfp->cFilePath<sizeof(hfp->cFilePath)-1) {
+	while ((ch=*s) && ch!='?' && (int)(p-hfp->cFilePath)<sizeof(hfp->cFilePath)-1) {
 		if (ch=='%') {
 			*(p++) = _mwDecodeCharacter(++s);
 			s += 2;
@@ -228,7 +228,7 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 		hfp->fTailSlash=1;
 	}
 	*p=0;
-	return (int)p-(int)hfp->cFilePath;
+	return (int)(p - hfp->cFilePath);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -559,7 +559,7 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
 	}
 	SETDWORD(p,DEFDWORD('\r','\n',0,0));
-	return (int)p-(int)buffer+2;
+	return (int)(p- buffer + 2);
 }
 
 int mwParseQueryString(UrlHandlerParam* up)
@@ -948,7 +948,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
 		phsSocket->socket=0;
 	} else {
-		SYSLOG(LOG_INFO,"[%d] [warning] socket=0 (structure: 0x%x) \n", phsSocket->socket, (unsigned int)phsSocket);
+		SYSLOG(LOG_INFO,"[%d] [warning] socket=0 (structure: 0x%x) \n", phsSocket->socket, phsSocket);
 	}
 } // end of _mwCloseSocket
 
@@ -1103,7 +1103,10 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 
 
 		// open file
-		phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
+		if (!(st.st_mode & S_IFDIR))
+			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
+		else
+			phsSocket->fd = -1;
 	} else if (phsSocket->fd > 0) {
 		strcpy(hfp.cFilePath, phsSocket->request.pucPath);
 		hfp.pchExt = strrchr(hfp.cFilePath, '.');
@@ -1125,9 +1128,9 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			_mwSend404Page(phsSocket);
 			return -1;
 		}
-		for (p = hfp.cFilePath; *p; p++);
 		
 		//requesting for directory, first try opening default pages
+		for (p = hfp.cFilePath; *p; p++);
 		*(p++)=SLASH;
 		for (i=0; i<sizeof(defaultPages)/sizeof(defaultPages[0]); i++) {
 			strcpy(p,defaultPages[i]);
@@ -1629,7 +1632,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 		case 'R':
 			if (!memcmp(p,"eferer: ",8)) {
 				p+=8;
-				phsSocket->request.ofReferer=(int)p-(int)phsSocket->buffer;
+				phsSocket->request.ofReferer=(int)(p - (char*)phsSocket->buffer);
 			} else if (!memcmp(p,"ange: bytes=",12)) {
 				int iEndByte;
 				p+=12;
@@ -1648,7 +1651,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 		case 'H':
 			if (!memcmp(p,"ost: ",5)) {
 				p+=5;
-				phsSocket->request.ofHost=(int)p-(int)phsSocket->buffer;
+				phsSocket->request.ofHost=(int)(p - (char*)phsSocket->buffer);
 			}
 			break;
 		}
