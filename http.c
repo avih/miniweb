@@ -24,7 +24,7 @@
 // default pages
 const char g_chPasswordPage[]="password.htm";
 
-char* contentTypeTable[]={
+const char* contentTypeTable[]={
 	"application/octet-stream",
 	"text/html",
 	"text/xml",
@@ -952,7 +952,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	}
 } // end of _mwCloseSocket
 
-__inline int _mwStrCopy(char *dest, char *src)
+int _mwStrCopy(char *dest, const char *src)
 {
 	int i;
 	for (i=0; src[i]; i++) {
@@ -960,6 +960,15 @@ __inline int _mwStrCopy(char *dest, char *src)
 	}
 	dest[i]=0;
 	return i;
+}
+
+static int _mwStrHeadMatch(const char* buf1, const char* buf2) {
+	unsigned int i;
+	int x;
+	for(i=0;buf2[i];i++) {
+		if ((x=tolower(buf1[i])-tolower(buf2[i]))) return x;
+	}
+	return 0;
 }
 
 int _mwListDirectory(HttpSocket* phsSocket, char* dir)
@@ -1593,22 +1602,22 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 		p+=2;							//skip "\r\n"
 		switch (*(p++)) {
 		case 'C':
-			if (!memcmp(p,"onnection: ",11)) {
+			if (!_mwStrHeadMatch(p,"onnection: ")) {
 				p+=11;
-				if (!memcmp(p,"close",5)) {
+				if (!_mwStrHeadMatch(p,"close")) {
 					SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 					p+=5;
-				} else if (!memcmp(p,"Keep-Alive",11)) {
+				} else if (!_mwStrHeadMatch(p,"Keep-Alive")) {
 					CLRFLAG(phsSocket,FLAG_CONN_CLOSE);
 					p+=11;
 				}
-			} else if (!memcmp(p, "ontent-Length: ", 15)) {
+			} else if (!_mwStrHeadMatch(p, "ontent-Length: ")) {
 				p+=15;
 				p+=_mwGrabToken(p,'\r',buf,sizeof(buf));
 				phsSocket->response.contentLength=atoi(buf);
-			} else if (!memcmp(p, "ontent-Type: ", 13)) {
+			} else if (!_mwStrHeadMatch(p, "ontent-Type: ")) {
 				p += 13;
-				if (!memcmp(p, "multipart/form-data; boundary=", 30)) {
+				if (!_mwStrHeadMatch(p, "multipart/form-data; boundary=")) {
 					// request is a multipart POST
 					p += 30;
 					buf[0] = '-';
@@ -1618,7 +1627,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 					strcpy(phsSocket->pxMP->pchBoundaryValue, buf);
 				} else {
 					for (; *p != '\r'; p++) {
-						if (!memcmp(p, "; filename=", 11)) {
+						if (!_mwStrHeadMatch(p, "; filename=")) {
 							p += 11;
 							p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
 							phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
@@ -1630,10 +1639,10 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 			}
 			break;
 		case 'R':
-			if (!memcmp(p,"eferer: ",8)) {
+			if (!_mwStrHeadMatch(p,"eferer: ")) {
 				p+=8;
 				phsSocket->request.ofReferer=(int)(p - (char*)phsSocket->buffer);
-			} else if (!memcmp(p,"ange: bytes=",12)) {
+			} else if (!_mwStrHeadMatch(p,"ange: bytes=")) {
 				int iEndByte;
 				p+=12;
 				iLen=_mwGrabToken(p,'-',buf,sizeof(buf));
@@ -1649,7 +1658,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 			}
 			break;
 		case 'H':
-			if (!memcmp(p,"ost: ",5)) {
+			if (!_mwStrHeadMatch(p,"ost: ")) {
 				p+=5;
 				phsSocket->request.ofHost=(int)(p - (char*)phsSocket->buffer);
 			}

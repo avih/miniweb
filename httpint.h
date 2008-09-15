@@ -112,6 +112,7 @@ int _mwSendHttpHeader(HttpSocket* phsSocket);
 char* _mwStrDword(char* pchHaystack, DWORD dwSub, DWORD dwCharMask);
 SOCKET _mwStartListening(HttpParam* hp);
 int _mwParseHttpHeader(HttpSocket* phsSocket);
-__inline int _mwStrCopy(char *dest, char *src);
+int _mwStrCopy(char *dest, const char *src);
+int _mwStrHeadMatch(const char* buf1, const char* buf2);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////
