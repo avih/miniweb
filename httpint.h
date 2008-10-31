@@ -54,7 +54,7 @@
 #define FILEEXT_264 DEFDWORD('2' - 32, '6' - 32, '4' - 32, 0)
 
 // Settings for http server
-#define HTTP_EXPIRATION_TIME (30/*secs*/)
+#define HTTP_EXPIRATION_TIME (60/*secs*/)
 #define HTTP_KEEPALIVE_TIME (15/*secs*/)
 #define MAX_RECV_RETRIES (3/*times*/)
 #define HTTPAUTHTIMEOUT   (300/*secs*/)

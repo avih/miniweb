@@ -263,6 +263,7 @@ typedef struct _httpParam {
 	PFNPOSTCALLBACK pfnPost;
 	DWORD dwAuthenticatedNode;
 	time_t tmAuthExpireTime;
+	time_t tmSocketExpireTime;
 	pthread_t tidHttpThread;
 	HttpStats stats;
 	u_long hlBindIP;

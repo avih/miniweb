@@ -157,7 +157,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
 		return -1;
 	  }  else if (sLength > 0) {
 		// reset expiration timer
-		phsSocket->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
+		phsSocket->tmExpirationTime=time(NULL)+httpParam->tmSocketExpireTime;
 		pxMP->writeLocation += sLength;
 	  } else {
 		return 1;

@@ -139,6 +139,7 @@ int mwServerStart(HttpParam* hp)
 	hp->stats.startTime=time(NULL);
 	hp->bKillWebserver=FALSE;
 	hp->bWebserverRunning=TRUE;
+	if (!hp->tmSocketExpireTime) hp->tmSocketExpireTime = HTTP_EXPIRATION_TIME;
 
 #ifndef NOTHREAD
 	if (ThreadCreate(&hp->tidHttpThread,_mwHttpThread,(void*)hp)) {
@@ -419,7 +420,7 @@ void* _mwHttpThread(HttpParam *hp)
 					}
 					if (!iRc) {
 						// and reset expiration timer
-						phsSocketCur->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
+						phsSocketCur->tmExpirationTime=time(NULL)+hp->tmSocketExpireTime;
 					} else {
 						_mwCloseSocket(hp, phsSocketCur);
 					}
@@ -444,7 +445,7 @@ void* _mwHttpThread(HttpParam *hp)
 				phsSocketCur->request.pucPayload = 0;
 				phsSocketCur->tmAcceptTime=time(NULL);
 				phsSocketCur->socket=socket;
-				phsSocketCur->tmExpirationTime=time(NULL)+HTTP_EXPIRATION_TIME;
+				phsSocketCur->tmExpirationTime=time(NULL)+hp->tmSocketExpireTime;
 				phsSocketCur->iRequestCount=0;
 				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
 				SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",
