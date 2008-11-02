@@ -174,6 +174,7 @@ int main(int argc,char* argv[])
 			httpParam[i].pchWebPath="webroot";
 			httpParam[i].pxUrlHandler=urlHandlerList;
 			httpParam[i].flags=FLAG_DIR_LISTING;
+			httpParam[i].tmSocketExpireTime = 180;
 #ifndef _NO_POST
 			httpParam[i].pfnPost = DefaultWebPostCallback;
 #ifdef MEDIA_SERVER
@@ -246,6 +247,7 @@ int main(int argc,char* argv[])
 				httpParam[i].httpPort=port++;
 		}
 	}
+
 
 	InitSocket();
 
