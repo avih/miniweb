@@ -1497,7 +1497,7 @@ __inline char _mwDecodeCharacter(char* s)
 // This function converts URLd characters back to ascii. For example
 // %3A is '.'
 ////////////////////////////////////////////////////////////////////////////
-void mwDecodeString(char* pchString)
+void mwDecodeString(const char* pchString)
 {
   int bEnd=FALSE;
   char* pchInput=pchString;
@@ -1531,7 +1531,7 @@ void mwDecodeString(char* pchString)
   } while (!bEnd);
 } // end of mwDecodeString
 
-int mwGetContentType(char *pchExtname)
+int mwGetContentType(const char *pchExtname)
 {
 	// check type of file requested
 	if (pchExtname[1]=='\0') {

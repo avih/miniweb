@@ -337,8 +337,8 @@ int mwGetLocalFileName(HttpFilePath* hfp);
 char* mwGetVarValue(HttpVariables* vars, char *varname, int index);
 int mwGetVarValueInt(HttpVariables* vars, char *varname, int defval);
 int mwParseQueryString(UrlHandlerParam* up);
-int mwGetContentType(char *pchExtname);
-void mwDecodeString(char* s);
+int mwGetContentType(const char *pchExtname);
+void mwDecodeString(const char* s);
 
 #ifdef __cplusplus
 }
