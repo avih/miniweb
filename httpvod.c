@@ -2,6 +2,7 @@
 #include "httpapi.h"
 #include "httpxml.h"
 #include "httpvod.h"
+#include "processpil.h"
 #include "crc32.h"
 
 #define PRE_ALLOC_UNIT 16
@@ -319,13 +320,40 @@ int AddClip(char* filename)
 	return 0;
 }
 
+static void* threadPlayer(void* arg)
+{
+	SHELL_PARAM mp;
+	char cmd[512];
+	
+	snprintf(cmd, sizeof(cmd), "mplayer.exe vod://127.0.0.1/vodplay?action=play -quiet -fs -rootwin -geometry 1x1+0+0 -af channelswitch=1,volnorm -vf pp=de -autosync 30 -priority higher");
+	memset(&mp, 0, sizeof(mp));
+	while (!ShellExec(&mp, cmd, 1)) {
+		while (ShellWait(&mp, 2000) == 0) {
+			HWND hWnd = FindWindow(0, "Mozilla Firefox");
+			SetForegroundWindow(hWnd);
+			if (vodctx.nextaction) {
+				ShellTerminate(&mp);
+				break;
+			}
+		}
+		ShellClean(&mp);
+	}
+	ShellClean(&mp);
+	return 0;
+}
+
+static pthread_t pxThreadPlayer = 0;
+
 void vodInit()
 {
 	int i;
 	int code = 0;
 	int count = 0;
-	if (!vodroot)
-		return;
+
+	ThreadCreate(&pxThreadPlayer, threadPlayer, 0);
+
+	if (!vodroot) return;
+
 	memset(&vodctx, 0, sizeof(vodctx));
 	memset(&charsinfo, 0, sizeof(charsinfo));
 	hashmap = calloc(1000000 / 32, sizeof(long));
@@ -347,15 +375,16 @@ void vodInit()
 	printf("\n\nCount: %d\n", count);
 }
 
-int ehVod(MW_EVENT event, int argi, void* argp)
+int ehVod(MW_EVENT e, int argi, void* argp)
 {
-	switch (event) {
+	switch (e) {
 	case MW_INIT:
 		if (hashmap) return 0; 	// already inited
 		vodInit();
 		break;
 	case MW_UNINIT:
 		//un-initialization
+		ThreadKill(&pxThreadPlayer);
 		if (hashmap) {
 			free(hashmap);
 			hashmap = 0;

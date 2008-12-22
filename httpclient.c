@@ -17,6 +17,7 @@
 #define close _close
 #define lseek _lseek
 #define snprintf _snprintf
+#define strcasecmp _stricmp
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -26,7 +27,7 @@
 
 #define closesocket close
 #define CloseHandle close
-#define stricmp strcasecmp
+
 #if !defined(O_BINARY)
 #define O_BINARY 0
 #endif
@@ -329,11 +330,11 @@ int httpGetResponse(HTTP_REQUEST* param)
 			q=strchr((p += 2),':');
 			if (!q) continue;
 			*q = 0;
-			if (!stricmp(p,"Content-length")) {
+			if (!strcasecmp(p,"Content-length")) {
 				param->payloadSize=atoi(q+2);
-			} else if (!stricmp(p,"Content-type")) {
+			} else if (!strcasecmp(p,"Content-type")) {
 				param->contentType = q+2;
-			} else if (!stricmp(p, "Transfer-Encoding")) {
+			} else if (!strcasecmp(p, "Transfer-Encoding")) {
 				if (!strncmp(p + 19, "chunked", 7)) {
 					param->flags |= FLAG_CHUNKED;
 				}
