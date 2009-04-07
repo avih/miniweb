@@ -254,7 +254,7 @@ typedef struct _httpParam {
 	int maxReqPerConn;		/* maximum requests on one connection */
 	int maxClients;
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
-	char *pchWebPath;
+	const char *pchWebPath;
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */
 	// substitution callback
 	PFNSUBSTCALLBACK pfnSubst;
