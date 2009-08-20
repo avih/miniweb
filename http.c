@@ -1497,7 +1497,7 @@ __inline char _mwDecodeCharacter(char* s)
 // This function converts URLd characters back to ascii. For example
 // %3A is '.'
 ////////////////////////////////////////////////////////////////////////////
-void mwDecodeString(const char* pchString)
+void mwDecodeString(char* pchString)
 {
   int bEnd=FALSE;
   char* pchInput=pchString;

@@ -71,7 +71,7 @@
 				OutputFile="$(SolutionDir)lib/httpd_debug.lib"
 				AdditionalLibraryDirectories="$(SolutionDir)lib"
 				IgnoreAllDefaultLibraries="true"
-				IgnoreDefaultLibraryNames="libcmtd.lib"
+				IgnoreDefaultLibraryNames="libcmtd"
 			/>
 			<Tool
 				Name="VCALinkTool"

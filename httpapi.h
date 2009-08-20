@@ -338,7 +338,7 @@ char* mwGetVarValue(HttpVariables* vars, char *varname, int index);
 int mwGetVarValueInt(HttpVariables* vars, char *varname, int defval);
 int mwParseQueryString(UrlHandlerParam* up);
 int mwGetContentType(const char *pchExtname);
-void mwDecodeString(const char* s);
+void mwDecodeString(char* s);
 
 #ifdef __cplusplus
 }
