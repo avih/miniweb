@@ -413,6 +413,9 @@ void* _mwHttpThread(HttpParam *hp)
 						iRc=_mwProcessWriteSocket(hp, phsSocketCur);
 					} else if (bRead && ISFLAGSET(phsSocketCur,FLAG_RECEIVING)) {
 						iRc=_mwProcessReadSocket(hp,phsSocketCur);
+						if (ISFLAGSET(phsSocketCur, FLAG_DATA_SOCKET)) {
+							_mwRemoveSocket(hp, phsSocketCur);
+						}
 					} else {
 						iRc=-1;
 						DBG("Invalid socket state (flag: %08x)\n",phsSocketCur->flags);
@@ -501,6 +504,23 @@ void* _mwHttpThread(HttpParam *hp)
 	return NULL;
 } // end of _mwHttpThread
 
+int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs)
+{
+	HttpSocket* phsSocketCur=hp->phsSocketHead;
+	if (phsSocketCur == hs) {
+		hp->phsSocketHead = phsSocketCur->next;
+		return 0;
+	}
+	while (phsSocketCur) {
+		if (phsSocketCur->next == hs) {
+			phsSocketCur->next = phsSocketCur->next->next;
+			return 0;
+		}
+		phsSocketCur = phsSocketCur->next;
+	}
+	return -1;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // _mwAcceptSocket
 // Accept an incoming connection
@@ -538,13 +558,14 @@ SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 	return socket;
 } // end of _mwAcceptSocket
 
-int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateTime, unsigned char* buffer)
+int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned char* buffer)
 {
 	unsigned char *p=buffer;
 	p+=snprintf(p, 512, HTTP200_HEADER,
 		(phsSocket->request.startByte==0)?"200 OK":"206 Partial content",
 		HTTP_SERVER_NAME,
-		HTTP_KEEPALIVE_TIME,hp->maxReqPerConn,
+		HTTP_KEEPALIVE_TIME,
+		MAX_CONN_REQUESTS,
 		ISFLAGSET(phsSocket,FLAG_CONN_CLOSE)?"close":"Keep-Alive");
 	if (contentDateTime) {
 		p += snprintf(p, 512, "Last-Modified: ");
@@ -667,6 +688,9 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 				} else if (ret & FLAG_DATA_FD) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
 					DBG("URL handler: file descriptor\n");
+				} else if (ret & FLAG_DATA_SOCKET) {
+					SETFLAG(phsSocket, FLAG_DATA_SOCKET);
+					DBG("URL handler: socket\n");
 				}
 				break;
 			}
@@ -861,6 +885,8 @@ done:
 		} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 			// send requested page
 			return _mwStartSendFile(hp,phsSocket);
+		} else if (ISFLAGSET(phsSocket,FLAG_DATA_SOCKET)) {
+			return 0;
 		}
 	}
 	SYSLOG(LOG_INFO,"Error occurred (might be a bug)\n");
@@ -882,6 +908,8 @@ int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 		return _mwSendRawDataChunk(hp, phsSocket);
 	} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 		return _mwSendFileChunk(hp, phsSocket);
+	} else if (ISFLAGSET(phsSocket, FLAG_DATA_SOCKET)) {
+		return 0;
 	} else {
 		SYSLOG(LOG_INFO,"Invalid content source\n");
 		return -1;
@@ -934,7 +962,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->request.pucPath);
 		phsSocket->request.pucPath = 0;
 	}
-	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount<hp->maxReqPerConn) {
+	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount< MAX_CONN_REQUESTS) {
 		_mwInitSocketData(phsSocket);
 		//reset flag bits
 		phsSocket->iRequestCount++;
@@ -1076,7 +1104,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 
 	hfp.pchRootPath=hp->pchWebPath;
 	// check type of file requested
-	if (!(phsSocket->flags & FLAG_DATA_FD)) {
+	if (!ISFLAGSET(phsSocket, FLAG_DATA_FD)) {
 		hfp.pchHttpPath=phsSocket->request.pucPath;
 		mwGetLocalFileName(&hfp);
 		if (stat(hfp.cFilePath,&st) < 0) {
@@ -1117,7 +1145,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
 		else
 			phsSocket->fd = -1;
-	} else if (phsSocket->fd > 0) {
+	} else if ((phsSocket->flags & FLAG_DATA_FD) && phsSocket->fd > 0) {
 		strcpy(hfp.cFilePath, phsSocket->request.pucPath);
 		hfp.pchExt = strrchr(hfp.cFilePath, '.');
 		if (hfp.pchExt) hfp.pchExt++;
@@ -1196,7 +1224,6 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 
 	// build http header
 	phsSocket->dataLength=_mwBuildHttpHeader(
-		hp,
 		phsSocket,
 		st.st_mtime,
 		phsSocket->pucData);
@@ -1287,7 +1314,7 @@ int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket)
 {
 	unsigned char header[HTTP200_HDR_EST_SIZE];
 	int offset=0,hdrsize,bytes;
-	hdrsize=_mwBuildHttpHeader(hp, phsSocket,time(NULL),header);
+	hdrsize=_mwBuildHttpHeader(phsSocket,time(NULL),header);
 	// send http header
 	do {
 		bytes=send(phsSocket->socket, header+offset,hdrsize-offset,0);

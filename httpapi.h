@@ -80,6 +80,7 @@ typedef enum {
 
 #define MAXPOSTPARAMS 50
 #define MAXPOSTREDIRECTFILENAME (200)
+#define MAX_CONN_REQUESTS 99
 
 /////////////////////////////////////////////////////////////////////////////
 // typedefs
@@ -127,6 +128,7 @@ typedef struct _tagSubstParam {
 #define FLAG_DATA_FD		0x40000
 #define FLAG_DATA_REDIRECT	0x80000
 #define FLAG_DATA_STREAM	0x100000
+#define FLAG_DATA_SOCKET	0x200000
 
 #define FLAG_RECEIVING		0x80000000
 #define FLAG_SENDING		0x40000000
@@ -251,7 +253,6 @@ typedef struct _httpParam {
 	unsigned int flags;
 	SOCKET listenSocket;
 	int httpPort;
-	int maxReqPerConn;		/* maximum requests on one connection */
 	int maxClients;
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
 	const char *pchWebPath;

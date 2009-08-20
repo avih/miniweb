@@ -170,7 +170,6 @@ int main(int argc,char* argv[])
 		int i;
 		for (i=0;i<nInst;i++) {
 			httpParam[i].maxClients=32;
-			httpParam[i].maxReqPerConn=99;
 			httpParam[i].pchWebPath="webroot";
 			httpParam[i].pxUrlHandler=urlHandlerList;
 			httpParam[i].flags=FLAG_DIR_LISTING;
@@ -210,9 +209,6 @@ int main(int argc,char* argv[])
 					break;
 				case 'm':
 					if ((++i)<argc) (httpParam+inst)->maxClients=atoi(argv[i]);
-					break;
-				case 'k':
-					if ((++i)<argc) (httpParam+inst)->maxReqPerConn=atoi(argv[i]);
 					break;
 				case 'd':
 					(httpParam+inst)->flags &= ~FLAG_DIR_LISTING;

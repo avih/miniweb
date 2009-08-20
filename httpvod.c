@@ -566,6 +566,9 @@ int uhLib(UrlHandlerParam* param)
 					snprintf(buf, sizeof(buf), "<chars>%d</chars>", info->chars);
 					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
 
+					snprintf(buf, sizeof(buf), "<file>%d</file>", info->filename);
+					mwWriteXmlString(&pbuf, &bufsize, 2, buf);
+
 					mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
 				}
 				idx++;
@@ -598,11 +601,17 @@ int uhLib(UrlHandlerParam* param)
 			mwWriteXmlString(&pbuf, &bufsize, 2, "<item>");
 			snprintf(buf, sizeof(buf), "<id><![CDATA[%d]]></id>", clip->hash);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
-			snprintf(buf, sizeof(buf), "<file><![CDATA[%s]]></file>", clip->filename);
-			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
 			snprintf(buf, sizeof(buf), "<title><![CDATA[%s]]></title>", clip->title);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
 			snprintf(buf, sizeof(buf), "<category><![CDATA[%s]]></category>", cat->name);
+			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
+			{
+			char *s = strrchr(clip->filename, '/');
+			if (!s++) s = clip->filename;
+			snprintf(buf, sizeof(buf), "<file><![CDATA[%s]]></file>", s);
+			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
+			}
+			snprintf(buf, sizeof(buf), "<path><![CDATA[%s]]></path>", clip->filename);
 			mwWriteXmlString(&pbuf, &bufsize, 3, buf);
 			mwWriteXmlString(&pbuf, &bufsize, 2, "</item>");
 		}

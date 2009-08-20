@@ -8,6 +8,9 @@
 #endif
 #include "httpxml.h"
 
+int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned char* buffer);
+void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
+
 //////////////////////////////////////////////////////////////////////////
 // callback from the web server whenever a valid request comes in
 //////////////////////////////////////////////////////////////////////////
@@ -134,17 +137,68 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
+void __stdcall FileReadThread(UrlHandlerParam* param)
+{
+	int bytes;
+	fd_set fds;
+	struct timeval timeout;
+	FILE *fp = fopen("m:\\test.264", "rb");
+	HttpParam* hp = param->hp;
+	HttpSocket* phsSocket = param->hs;
+	SOCKET s = phsSocket->socket;
+	char buf[1024];
+
+	free(param);
+	param = 0;
+
+
+	FD_ZERO(&fds);
+	FD_SET(s, &fds);
+
+	/* Set time limit. */
+	timeout.tv_sec = 30;
+	timeout.tv_usec = 0;
+
+	/* build http response header */
+	phsSocket->dataLength=_mwBuildHttpHeader(
+		phsSocket,
+		time(0),
+		phsSocket->pucData);
+	phsSocket->response.fileType = HTTPFILETYPE_XML;
+	phsSocket->response.headerBytes = phsSocket->dataLength;
+	phsSocket->response.sentBytes = 0;
+
+	/* wait until the socket is allowed to send */
+	while (!ISFLAGSET(phsSocket,FLAG_SENDING)) msleep(100);
+
+	bytes = send(s, phsSocket->pucData, phsSocket->dataLength, 0);
+	for (;;) {
+		bytes = fread(buf, 1, sizeof(buf), fp);
+		if (bytes > 0) {
+			int rc = select(1, NULL, &fds, NULL, &timeout);
+			if (rc==-1) {
+				break;
+			} else if (rc > 0) {
+				bytes = send(s, buf, bytes, 0);
+			} else {
+				continue;
+			}
+		} else
+			break;
+	}
+	/* tear down connection */
+	SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+	_mwCloseSocket(hp, phsSocket);
+}
+
 int uhFileStream(UrlHandlerParam* param)
 {
 	if (!param->hs->ptr) {
 		// first request
-		char* file;
-		if (mwParseQueryString(param) <= 0 || !(file = mwGetVarValue(param->pxVars, "file", 0)))
-			return 0;	// no file specified
-		param->hs->ptr = (void*)open(file, O_BINARY | O_RDONLY);
-		if (!param->hs->ptr) return 0;
+		DWORD dwid;
+		UrlHandlerParam* p = malloc(sizeof(UrlHandlerParam));
+		memcpy(p, param, sizeof(UrlHandlerParam));
+		param->hs->ptr = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)FileReadThread, p, 0, &dwid);
 	}
-	param->dataBytes = read((int)param->hs->ptr, param->pucBuffer, param->dataBytes);
-	param->fileType = HTTPFILETYPE_XML;
-	return param->dataBytes > 0 ? (FLAG_DATA_STREAM | FLAG_CHUNK) : 0;
+	return FLAG_DATA_SOCKET;
 }

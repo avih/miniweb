@@ -114,5 +114,6 @@ SOCKET _mwStartListening(HttpParam* hp);
 int _mwParseHttpHeader(HttpSocket* phsSocket);
 int _mwStrCopy(char *dest, const char *src);
 int _mwStrHeadMatch(const char* buf1, const char* buf2);
+int _mwRemoveSocket(hp, phsSocketCur);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////
