@@ -199,10 +199,6 @@ int ReadDir(char* pchDir, char* pchFileNameBuf)
 
 int IsFileExist(char* filename)
 {
-	int fd = open(filename,O_RDONLY);
-	if (fd>0) {
-		close(fd);
-		return 1;
-	}
-	return 0;
+	struct stat s;
+	return stat(filename, &s) == 0;
 }

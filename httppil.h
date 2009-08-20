@@ -21,23 +21,6 @@
 
 #define snprintf _snprintf
 
-#ifndef SYS_MINGW
-#define read _read
-#define open _open
-#define close _close
-#define lseek _lseek
-#define read _read
-#define write _write
-#define strdup _strdup
-#define dup2 _dup2
-#define dup _dup
-#define pipe _pipe
-#define spawnvpe _spawnvpe
-#define spawnvp _spawnvp
-#else
-#include <winsock2.h>
-#endif
-
 #else
 #include <stdlib.h>
 #include <unistd.h>

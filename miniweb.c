@@ -99,7 +99,7 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 	if (!fd) {
 		char filename[256];
 		snprintf(filename, sizeof(filename), "%s/%s", httpParam[0].pchWebPath, pxMP->pchFilename);
-		fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY);
+		fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY, 0);
 		pxMP->pxCallBackData = (void*)fd;
 	}
 	if (fd <= 0) return -1;
@@ -173,7 +173,7 @@ int main(int argc,char* argv[])
 			httpParam[i].pchWebPath="webroot";
 			httpParam[i].pxUrlHandler=urlHandlerList;
 			httpParam[i].flags=FLAG_DIR_LISTING;
-			httpParam[i].tmSocketExpireTime = 300;
+			httpParam[i].tmSocketExpireTime = 180;
 #ifndef _NO_POST
 			httpParam[i].pfnPost = DefaultWebPostCallback;
 #ifdef MEDIA_SERVER
@@ -281,9 +281,6 @@ int main(int argc,char* argv[])
 	}
 
 	Shutdown();
-#ifdef _DEBUG
-	getchar();
-#endif
 	return 0;
 }
 ////////////////////////////// END OF FILE //////////////////////////////

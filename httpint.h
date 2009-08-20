@@ -13,6 +13,22 @@
 /////////////////////////////////////////////////////////////////////////////
 // defines
 /////////////////////////////////////////////////////////////////////////////
+#ifdef WIN32
+#ifndef SYS_MINGW
+#define read _read
+#define open _open
+#define close _close
+#define lseek _lseek
+#define read _read
+#define write _write
+#define strdup _strdup
+#define dup2 _dup2
+#define dup _dup
+#define pipe _pipe
+#define spawnvpe _spawnvpe
+#define spawnvp _spawnvp
+#endif
+#endif
 
 // HTTP messages/part messages
 #ifndef HTTP_SERVER_NAME
@@ -114,6 +130,6 @@ SOCKET _mwStartListening(HttpParam* hp);
 int _mwParseHttpHeader(HttpSocket* phsSocket);
 int _mwStrCopy(char *dest, const char *src);
 int _mwStrHeadMatch(const char* buf1, const char* buf2);
-int _mwRemoveSocket(hp, phsSocketCur);
+int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////
