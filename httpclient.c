@@ -377,7 +377,6 @@ int httpGetResponse(HTTP_REQUEST* param)
 					param->buffer = (char*)realloc(param->buffer, param->bufferSize);
 				}
 			} else {
-				DEBUG("Allocating %d bytes for payload buffer\n",param->payloadSize);
 				if (param->payloadSize) {
 					param->bufferSize = param->payloadSize + 1;
 					param->buffer = (char*)calloc(1, param->bufferSize);
@@ -385,6 +384,7 @@ int httpGetResponse(HTTP_REQUEST* param)
 					param->bufferSize = 1024 + payloadWithHeader;
 					param->buffer = (char*)calloc(1, param->bufferSize);
 				}
+				DEBUG("Allocated %d bytes for payload buffer\n",param->bufferSize);
 			}
 			if (recvBytes == 0) {
 				recvBytes = payloadWithHeader;
