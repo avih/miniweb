@@ -336,11 +336,11 @@ int httpGetResponse(HTTP_REQUEST* param)
 			q=strchr((p += 2),':');
 			if (!q) continue;
 			*q = 0;
-			if (!stricmp(p,"Content-length")) {
+			if (!_stricmp(p,"Content-length")) {
 				param->payloadSize=atoi(q+2);
-			} else if (!stricmp(p,"Content-type")) {
+			} else if (!_stricmp(p,"Content-type")) {
 				param->contentType = q+2;
-			} else if (!stricmp(p, "Transfer-Encoding")) {
+			} else if (!_stricmp(p, "Transfer-Encoding")) {
 				if (!strncmp(p + 19, "chunked", 7)) {
 					param->flags |= FLAG_CHUNKED;
 				}

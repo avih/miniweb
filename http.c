@@ -596,7 +596,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 		} else if (ISFLAGSET(up->hs,FLAG_REQUEST_POST)){
 			s = up->hs->request.pucPayload;
 		}
-		if (s && *s) {
+		if (s && *s && strncmp(s, "<?xml", 5)) {
 			int i;
 			int n = 1;
 			//get number of variables
@@ -957,6 +957,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 	if (ISFLAGSET(phsSocket,FLAG_TO_FREE) && phsSocket->ptr) {
 		free(phsSocket->ptr);
 		phsSocket->ptr=NULL;
+		CLRFLAG(phsSocket, FLAG_TO_FREE);
 	}
 	if (phsSocket->request.pucPath) {
 		free(phsSocket->request.pucPath);
@@ -1572,6 +1573,7 @@ int mwGetContentType(const char *pchExtname)
 		switch (GETDWORD(pchExtname) & 0xffdfdfdf) {
 		case FILEEXT_HTM:	return HTTPFILETYPE_HTML;
 		case FILEEXT_XML:	return HTTPFILETYPE_XML;
+		case FILEEXT_XSL:	return HTTPFILETYPE_XML;
 		case FILEEXT_TEXT:	return HTTPFILETYPE_TEXT;
 		case FILEEXT_XUL:	return HTTPFILETYPE_XUL;
 		case FILEEXT_CSS:	return HTTPFILETYPE_CSS;
@@ -1637,7 +1639,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 					p+=5;
 				} else if (!_mwStrHeadMatch(p,"Keep-Alive")) {
 					CLRFLAG(phsSocket,FLAG_CONN_CLOSE);
-					p+=11;
+					p+=10;
 				}
 			} else if (!_mwStrHeadMatch(p, "ontent-Length: ")) {
 				p+=15;

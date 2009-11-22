@@ -56,9 +56,15 @@ typedef DWORD (WINAPI *PFNGetProcessId)(HANDLE hProcess);
 #else
 
 #define closesocket close
+#ifndef MAX_PATH
 #define MAX_PATH 256
+#endif
+#ifndef FALSE
 #define FALSE 0
+#endif
+#ifndef TRUE
 #define TRUE 1
+#endif
 
 typedef int SOCKET;
 typedef unsigned int DWORD;

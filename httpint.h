@@ -51,6 +51,7 @@
 // Define file extensions
 #define FILEEXT_HTM DEFDWORD('H','T','M',0)
 #define FILEEXT_XML DEFDWORD('X','M','L',0)
+#define FILEEXT_XSL DEFDWORD('X','S','L',0)
 #define FILEEXT_TEXT DEFDWORD('T','X','T',0)
 #define FILEEXT_XUL DEFDWORD('X','U','L',0)
 #define FILEEXT_GIF DEFDWORD('G','I','F',0)
