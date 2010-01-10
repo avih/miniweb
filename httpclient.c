@@ -17,6 +17,8 @@
 #define close _close
 #define lseek _lseek
 #define snprintf _snprintf
+#define stricmp _stricmp
+
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -50,10 +52,9 @@
 #define MULTIPART_BOUNDARY "---------------------------24464570528145"
 #define HTTP_POST_STREAM_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: close\r\nContent-Type: application/octet-stream; filename=%s\r\nContent-Length: %d\r\n%s\r\n"
 
-void httpInitReq(HTTP_REQUEST* req, const char* url, char* proxy)
+void httpInitReq(HTTP_REQUEST* req, char* proxy)
 {
 	memset(req, 0, sizeof(HTTP_REQUEST));
-	req->url = url;
 	if (proxy && *proxy) req->proxy = proxy;
 }
 
@@ -120,15 +121,20 @@ void httpClean(HTTP_REQUEST* param)
 		free(param->hostname);
 		param->hostname = 0;
 	}
+	if (param->header) {
+		free(param->header);
+		param->header = 0;
+	}
 }
 
-int httpRequest(HTTP_REQUEST* param)
+int httpRequest(HTTP_REQUEST* param, const char* url)
 {
 	const char *path;
 	struct hostent *target_host;
 	int ret = 0;
 	int bytes;
 
+	if (url) param->url = url;
 	param->state = HS_REQUESTING;
 	param->payloadSize=0;
 
@@ -336,14 +342,16 @@ int httpGetResponse(HTTP_REQUEST* param)
 			q=strchr((p += 2),':');
 			if (!q) continue;
 			*q = 0;
-			if (!_stricmp(p,"Content-length")) {
+			if (!stricmp(p,"Content-length")) {
 				param->payloadSize=atoi(q+2);
-			} else if (!_stricmp(p,"Content-type")) {
+			} else if (!stricmp(p,"Content-type")) {
 				param->contentType = q+2;
-			} else if (!_stricmp(p, "Transfer-Encoding")) {
+			} else if (!stricmp(p, "Transfer-Encoding")) {
 				if (!strncmp(p + 19, "chunked", 7)) {
 					param->flags |= FLAG_CHUNKED;
 				}
+			} else if (!_stricmp(p, "Location")) {
+				param->location = q + 2;
 			}
 			*q = ':';
 		}
@@ -377,6 +385,7 @@ int httpGetResponse(HTTP_REQUEST* param)
 					param->buffer = (char*)realloc(param->buffer, param->bufferSize);
 				}
 			} else {
+				DEBUG("Allocating %d bytes for payload buffer\n",param->payloadSize);
 				if (param->payloadSize) {
 					param->bufferSize = param->payloadSize + 1;
 					param->buffer = (char*)calloc(1, param->bufferSize);
@@ -384,7 +393,6 @@ int httpGetResponse(HTTP_REQUEST* param)
 					param->bufferSize = 1024 + payloadWithHeader;
 					param->buffer = (char*)calloc(1, param->bufferSize);
 				}
-				DEBUG("Allocated %d bytes for payload buffer\n",param->bufferSize);
 			}
 			if (recvBytes == 0) {
 				recvBytes = payloadWithHeader;
@@ -446,7 +454,7 @@ int httpPostFile(HTTP_REQUEST* req, char* url, char* fieldname, const char* file
 	POST_CHUNK chunk;
 	char *p;
 
-	httpInitReq(req, url, 0);
+	httpInitReq(req, 0);
 
 	fd = open(filename, O_BINARY | O_RDONLY);
 	if (fd <= 0) return -1;
@@ -466,7 +474,7 @@ int httpPostFile(HTTP_REQUEST* req, char* url, char* fieldname, const char* file
 	req->method = HM_POST_MULTIPART;
 	req->chunk = &chunk;
 	req->chunkCount = 1;
-	ret = httpRequest(req);
+	ret = httpRequest(req, url);
 	close(fd);
 	if (!ret) {
 		ret = httpGetResponse(req);
@@ -493,9 +501,8 @@ int PostFileStream(char* url, const char* filename)
 	else
 		req.filename++;
 
-	req.url = url;
 	req.method = HM_POST_STREAM;
-	ret = httpRequest(&req);
+	ret = httpRequest(&req, url);
 
 	while ((bytes = read(fd, buf, sizeof(buf))) > 0 
 		&& httpSend(&req, buf, bytes) == bytes);
