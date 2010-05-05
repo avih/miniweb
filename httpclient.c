@@ -46,7 +46,7 @@
 #define DEBUG
 #endif
 #define CONN_RETRIES 3
-#define HTTP_GET_HEADER "%s %s HTTP/1.%d\r\nAccept: */*\r\nConnection: %s\r\nUser-Agent: Mozilla/5.0\r\nHost: %s\r\n%s\r\n"
+#define HTTP_GET_HEADER "%s %s HTTP/1.%d\r\nAccept: */*\r\nConnection: %s\r\nUser-Agent: Transerver/1.0\r\nHost: %s\r\n%s\r\n"
 #define HTTP_POST_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nUser-Agent: Mozilla/5.0\r\nContent-Length: %d\r\n%s\r\n"
 #define HTTP_POST_MULTIPART_HEADER "POST %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Mozilla/5.0\r\nAccept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\nAccept-Language: en-us,en;q=0.5\r\nAccept-Encoding: gzip,deflate\r\nAccept-Charset: ISO-8859-1;q=0.7,*;q=0.7\r\nKeep-Alive: 300\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\n%s\r\n"
 #define MULTIPART_BOUNDARY "---------------------------24464570528145"
@@ -200,39 +200,39 @@ int httpRequest(HTTP_REQUEST* param, const char* url)
 		int retry = 3;
 		ret = 0;
 		do {
-			if (!param->sockfd) {
-				struct sockaddr_in server_addr;
+		if (!param->sockfd) {
+			struct sockaddr_in server_addr;
 
-				if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
-					ret = -1;
-					continue;
-				}
-
-				if ((param->sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
-					DEBUG("Failed to open socket\n");
-					ret = -1;
-					continue;
-				}
-
-				memset(&server_addr.sin_zero,0,8);
-				server_addr.sin_family = AF_INET;
-				server_addr.sin_addr.s_addr = ((struct in_addr *)(target_host->h_addr))->s_addr;
-				server_addr.sin_port = htons(param->port);
-				DEBUG("Connecting to server...\n");
-
-				if (connect(param->sockfd,(struct sockaddr *)&server_addr,sizeof(struct sockaddr)) < 0) {
-					DEBUG("Failed to connect\n");
-					ret = -1;
-					continue;
-				}
+			if ((target_host = gethostbyname((const char*)param->hostname)) == NULL) {
+				ret = -1;
+				continue;
 			}
-			DEBUG("Sending request...\n");
-			if (httpSend(param, param->header, hdrsize) != hdrsize) {
+
+			if ((param->sockfd = socket(AF_INET,SOCK_STREAM,0)) == -1) {
+				DEBUG("Failed to open socket\n");
+				ret = -1;
+				continue;
+			}
+
+			memset(&server_addr.sin_zero,0,8);
+			server_addr.sin_family = AF_INET;
+			server_addr.sin_addr.s_addr = ((struct in_addr *)(target_host->h_addr))->s_addr;
+			server_addr.sin_port = htons(param->port);
+			DEBUG("Connecting to server...\n");
+
+			if (connect(param->sockfd,(struct sockaddr *)&server_addr,sizeof(struct sockaddr)) < 0) {
+				DEBUG("Failed to connect\n");
+				ret = -1;
+				continue;
+			}
+		}
+		DEBUG("Sending request...\n");
+		if (httpSend(param, param->header, hdrsize) != hdrsize) {
 				closesocket(param->sockfd);
 				param->sockfd = 0;
 				ret = -1;
 				continue;;
-			}
+		}
 			break;
 		} while (--retry > 0);
 		if (ret == -1) break;

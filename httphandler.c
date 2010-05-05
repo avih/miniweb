@@ -20,7 +20,7 @@ int uhStats(UrlHandlerParam* param)
 	char buf[128];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;
-	IP ip = param->hs->ipAddr;
+	IPADDR ip = param->hs->ipAddr;
 	HTTP_XML_NODE node;
 	int bufsize = param->dataBytes;
 	int ret=FLAG_DATA_RAW;
@@ -137,12 +137,13 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
-void __stdcall FileReadThread(UrlHandlerParam* param)
+#ifdef WIN32
+void FileReadThread(UrlHandlerParam* param)
 {
 	int bytes;
 	fd_set fds;
 	struct timeval timeout;
-	FILE *fp = fopen("m:\\test.264", "rb");
+	FILE *fp = fopen("f:\\11.xml", "rb");
 	HttpParam* hp = param->hp;
 	HttpSocket* phsSocket = param->hs;
 	SOCKET s = phsSocket->socket;
@@ -156,7 +157,7 @@ void __stdcall FileReadThread(UrlHandlerParam* param)
 	FD_SET(s, &fds);
 
 	/* Set time limit. */
-	timeout.tv_sec = 30;
+	timeout.tv_sec = 3;
 	timeout.tv_usec = 0;
 
 	/* build http response header */
@@ -193,7 +194,6 @@ void __stdcall FileReadThread(UrlHandlerParam* param)
 
 int uhFileStream(UrlHandlerParam* param)
 {
-#ifdef WIN32
 	if (!param->hs->ptr) {
 		// first request
 		DWORD dwid;
@@ -201,6 +201,62 @@ int uhFileStream(UrlHandlerParam* param)
 		memcpy(p, param, sizeof(UrlHandlerParam));
 		param->hs->ptr = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)FileReadThread, p, 0, &dwid);
 	}
-#endif
 	return FLAG_DATA_SOCKET;
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+// stream handler sample
+//////////////////////////////////////////////////////////////////////////
+#ifndef NOTHREAD
+typedef struct {
+	int state;
+	pthread_t thread;
+	char result[16];
+} HANDLER_DATA;
+
+void* WriteContent(HANDLER_DATA* hdata)
+{
+	char *p = hdata->result;
+	int i;
+	for (i = 0; i < 10; i++, p++) {
+		*p = '0' + i;
+		msleep(100);
+	}
+	*p = 0;
+	return 0;
+}
+
+int uhAsyncDataTest(UrlHandlerParam* param)
+{
+	int ret = FLAG_DATA_STREAM | FLAG_TO_FREE;
+	HANDLER_DATA* hdata = (HANDLER_DATA*)param->hs->ptr;
+	
+	if (param->pucBuffer) {
+		if (!hdata) {
+			// first invoke
+			hdata = param->hs->ptr = calloc(1, sizeof(HANDLER_DATA));
+			ThreadCreate(&hdata->thread, WriteContent, hdata);
+			param->dataBytes = 0;
+		} else {
+			if (hdata->state == 1) {
+				// done
+				ret = 0;
+			} else if (ThreadWait(hdata->thread, 10, 0)) {
+				// data not ready
+				param->dataBytes = 0;
+			} else {
+				// data ready
+				strcpy(param->pucBuffer, hdata->result);
+				param->dataBytes = strlen(param->pucBuffer);
+				hdata->state = 1;
+			}
+		}
+	} else {
+		// cleanup
+		ret = 0;
+	}
+	param->fileType=HTTPFILETYPE_TEXT;
+	return ret;
+}
+#endif

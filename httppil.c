@@ -56,7 +56,13 @@ int ThreadCreate(pthread_t *pth, void* (*start_routine)(void*), void* arg)
 	*pth=CreateThread(0,0,(LPTHREAD_START_ROUTINE)start_routine,arg,0,&dwid);
 	return *pth!=NULL?0:1;
 #else
-	return pthread_create(pth,NULL,start_routine, arg);
+      pthread_attr_t attr;
+      pthread_attr_init(&attr);
+	  // Change policy
+	  pthread_attr_setschedpolicy(&attr,   SCHED_RR);
+	  int ret = pthread_create(pth, &attr, start_routine, arg);
+      pthread_attr_destroy(&attr);
+      return ret;
 #endif
 }
 
@@ -69,12 +75,13 @@ int ThreadKill(pthread_t pth)
 #endif
 }
 
-int ThreadWait(pthread_t pth,void** ret)
+int ThreadWait(pthread_t pth, int timeout, void** ret)
 {
 #ifndef HAVE_PTHREAD
-	if (WaitForSingleObject(pth,INFINITE)!=WAIT_OBJECT_0)
-		return GetLastError();
+	if (WaitForSingleObject(pth, timeout)==WAIT_TIMEOUT)
+		return 1;
 	if (ret) GetExitCodeThread(pth,(LPDWORD)ret);
+	CloseHandle(pth);
 	return 0;
 #else
 	return pthread_join(pth,ret);
@@ -119,7 +126,7 @@ void MutexUnlock(pthread_mutex_t* mutex)
 
 #endif
 
-int IsDir(char* pchName)
+int IsDir(const char* pchName)
 {
 #ifdef WIN32
 	DWORD attr=GetFileAttributes(pchName);
@@ -132,7 +139,7 @@ int IsDir(char* pchName)
 #endif //WIN32
 }
 
-int ReadDir(char* pchDir, char* pchFileNameBuf)
+int ReadDir(const char* pchDir, char* pchFileNameBuf)
 {
 #ifdef WIN32
 	static HANDLE hFind=NULL;
@@ -197,7 +204,7 @@ int ReadDir(char* pchDir, char* pchFileNameBuf)
 	return 0;
 }
 
-int IsFileExist(char* filename)
+int IsFileExist(const char* filename)
 {
 	struct stat s;
 	return stat(filename, &s) == 0;

@@ -22,7 +22,6 @@
 // global variables
 ////////////////////////////////////////////////////////////////////////////
 // default pages
-const char g_chPasswordPage[]="password.htm";
 
 const char* contentTypeTable[]={
 	"application/octet-stream",
@@ -43,8 +42,12 @@ const char* contentTypeTable[]={
 	"video/quicktime",
 	"video/x-mpeg-avc",
 	"video/flv",
+	"video/MP2T",
+	"video/3gpp",
+	"video/x-ms-asf",
 	"application/octet-stream",
-	"application/x-datastream"
+	"application/x-datastream",
+	"application/x-mpegURL",
 };
 
 char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
@@ -134,7 +137,10 @@ int mwServerStart(HttpParam* hp)
 	hp->szctx = SzInit();
 #endif
 
-	if (!(hp->listenSocket=_mwStartListening(hp))) return -1;
+	if (!(hp->listenSocket=_mwStartListening(hp))) {
+		DBG("Error listening on port %d\n", hp->httpPort);
+		return -1;
+	}
 
 	hp->stats.startTime=time(NULL);
 	hp->bKillWebserver=FALSE;
@@ -243,7 +249,10 @@ SOCKET _mwStartListening(HttpParam* hp)
 
     // create a new socket
     listenSocket=socket(AF_INET,SOCK_STREAM,0);
-    if (listenSocket<0) return 0;
+	if (listenSocket <= 0) {
+		DBG("Error creating socket\n");
+		return 0;
+	}
 
 #if 0
     // allow reuse of port number
@@ -432,9 +441,15 @@ void* _mwHttpThread(HttpParam *hp)
 			}
 
 			// check if any socket to accept and accept the socket
-			if (FD_ISSET(hp->listenSocket, &fdsSelectRead) &&
-					hp->stats.clientCount<hp->maxClients &&
-					(socket=_mwAcceptSocket(hp,&sinaddr))) {
+			if (FD_ISSET(hp->listenSocket, &fdsSelectRead)) {
+				if (hp->stats.clientCount > hp->maxClients) {
+					DBG("WARNING: clientCount:%d > maxClients:%d\n", hp->stats.clientCount, hp->maxClients);
+					msleep(200);
+				}
+
+				socket = _mwAcceptSocket(hp,&sinaddr);
+				if (socket == 0) continue;
+
 				// create a new socket structure and insert it in the linked list
 				phsSocketCur=(HttpSocket*)malloc(sizeof(HttpSocket));
 				if (!phsSocketCur) {
@@ -634,6 +649,90 @@ int mwParseQueryString(UrlHandlerParam* up)
 	return up->iVarCount;
 }
 
+#ifndef DISABLE_BASIC_WWWAUTH
+////////////////////////////////////////////////////////////////////////////
+// _mwBase64Encode
+// buffer size of out_str is (in_len * 4 / 3 + 1)
+////////////////////////////////////////////////////////////////////////////
+void _mwBase64Encode(const char *in_str, int in_len, char *out_str)
+{ 
+	const char base64[] ="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	int curr_out_len = 0;
+	int i = 0;
+	char a, b, c;
+	
+	out_str[0] = '\0';
+
+	if (in_len <= 0) return;
+
+	while (i < in_len) {
+		a = in_str[i];
+		b = (i + 1 >= in_len) ? 0 : in_str[i + 1];
+		c = (i + 2 >= in_len) ? 0 : in_str[i + 2];
+		if (i + 2 < in_len) {
+			 out_str[curr_out_len++] = (base64[(a >> 2) & 0x3F]);
+			 out_str[curr_out_len++] = (base64[((a << 4) & 0x30) + ((b >> 4) & 0xf)]);
+			 out_str[curr_out_len++] = (base64[((b << 2) & 0x3c) + ((c >> 6) & 0x3)]);
+			 out_str[curr_out_len++] = (base64[c & 0x3F]);
+		}
+		else if (i + 1 < in_len) {
+			out_str[curr_out_len++] = (base64[(a >> 2) & 0x3F]);
+			out_str[curr_out_len++] = (base64[((a << 4) & 0x30) + ((b >> 4) & 0xf)]);
+			out_str[curr_out_len++] = (base64[((b << 2) & 0x3c) + ((c >> 6) & 0x3)]);
+			out_str[curr_out_len++] = '=';
+		}
+		else {
+			out_str[curr_out_len++] = (base64[(a >> 2) & 0x3F]);
+			out_str[curr_out_len++] = (base64[((a << 4) & 0x30) + ((b >> 4) & 0xf)]);
+			out_str[curr_out_len++] = '=';
+			out_str[curr_out_len++] = '=';
+		}
+		i += 3;
+	}
+
+	out_str[curr_out_len] = '\0';
+}
+
+char *_mwGetBaisAuthorization(const char* username, const char* password)
+{
+	const char prefix[] = "Authorization: Basic ";
+	int len = strlen(username) + 1 + strlen(password);
+	char *tmp = malloc(len + 1);
+	char *out = malloc(sizeof(prefix) + (len * 4 / 3 + 1) + 2);
+	char *p = out + sizeof(prefix) - 1;
+
+	sprintf(tmp, "%s:%s", username, password);
+	strcpy(out, prefix);
+	_mwBase64Encode(tmp, len, p);
+	p += strlen(p);
+	p[0] = '\r'; p[1] = '\n'; p[2] = '\0';
+
+	free(tmp);
+
+	return out;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// _mwBasicAuthorizationHandlers
+// Basic Authorization implement
+// RETURN VALUE: 0 (OK), -1(failed), 1(Authorization needed)
+////////////////////////////////////////////////////////////////////////////
+int _mwBasicAuthorizationHandlers(HttpParam* hp, HttpSocket* phsSocket)
+{
+	AuthHandler* pah;
+
+	for (pah=hp->pxAuthHandler; pah && pah->pchUrlPrefix; pah++) {
+		if (pah->pchUsername == NULL || *pah->pchUsername == '\0' ||
+			pah->pchPassword == NULL || *pah->pchPassword == '\0') continue;
+		if (pah->pchAuthString == NULL) pah->pchAuthString = 
+				_mwGetBaisAuthorization(pah->pchUsername, pah->pchPassword);
+		//TODO here!
+	}
+
+	return 0;
+}
+#endif
+
 int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 {
 	UrlHandler* puh;
@@ -641,12 +740,13 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 	int ret=0;
 
 	up.pxVars=NULL;
-	for (puh=hp->pxUrlHandler; puh->pchUrlPrefix; puh++) {
+	for (puh=hp->pxUrlHandler; puh && puh->pchUrlPrefix; puh++) {
 		size_t prefixLen=strlen(puh->pchUrlPrefix);
 		if (puh->pfnUrlHandler && !strncmp(phsSocket->request.pucPath,puh->pchUrlPrefix,prefixLen)) {
 			//URL prefix matches
 			memset(&up, 0, sizeof(up));
 			up.hp=hp;
+			up.p_sys = puh->p_sys;
 			up.hs = phsSocket;
 			up.dataBytes=phsSocket->bufferSize;
 			up.pucRequest=phsSocket->request.pucPath+prefixLen;
@@ -656,27 +756,28 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.iVarCount=-1;
 			ret=(*puh->pfnUrlHandler)(&up);
 			if (!ret) continue;
+			phsSocket->flags|=ret;
 			if (ret & FLAG_DATA_REDIRECT) {
 				_mwRedirect(phsSocket, up.pucBuffer);
-				DBG("URL handler: redirect\n");
+				DBG("URL handler: redirect to %s\n", up.pucBuffer);
 			} else {
-				phsSocket->flags|=ret;
 				phsSocket->response.fileType=up.fileType;
 				hp->stats.urlProcessCount++;
-				if (ret & FLAG_TO_FREE) {
-					phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
-				}
 				phsSocket->handler = puh;
 				if (ret & FLAG_DATA_RAW) {
 					SETFLAG(phsSocket, FLAG_DATA_RAW);
 					phsSocket->pucData=up.pucBuffer;
 					phsSocket->dataLength=up.dataBytes;
 					phsSocket->response.contentLength=up.contentBytes>0?up.contentBytes:up.dataBytes;
+					if (ret & FLAG_TO_FREE) {
+						phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
+					}
 					DBG("URL handler: raw data\n");
 				} else if (ret & FLAG_DATA_STREAM) {
 					SETFLAG(phsSocket, FLAG_DATA_STREAM);
 					phsSocket->pucData = up.pucBuffer;
 					phsSocket->dataLength = up.dataBytes;
+					phsSocket->response.contentLength = up.dataBytes;
 					DBG("URL handler: stream\n");
 				} else if (ret & FLAG_DATA_FILE) {
 					SETFLAG(phsSocket, FLAG_DATA_FILE);
@@ -781,7 +882,11 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			return -1;
 		} else {
 			// keep request path
-			for (i = 0; i < MAX_REQUEST_PATH_LEN && path[i] !=' '; i++);
+			for (i = 0; i < MAX_REQUEST_PATH_LEN; i++) {
+				if ((path[i] == ' ' && !strncmp(path + i + 1, "HTTP/", 5)) || path[i] == '\r') {
+					break;
+				}
+			}
 			if (i >= MAX_REQUEST_PATH_LEN) {
 				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 				return -1;
@@ -878,14 +983,13 @@ done:
 		hp->stats.reqGetCount++;
 		if (phsSocket->request.iHttpVer == 0) {
 			CLRFLAG(phsSocket, FLAG_CHUNK);
-			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 		}
 		if (ISFLAGSET(phsSocket,FLAG_DATA_RAW | FLAG_DATA_STREAM)) {
 			return _mwStartSendRawData(hp, phsSocket);
 		} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 			// send requested page
 			return _mwStartSendFile(hp,phsSocket);
-		} else if (ISFLAGSET(phsSocket,FLAG_DATA_SOCKET)) {
+		} else if (ISFLAGSET(phsSocket,FLAG_DATA_SOCKET | FLAG_DATA_REDIRECT)) {
 			return 0;
 		}
 	}
@@ -899,7 +1003,10 @@ done:
 ////////////////////////////////////////////////////////////////////////////
 int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 {
-	if (phsSocket->dataLength<=0) {
+	if (ISFLAGSET(phsSocket,FLAG_DATA_REDIRECT)) {
+		return 1;
+	}
+	if (phsSocket->dataLength<=0 && !ISFLAGSET(phsSocket,FLAG_DATA_STREAM)) {
 		SYSLOG(LOG_INFO,"[%d] Data sending completed (%d/%d)\n",phsSocket->socket,phsSocket->response.sentBytes,phsSocket->response.contentLength);
 		return 1;
 	}
@@ -1092,17 +1199,6 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 	struct stat st;
 	HttpFilePath hfp;
 
-#ifdef HTTPAUTH
-	// check if authenticated
-	if (FALSE == _mwCheckAuthentication(phsSocket)) {
-		// Not authenticated
-		if (phsSocket->response.fileType==HTTPFILETYPE_HTML) {
-		// send password page only
-			pchFilename=(char*)g_chPasswordPage;
-		}
-	}
-#endif
-
 	hfp.pchRootPath=hp->pchWebPath;
 	// check type of file requested
 	if (!ISFLAGSET(phsSocket, FLAG_DATA_FD)) {
@@ -1158,16 +1254,17 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		return -1;
 	}
 
-
 	if (phsSocket->fd < 0) {
 		char *p;
 		int i;
+
 		if (!(st.st_mode & S_IFDIR)) {
 			// file/dir not found
 			_mwSend404Page(phsSocket);
 			return -1;
 		}
 		
+		DBG("Process Directory...\n");
 		//requesting for directory, first try opening default pages
 		for (p = hfp.cFilePath; *p; p++);
 		*(p++)=SLASH;
@@ -1219,6 +1316,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 		}
 	} else {
 		_mwSend404Page(phsSocket);
+		return -1;
 	}
 
 	//SYSLOG(LOG_INFO,"File/requested size: %d/%d\n",st.st_size,phsSocket->response.contentLength);
@@ -1344,40 +1442,44 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		iBytesWritten = send(phsSocket->socket, buf, bytes, 0);
 	}
     // send a chunk of data
-	iBytesWritten=(int)send(phsSocket->socket, phsSocket->pucData,(int)phsSocket->dataLength, 0);
-    if (iBytesWritten<=0) {
-		// failure - close connection
-		SYSLOG(LOG_INFO,"Connection closed\n");
-		SETFLAG(phsSocket,FLAG_CONN_CLOSE);
-		_mwCloseSocket(hp, phsSocket);
-		return -1;
-    } else {
-		SYSLOG(LOG_INFO,"[%d] sent %d bytes of raw data\n",phsSocket->socket,iBytesWritten);
-		phsSocket->response.sentBytes+=iBytesWritten;
-		phsSocket->pucData+=iBytesWritten;
-		phsSocket->dataLength-=iBytesWritten;
-	}
-	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
-		//load next chuck of raw data
-		UrlHandlerParam up;
-		UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
-		up.hs = phsSocket;
-		up.hp = hp;
-		up.pucBuffer=phsSocket->buffer;
-		up.dataBytes=HTTP_BUFFER_SIZE;
-		if ((pfnHandler->pfnUrlHandler)(&up) == 0) {
-			if (phsSocket->flags & FLAG_CHUNK) {
-				send(phsSocket->socket, "0\r\n\r\n", 5, 0);
-			}
+	if (phsSocket->dataLength > 0) {
+		iBytesWritten=(int)send(phsSocket->socket, phsSocket->pucData, phsSocket->dataLength, 0);
+		if (iBytesWritten<=0) {
+			// failure - close connection
+			SYSLOG(LOG_INFO,"Connection closed\n");
+			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
+			_mwCloseSocket(hp, phsSocket);
+			return -1;
+		} else {
+			SYSLOG(LOG_INFO,"[%d] sent %d bytes of raw data\n",phsSocket->socket,iBytesWritten);
+			phsSocket->response.sentBytes+=iBytesWritten;
+			phsSocket->pucData+=iBytesWritten;
+			phsSocket->dataLength-=iBytesWritten;
+		}
+	} else {
+		if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
+			//load next chuck of raw data
+			UrlHandlerParam up;
+			UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
+			up.hs = phsSocket;
+			up.hp = hp;
+			up.pucBuffer=phsSocket->pucData;
+			up.dataBytes=HTTP_BUFFER_SIZE;
+			if ((pfnHandler->pfnUrlHandler)(&up) == 0) {
+				if (phsSocket->flags & FLAG_CHUNK) {
+					send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+				}
+				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return 1;	// EOF
 		}
 		phsSocket->dataLength=up.dataBytes;
 		phsSocket->pucData = up.pucBuffer;
-	} else if (phsSocket->dataLength == 0) {
-		if (phsSocket->flags & FLAG_CHUNK) {
-			send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+		} else {
+			if (phsSocket->flags & FLAG_CHUNK) {
+				send(phsSocket->socket, "0\r\n\r\n", 5, 0);
+			}
+			return 1;
 		}
-		return 1;
 	}
 	return 0;
 } // end of _mwSendRawDataChunk
@@ -1388,18 +1490,10 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 ////////////////////////////////////////////////////////////////////////////
 void _mwRedirect(HttpSocket* phsSocket, char* pchPath)
 {
-	char* path;
-	// raw (not file) data send mode
-	SETFLAG(phsSocket,FLAG_DATA_RAW);
-	// messages is HTML
-	phsSocket->response.fileType=HTTPFILETYPE_HTML;
-
-	// build redirect message
-	SYSLOG(LOG_INFO,"[%d] Http redirection to %s\n",phsSocket->socket,pchPath);
-	path = (pchPath == (char*)phsSocket->pucData) ? strdup(pchPath) : (char*)pchPath;
-	phsSocket->dataLength=snprintf(phsSocket->pucData, 512, HTTPBODY_REDIRECT,path);
-	phsSocket->response.contentLength=phsSocket->dataLength;
-	if (path != pchPath) free(path);
+	char hdr[128];
+	int n = snprintf(hdr, sizeof(hdr), HTTP301_HEADER, HTTP_SERVER_NAME, pchPath);
+	send(phsSocket->socket, hdr, n, 0);
+	SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 } // end of _mwRedirect
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1567,6 +1661,7 @@ int mwGetContentType(const char *pchExtname)
 	} else if (pchExtname[2]=='\0') {
 		switch (GETDWORD(pchExtname) & 0xffdfdf) {
 		case FILEEXT_JS: return HTTPFILETYPE_JS;
+		case FILEEXT_TS: return HTTPFILETYPE_TS;
 		}
 	} else if (pchExtname[3]=='\0' || pchExtname[3]=='?') {
 		//identify 3-char file extensions
@@ -1588,12 +1683,15 @@ int mwGetContentType(const char *pchExtname)
 		case FILEEXT_MOV:	return HTTPFILETYPE_MOV;
 		case FILEEXT_264:	return HTTPFILETYPE_264;
 		case FILEEXT_FLV:	return HTTPFILETYPE_FLV;
+		case FILEEXT_3GP:	return HTTPFILETYPE_3GP;
+		case FILEEXT_ASF:	return HTTPFILETYPE_ASF;
 		}
 	} else if (pchExtname[4]=='\0' || pchExtname[4]=='?') {
 		//logic-and with 0xdfdfdfdf gets the uppercase of 4 chars
 		switch (GETDWORD(pchExtname)&0xdfdfdfdf) {
 		case FILEEXT_HTML:	return HTTPFILETYPE_HTML;
 		case FILEEXT_MPEG:	return HTTPFILETYPE_MPEG;
+		case FILEEXT_M3U8:	return HTTPFILETYPE_M3U8;
 		}
 	}
 	return HTTPFILETYPE_OCTET;

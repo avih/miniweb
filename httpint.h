@@ -34,11 +34,12 @@
 #ifndef HTTP_SERVER_NAME
 #define HTTP_SERVER_NAME "MiniWeb"
 #endif
-#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: %s\r\nEXT:\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
+#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
 #define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: %s\r\nConnection: Keep-Alive\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
 #define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>"
 #define HTTPBODY_REDIRECT "<html><head><meta http-equiv=\"refresh\" content=\"0; URL=%s\"></head><body></body></html>"
+#define HTTP301_HEADER "HTTP/1.1 301 Moved Permanently\r\nServer: %s\r\nLocation: %s\r\n\r\n"
 #define HTTP_CONTENTLENGTH "Content-Length:"
 #define HTTP_MULTIPARTHEADER "multipart/form-data"
 #define HTTP_MULTIPARTCONTENT "Content-Disposition: form-data; name="
@@ -68,10 +69,14 @@
 #define FILEEXT_MP4 DEFDWORD('M','P','4' - 32,0)
 #define FILEEXT_MOV DEFDWORD('M','O','V',0)
 #define FILEEXT_FLV DEFDWORD('F','L','V',0)
+#define FILEEXT_3GP DEFDWORD('3' - 32, 'G','P',0)
+#define FILEEXT_ASF DEFDWORD('A','S','F',0)
 #define FILEEXT_264 DEFDWORD('2' - 32, '6' - 32, '4' - 32, 0)
+#define FILEEXT_TS DEFDWORD('T', 'S', 0, 0)
+#define FILEEXT_M3U8 DEFDWORD('M', '3' - 32, 'U', '8' - 32)
 
 // Settings for http server
-#define HTTP_EXPIRATION_TIME (180/*secs*/)
+#define HTTP_EXPIRATION_TIME (120/*secs*/)
 #define HTTP_KEEPALIVE_TIME (15/*secs*/)
 #define MAX_RECV_RETRIES (3/*times*/)
 #define HTTPAUTHTIMEOUT   (300/*secs*/)

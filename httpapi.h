@@ -22,17 +22,13 @@
 #define min(x,y) (x>y?y:x)
 #endif
 
-#ifdef _DEBUG
+#ifdef HTTPD_DEBUG
 #define DBG printf
 #else
 #define DBG
 #endif
 #define LOG_ERR 1
 
-#ifdef WIN32
-#ifndef pthread_t
-#endif
-#endif
 #define ASSERT
 #define GETDWORD(ptrData) (*(DWORD*)(ptrData))
 #define SETDWORD(ptrData,data) (*(DWORD*)(ptrData)=data)
@@ -74,8 +70,12 @@ typedef enum {
   HTTPFILETYPE_MOV,
   HTTPFILETYPE_264,
   HTTPFILETYPE_FLV,
+  HTTPFILETYPE_TS,
+  HTTPFILETYPE_3GP,
+  HTTPFILETYPE_ASF,
   HTTPFILETYPE_OCTET,
   HTTPFILETYPE_STREAM,
+  HTTPFILETYPE_M3U8,
 } HttpFileType;
 
 #define MAXPOSTPARAMS 50
@@ -141,7 +141,7 @@ typedef union {
 	unsigned long laddr;
 	unsigned short saddr[2];
 	unsigned char caddr[4];
-} IP;
+} IPADDR;
 
 typedef struct {
 	int iHttpVer;
@@ -201,7 +201,7 @@ typedef struct {
 typedef struct _HttpSocket{
 	struct _HttpSocket *next;
 	SOCKET socket;
-	IP ipAddr;
+	IPADDR ipAddr;
 
 	HttpRequest request;
 	HttpResponse response;
@@ -234,6 +234,7 @@ typedef struct {
 	int dataBytes;
 	int contentBytes;
 	HttpFileType fileType;
+	void *p_sys;
 } UrlHandlerParam;
 
 typedef int (*PFNURLCALLBACK)(UrlHandlerParam*);
@@ -242,7 +243,17 @@ typedef struct {
 	char* pchUrlPrefix;
 	PFNURLCALLBACK pfnUrlHandler;
 	MW_EVENT_HANDLER pfnEventHandler;
+	void *p_sys;
 } UrlHandler;
+
+#ifndef DISABLE_BASIC_WWWAUTH
+typedef struct {
+	char* pchUrlPrefix;
+	char pchUsername[MAX_PATH];
+	char pchPassword[MAX_PATH];
+	char *pchAuthString;
+} AuthHandler;
+#endif
 
 #define FLAG_DIR_LISTING 1
 
@@ -257,6 +268,9 @@ typedef struct _httpParam {
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
 	char *pchWebPath;
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */
+#ifndef DISABLE_BASIC_WWWAUTH
+	AuthHandler *pxAuthHandler;     /* pointer to authorization handler array */
+#endif
 	// substitution callback
 	PFNSUBSTCALLBACK pfnSubst;
 	// post callbacks
