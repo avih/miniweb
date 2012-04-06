@@ -3,15 +3,18 @@
 // httppil.c
 //
 // MiniWeb Platform Independent Layer
+// Copyright (c) 2005-2011 Stanley Huang <stanleyhuangyc@gmail.com>
 //
 /////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#ifndef WINCE
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ctype.h>
 #include <fcntl.h>
+#endif
 #include "httppil.h"
 
 #ifndef WIN32
@@ -39,6 +42,7 @@ void UninitSocket()
 #endif
 }
 
+#ifndef WINCE
 char *GetTimeString()
 {
 	static char buf[16];
@@ -47,6 +51,7 @@ char *GetTimeString()
 	buf[15]=0;
 	return buf;
 }
+#endif
 
 #ifndef NOTHREAD
 int ThreadCreate(pthread_t *pth, void* (*start_routine)(void*), void* arg)
@@ -141,7 +146,7 @@ int IsDir(const char* pchName)
 
 int ReadDir(const char* pchDir, char* pchFileNameBuf)
 {
-#ifdef WIN32
+#if defined(WIN32) || defined(WINCE)
 	static HANDLE hFind=NULL;
 	WIN32_FIND_DATA finddata;
 
@@ -206,6 +211,17 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf)
 
 int IsFileExist(const char* filename)
 {
-	struct stat s;
-	return stat(filename, &s) == 0;
+#ifdef WINCE
+	WIN32_FIND_DATA f;
+	HANDLE hFind = FindFirstFile(filename, &f);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return 0;
+	FindClose(hFind);
+	return 1;
+#else
+	struct stat stat_ret;
+	if (stat(filename, &stat_ret) != 0) return 0;
+
+	return (stat_ret.st_mode & S_IFREG) != 0;
+#endif
 }

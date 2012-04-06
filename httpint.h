@@ -34,19 +34,20 @@
 #ifndef HTTP_SERVER_NAME
 #define HTTP_SERVER_NAME "MiniWeb"
 #endif
-#define HTTP200_HEADER "HTTP/1.1 %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
+#define HTTP200_HEADER "%s %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
 #define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: %s\r\nConnection: Keep-Alive\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
-#define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p></body></html>"
+#define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL has no content.</p></body></html>"
 #define HTTPBODY_REDIRECT "<html><head><meta http-equiv=\"refresh\" content=\"0; URL=%s\"></head><body></body></html>"
 #define HTTP301_HEADER "HTTP/1.1 301 Moved Permanently\r\nServer: %s\r\nLocation: %s\r\n\r\n"
+#define HTTP401_HEADER "HTTP/1.1 401 Authorization Required\r\nWWW-Authenticate: Basic realm=\"%s\"\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n"
+//#define HTTP401_BODY "<html><head><title>401 Authorization Required</title></head><body><h1>Authorization Required</h1><p>This server could not verify that you are authorized to access the resource requested</p></body></html>"
 #define HTTP_CONTENTLENGTH "Content-Length:"
 #define HTTP_MULTIPARTHEADER "multipart/form-data"
 #define HTTP_MULTIPARTCONTENT "Content-Disposition: form-data; name="
 #define HTTP_MULTIPARTBOUNDARY "boundary="
 #define HTTP_FILENAME "filename="
-#define HTTP_HEADEREND DEFDWORD('\r','\n','\r','\n')
-#define HTTP_HEADEREND_STR "\r\n\r\n"
+#define HTTP_HEADER_END "\r\n\r\n"
 #define HTTP_SUBST_PATTERN (WORD)(('$' << 8) + '$')
 
 // Define file extensions
@@ -74,6 +75,7 @@
 #define FILEEXT_264 DEFDWORD('2' - 32, '6' - 32, '4' - 32, 0)
 #define FILEEXT_TS DEFDWORD('T', 'S', 0, 0)
 #define FILEEXT_M3U8 DEFDWORD('M', '3' - 32, 'U', '8' - 32)
+#define FILEEXT_SDP DEFDWORD('S', 'D', 'P', 0)
 
 // Settings for http server
 #define HTTP_EXPIRATION_TIME (120/*secs*/)
@@ -88,7 +90,7 @@
 #define MAX_REQUEST_PATH_LEN (512/*bytes*/)
 #define MAX_REQUEST_SIZE (2*1024 /*bytes*/)
 
-#if 1
+#ifndef WINCE
 #define SLASH '/'
 #else
 #define SLASH '\\'
@@ -118,7 +120,6 @@ void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
 void _mwRedirect(HttpSocket* phsSocket, char* pchFilename);
 int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket);
 int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket);
-void* _mwHttpThread(HttpParam* hp);
 int _mwGetToken(char* pchBuffer,int iTokenNumber,char** ppchToken); 
 __inline char _mwDecodeCharacter(char* pchEncodedChar);
 int _mwLoadFileChunk(HttpParam *hp, HttpSocket* phsSocket);
@@ -135,7 +136,7 @@ char* _mwStrDword(char* pchHaystack, DWORD dwSub, DWORD dwCharMask);
 SOCKET _mwStartListening(HttpParam* hp);
 int _mwParseHttpHeader(HttpSocket* phsSocket);
 int _mwStrCopy(char *dest, const char *src);
-int _mwStrHeadMatch(const char* buf1, const char* buf2);
+int _mwStrHeadMatch(char** pbuf1, const char* buf2);
 int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////

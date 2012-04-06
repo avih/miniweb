@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include "httppil.h"
 #include "httpapi.h"
 #include "httpxml.h"

@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 #include "httppil.h"
 #include "httpapi.h"
 #include "revision.h"
@@ -26,11 +27,16 @@ int ehVod(MW_EVENT msg, int argi, void* argp);
 int uhTest(UrlHandlerParam* param);
 int uh7Zip(UrlHandlerParam* param);
 int uhFileStream(UrlHandlerParam* param);
+int uhAsyncDataTest(UrlHandlerParam* param);
+int uhRTSP(UrlHandlerParam* param);
 
 UrlHandler urlHandlerList[]={
 	{"stats", uhStats, NULL},
-	{"getfile", uhFileStream, NULL},
+#ifndef NOTHREAD
+	{"async", uhAsyncDataTest, NULL},
+#endif
 #ifdef MEDIA_SERVER
+	{"test.sdp", uhRTSP, NULL},
 	{"MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent},
 #endif
 #ifdef _7Z
@@ -48,8 +54,14 @@ UrlHandler urlHandlerList[]={
 	{NULL},
 };
 
-HttpParam *httpParam;
-int nInst=0;
+#ifndef DISABLE_BASIC_WWWAUTH
+AuthHandler authHandlerList[]={
+	{"stats", "user", "pass", "group=admin", ""},
+	{NULL}
+};
+#endif
+
+HttpParam httpParam;
 
 extern FILE *fpLog;
 
@@ -98,7 +110,7 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 	}
 	if (!fd) {
 		char filename[256];
-		snprintf(filename, sizeof(filename), "%s/%s", httpParam[0].pchWebPath, pxMP->pchFilename);
+		snprintf(filename, sizeof(filename), "%s/%s", httpParam.pchWebPath, pxMP->pchFilename);
 		fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY, 0);
 		pxMP->pxCallBackData = (void*)fd;
 	}
@@ -115,13 +127,21 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 void Shutdown()
 {
 	//shutdown server
-	int i;
-	for (i=0;i<nInst;i++) {
-		printf("Shutting down instance %d\n",i);
-		mwServerShutdown(&httpParam[i]);
-	}
+	mwServerShutdown(&httpParam);
 	fclose(fpLog);
 	UninitSocket();
+}
+
+char* GetLocalAddrString()
+{
+	// get local ip address
+	struct sockaddr_in sock;
+	char hostname[128];
+	HOSTENT * lpHost;
+	gethostname(hostname, 128);
+	lpHost = gethostbyname(hostname);
+	memcpy(&(sock.sin_addr), lpHost->h_addr_list[0], lpHost->h_length);
+	return inet_ntoa(sock.sin_addr);
 }
 
 int MiniWebQuit(int arg) {
@@ -135,7 +155,7 @@ int MiniWebQuit(int arg) {
 
 int main(int argc,char* argv[])
 {
-	printf("MiniWeb %d.%d.%d (C)2005-07 Written by Stanley Huang\n\n",VER_MAJOR,VER_MINOR,BUILD_NO);
+	printf("MiniWeb (built on %s) (C)2005-2012 Stanley Huang & Felix Wang\n\n", __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
@@ -145,73 +165,43 @@ int main(int argc,char* argv[])
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifndef NOTHREAD
-	//get the number of instances
-	{
-		int i;
-		for (i=1;i<argc;i++) {
-			if (!strcmp(argv[i],"-n")) nInst=atoi(argv[++i]);
-		}
-	}
-#endif
-	if (!nInst) nInst=1;
-	//initialize HTTP parameter structure
-	{
-		int iParamBytes=nInst*sizeof(HttpParam);
-		httpParam=malloc(iParamBytes);
-		if (!httpParam) {
-			printf("Out of memory\n");
-			return -1;
-		}
-		memset(httpParam,0,iParamBytes);
-	}
 	//fill in default settings
-	{
-		int i;
-		for (i=0;i<nInst;i++) {
-			httpParam[i].maxClients=32;
-			httpParam[i].pchWebPath="webroot";
-			httpParam[i].pxUrlHandler=urlHandlerList;
-			httpParam[i].flags=FLAG_DIR_LISTING;
-			httpParam[i].tmSocketExpireTime = 180;
-#ifndef _NO_POST
-			httpParam[i].pfnPost = DefaultWebPostCallback;
+	mwInitParam(&httpParam);
+	httpParam.maxClients=32;
+	httpParam.pchWebPath="webroot";
+#ifndef DISABLE_BASIC_WWWAUTH
+	httpParam.pxAuthHandler = authHandlerList;
+#endif
+	httpParam.pxUrlHandler=urlHandlerList;
+	httpParam.flags=FLAG_DIR_LISTING;
+	httpParam.tmSocketExpireTime = 180;
+	httpParam.pfnPost = DefaultWebPostCallback;
 #ifdef MEDIA_SERVER
-			httpParam[i].pfnFileUpload = TranscodeUploadCallback;
+	httpParam.pfnFileUpload = TranscodeUploadCallback;
 #else
-			httpParam[i].pfnFileUpload = DefaultWebFileUploadCallback;
+	httpParam.pfnFileUpload = DefaultWebFileUploadCallback;
 #endif
-#endif
-		}
-	}
 
 	//parsing command line arguments
 	{
-		int inst=0;
 		int i;
 		for (i=1;i<argc;i++) {
 			if (argv[i][0]=='-') {
 				switch (argv[i][1]) {
-				case 'i':
-					if ((++i)<argc) {
-						int n=atoi(argv[i]);
-						if (n<nInst) inst=n;;
-					}
-					break;
 				case 'p':
-					if ((++i)<argc) (httpParam+inst)->httpPort=atoi(argv[i]);
+					if ((++i)<argc) httpParam.httpPort=atoi(argv[i]);
 					break;
 				case 'r':
-					if ((++i)<argc) (httpParam+inst)->pchWebPath=argv[i];
+					if ((++i)<argc) httpParam.pchWebPath=argv[i];
 					break;
 				case 'l':
 					if ((++i)<argc) fpLog=freopen(argv[i],"w",stderr);
 					break;
 				case 'm':
-					if ((++i)<argc) (httpParam+inst)->maxClients=atoi(argv[i]);
+					if ((++i)<argc) httpParam.maxClients=atoi(argv[i]);
 					break;
 				case 'd':
-					(httpParam+inst)->flags &= ~FLAG_DIR_LISTING;
+					httpParam.flags &= ~FLAG_DIR_LISTING;
 					break;
 				}
 			}
@@ -232,51 +222,25 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	//adjust port setting
-	{
-		int i;
-		short int port=80;
-		for (i=0;i<nInst;i++) {
-			if (httpParam[i].httpPort)
-				port=httpParam[i].httpPort+1;
-			else
-				httpParam[i].httpPort=port++;
-		}
-	}
-
-
 	InitSocket();
 
-	if (nInst>1) printf("Number of instances: %d\n",nInst);
 	{
-		int i;
-		int error=0;
-		for (i=0;i<nInst;i++) {
-			int n;
-			if (nInst>1) printf("\nInstance %d\n",i);
-			printf("Listening port: %d\n",httpParam[i].httpPort);
-			printf("Web root: %s\n",httpParam[i].pchWebPath);
-			printf("Max clients: %d\n",httpParam[i].maxClients);
-			for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
-			printf("URL handlers: %d\n",n);
-			if (httpParam[i].flags & FLAG_DIR_LISTING) printf("Dir listing: on\n");
+		int n;
+		printf("Host: %s:%d\n", GetLocalAddrString(), httpParam.httpPort);
+		printf("Web root: %s\n",httpParam.pchWebPath);
+		printf("Max clients: %d\n",httpParam.maxClients);
+		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
+		printf("URL handlers: %d\n",n);
+		if (httpParam.flags & FLAG_DIR_LISTING) printf("Dir listing: on\n");
 
-			//register page variable substitution callback
-			//httpParam[i].pfnSubst=DefaultWebSubstCallback;
+		//register page variable substitution callback
+		//httpParam[i].pfnSubst=DefaultWebSubstCallback;
 
-			//start server
-			if (mwServerStart(&httpParam[i])) {
-				printf("Error starting instance #%d\n",i);
-				error++;
-			}
-		}
-	
-		if (error<nInst) {
-			#ifndef NOTHREAD
-				ThreadWait(httpParam[0].tidHttpThread,NULL);
-			#endif
+		//start server
+		if (mwServerStart(&httpParam)) {
+			printf("Error starting HTTP server\n");
 		} else {
-			printf("Failed to launch miniweb\n");
+			mwHttpLoop(&httpParam);
 		}
 	}
 

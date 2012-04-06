@@ -15,7 +15,12 @@
 #endif
 #endif
 
-#ifdef WIN32
+#ifdef WINCE
+#include <windows.h>
+#include <winsock2.h>
+#define snprintf _snprintf
+
+#elif defined(WIN32)
 #include <windows.h>
 #include <io.h>
 
@@ -42,7 +47,7 @@
 #include <pthread.h>
 #endif
 
-#ifdef WIN32
+#if defined(WIN32) || defined(WINCE)
 
 #define ssize_t size_t
 #define socklen_t int
@@ -78,7 +83,7 @@ typedef unsigned char OCTET;
 #define SHELL_SHOWWINDOW 2
 #define SHELL_NOWAIT 4
 
-#ifdef WIN32
+#if defined(_WIN32_WCE) || defined(WIN32)
 #define msleep(ms) (Sleep(ms))
 #else
 #define msleep(ms) (usleep(ms<<10))

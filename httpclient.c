@@ -350,7 +350,7 @@ int httpGetResponse(HTTP_REQUEST* param)
 				if (!strncmp(p + 19, "chunked", 7)) {
 					param->flags |= FLAG_CHUNKED;
 				}
-			} else if (!_stricmp(p, "Location")) {
+			} else if (!stricmp(p, "Location")) {
 				param->location = q + 2;
 			}
 			*q = ':';
