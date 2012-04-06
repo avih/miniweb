@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniweb", "miniweb.vcproj", "{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "7z", "7zDec\C\Util\7z\7z.vcproj", "{E89AADCD-DDAC-4E6E-812F-9234A51949A5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Media|Win32 = Debug_Media|Win32
@@ -27,18 +25,6 @@ Global
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_VOD|Win32.Build.0 = Release_VOD|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.ActiveCfg = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.Build.0 = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug_Media|Win32.ActiveCfg = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug_Media|Win32.Build.0 = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug_VOD|Win32.ActiveCfg = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug_VOD|Win32.Build.0 = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug|Win32.ActiveCfg = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Debug|Win32.Build.0 = Debug|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release_Media|Win32.ActiveCfg = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release_Media|Win32.Build.0 = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release_VOD|Win32.ActiveCfg = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release_VOD|Win32.Build.0 = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release|Win32.ActiveCfg = Release|Win32
-		{E89AADCD-DDAC-4E6E-812F-9234A51949A5}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
