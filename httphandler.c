@@ -145,7 +145,7 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
-#ifdef WIN32
+#if 0
 void FileReadThread(UrlHandlerParam* param)
 {
 	int bytes;

@@ -175,7 +175,7 @@ int mwServerShutdown(HttpParam* hp)
 	DBG("Shutting down web server thread\n");
 	// signal webserver thread to quit
 	hp->bKillWebserver=TRUE;
-  
+
 	for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
 		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
 			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, 0, hp);
@@ -334,7 +334,7 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 // Webserver independant processing thread. Handles all connections
 ////////////////////////////////////////////////////////////////////////////
 void* mwHttpLoop(void* _hp)
-{ 
+{
 	HttpParam *hp = (HttpParam*)_hp;
 	HttpSocket *phsSocketCur;
 	SOCKET socket;
@@ -356,14 +356,15 @@ void* mwHttpLoop(void* _hp)
 
 		// get current time
 #ifndef WINCE
-		tmCurrentTime=time(NULL);  
+		tmCurrentTime=time(NULL);
 #else
 		tmCurrentTime=GetTickCount() >> 10;
 #endif
 		// build descriptor sets and close timed out sockets
 		for (phsSocketCur=hp->phsSocketHead; phsSocketCur; phsSocketCur=phsSocketCur->next) {
-			int iError=0;
-			int iOptSize=sizeof(int);
+			//int iError=0;
+			//int iOptSize=sizeof(int);
+
 			// get socket fd
 			socket=phsSocketCur->socket;
 			if (!socket) continue;
@@ -426,7 +427,7 @@ void* mwHttpLoop(void* _hp)
 				phsSocketNext=phsSocketCur->next;
 				// get socket fd
 				socket=phsSocketCur->socket;
-		          
+
 				// get read/write status for socket
 				bRead=FD_ISSET(socket, &fdsSelectRead);
 				bWrite=FD_ISSET(socket, &fdsSelectWrite);
@@ -509,7 +510,7 @@ void* mwHttpLoop(void* _hp)
 			phsSocketCur=hp->phsSocketHead;
 			while (phsSocketCur) {
 				if (!phsSocketCur->socket) {
-					DBG("Free up socket structure 0x%08x\n",phsSocketCur);
+					DBG("Free up socket structure 0x%08x\n", (unsigned int)phsSocketCur);
 					if (phsSocketPrev) {
 						phsSocketPrev->next=phsSocketCur->next;
 						free(phsSocketCur);
@@ -528,7 +529,7 @@ void* mwHttpLoop(void* _hp)
 			if (hp->pfnIdleCallback) {
 				(*hp->pfnIdleCallback)(hp);
 			}
-			
+
 
 		}
 	}
@@ -546,7 +547,7 @@ void* mwHttpLoop(void* _hp)
 	// clear state vars
 	hp->bKillWebserver=FALSE;
 	hp->bWebserverRunning=FALSE;
-  
+
 	return NULL;
 } // end of _mwHttpThread
 
@@ -583,7 +584,7 @@ SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 	if ((int)socket<=0) {
 		DBG("Error accepting socket\n");
 		return 0;
-    } 
+    }
 
 #ifndef WIN32
     // set to non-blocking to stop sends from locking up thread
@@ -696,12 +697,12 @@ int mwParseQueryString(UrlHandlerParam* up)
 // buffer size of out_str is (in_len * 4 / 3 + 1)
 ////////////////////////////////////////////////////////////////////////////
 void _mwBase64Encode(const char *in_str, int in_len, char *out_str)
-{ 
+{
 	const char base64[] ="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 	int curr_out_len = 0;
 	int i = 0;
 	char a, b, c;
-	
+
 	out_str[0] = '\0';
 
 	if (in_len <= 0) return;
@@ -784,7 +785,7 @@ void _mwSend401AuthorizationRequired(HttpParam* hp, HttpSocket* phsSocket, int r
 	// send Authorization Required
 	send(phsSocket->socket, hdr, hdrsize, 0);
 	send(phsSocket->socket, body, body_len, 0);
-	//Below is the work around 
+	//Below is the work around
 	SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 	_mwCloseSocket(hp, phsSocket);
 }
@@ -930,7 +931,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 
 	// read next chunk of data
 	{
-		int iLength = recv(phsSocket->socket, 
+		int iLength = recv(phsSocket->socket,
 						phsSocket->pucData+phsSocket->dataLength,
 						(int)(phsSocket->bufferSize - phsSocket->dataLength - 1), 0);
 		if (iLength <= 0) {
@@ -990,7 +991,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			path = phsSocket->pucData + 9;
 #endif
 		} else {
-			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);		
+			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);
 			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 			phsSocket->request.pucPath = 0;
 			return -1;
@@ -1272,7 +1273,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 	int ret;
 	char *pagebuf=phsSocket->pucData;
 	size_t bufsize=phsSocket->bufferSize;
-	
+
 	p+=snprintf(p, 256, "<html><head><title>/%s</title></head><body><table border=0 cellpadding=0 cellspacing=0 width=100%%><h2>Directory of /%s</h2><hr>",
 		phsSocket->request.pucPath,phsSocket->request.pucPath);
 	if (!*dir) strcpy(dir, ".");
@@ -1388,7 +1389,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, char* rootPath, char
 					phsSocket->response.contentLength = len;
 					phsSocket->response.fileType = p ? mwGetContentType(p + 1) : HTTPFILETYPE_OCTET;
 					phsSocket->dataLength = len;
-					return _mwStartSendRawData(hp, phsSocket); 
+					return _mwStartSendRawData(hp, phsSocket);
 				}
 			}
 			if (p) *p = SLASH;
@@ -1436,7 +1437,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, char* rootPath, char
 			return -1;
 		}
 #endif
-		
+
 		DBG("Process Directory...\n");
 		//requesting for directory, first try opening default pages
 		for (p = hfp.cFilePath; *p; p++);
@@ -1527,7 +1528,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, char* rootPath, char
 		0,
 #endif
 		phsSocket->pucData);
- 
+
 	phsSocket->response.headerBytes = phsSocket->dataLength;
 	phsSocket->response.sentBytes = 0;
 	hp->stats.fileSentCount++;

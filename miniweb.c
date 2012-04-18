@@ -74,7 +74,7 @@ int DefaultWebSubstCallback(SubstParam* sp)
 	// the maximum length of variable value should never exceed the number
 	// given by sp->iMaxValueBytes
 	if (!strcmp(sp->pchParamName,"mykeyword")) {
-		return sprintf(sp->pchParamValue, "%d", time(NULL));
+		return sprintf(sp->pchParamValue, "%d", 1234);
 	}
 	return -1;
 }
@@ -93,7 +93,7 @@ int DefaultWebPostCallback(PostParam* pp)
 }
 
 //////////////////////////////////////////////////////////////////////////
-// callback from the web server whenever it receives a multipart 
+// callback from the web server whenever it receives a multipart
 // upload file chunk
 //////////////////////////////////////////////////////////////////////////
 int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDataChunkSize)
@@ -120,7 +120,7 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 		close(fd);
 		pxMP->pxCallBackData = NULL;
 	}
-	printf("Received %lu bytes for multipart upload file %s\n", dwDataChunkSize, pxMP->pchFilename);
+	printf("Received %u bytes for multipart upload file %s\n", dwDataChunkSize, pxMP->pchFilename);
 	return 0;
 }
 
@@ -155,7 +155,7 @@ int MiniWebQuit(int arg) {
 
 int main(int argc,char* argv[])
 {
-	printf("MiniWeb (built on %s) (C)2005-2012 Stanley Huang & Felix Wang\n\n", __DATE__);
+	printf("MiniWeb (built on %s) (C)2005-2012 Stanley Huang\n\n", __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
