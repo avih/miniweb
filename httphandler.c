@@ -39,9 +39,9 @@ int uhStats(UrlHandlerParam* param)
 		param->pucBuffer=(char*)malloc(stats->clientCount*256+1024);
 		ret=FLAG_DATA_RAW | FLAG_TO_FREE;
 	}
-		
+
 	p=param->pucBuffer;
-	
+
 	//generate XML
 	mwWriteXmlHeader(&p, &bufsize, 10, 0, 0);
 
@@ -98,7 +98,7 @@ int uhStats(UrlHandlerParam* param)
 			*/
 		}
 	}
-	
+
 	mwWriteXmlString(&p, &bufsize, 1, "</Clients>");
 	mwWriteXmlString(&p, &bufsize, 0, "</ServerStats>");
 
@@ -126,12 +126,12 @@ int uh7Zip(UrlHandlerParam* param)
 	path = (char*)malloc(strlen(req->pucPath) + strlen(hp->pchWebPath) + 5);
 	sprintf(path, "%s/%s.7z", hp->pchWebPath, req->pucPath);
 	*p = '/';
-	
+
 	if (!IsFileExist(path)) {
 		free(path);
 		return 0;
 	}
-	
+
 	len = SzExtractContent(hp->szctx, path, filename, &content);
 	free(path);
 	if (len < 0) return 0;
@@ -145,78 +145,10 @@ int uh7Zip(UrlHandlerParam* param)
 
 #endif
 
-#if 0
-void FileReadThread(UrlHandlerParam* param)
-{
-	int bytes;
-	fd_set fds;
-	struct timeval timeout;
-	FILE *fp = fopen("f:\\11.xml", "rb");
-	HttpParam* hp = param->hp;
-	HttpSocket* phsSocket = param->hs;
-	SOCKET s = phsSocket->socket;
-	char buf[1024];
-
-	free(param);
-	param = 0;
-
-
-	FD_ZERO(&fds);
-	FD_SET(s, &fds);
-
-	/* Set time limit. */
-	timeout.tv_sec = 3;
-	timeout.tv_usec = 0;
-
-	/* build http response header */
-	phsSocket->dataLength=_mwBuildHttpHeader(
-		phsSocket,
-		time(0),
-		phsSocket->pucData);
-	phsSocket->response.fileType = HTTPFILETYPE_XML;
-	phsSocket->response.headerBytes = phsSocket->dataLength;
-	phsSocket->response.sentBytes = 0;
-
-	/* wait until the socket is allowed to send */
-	while (!ISFLAGSET(phsSocket,FLAG_SENDING)) msleep(100);
-
-	bytes = send(s, phsSocket->pucData, phsSocket->dataLength, 0);
-	for (;;) {
-		bytes = fread(buf, 1, sizeof(buf), fp);
-		if (bytes > 0) {
-			int rc = select(1, NULL, &fds, NULL, &timeout);
-			if (rc==-1) {
-				break;
-			} else if (rc > 0) {
-				bytes = send(s, buf, bytes, 0);
-			} else {
-				continue;
-			}
-		} else
-			break;
-	}
-	/* tear down connection */
-	SETFLAG(phsSocket, FLAG_CONN_CLOSE);
-	_mwCloseSocket(hp, phsSocket);
-}
-
-int uhFileStream(UrlHandlerParam* param)
-{
-	if (!param->hs->ptr) {
-		// first request
-		DWORD dwid;
-		UrlHandlerParam* p = malloc(sizeof(UrlHandlerParam));
-		memcpy(p, param, sizeof(UrlHandlerParam));
-		param->hs->ptr = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)FileReadThread, p, 0, &dwid);
-	}
-	return FLAG_DATA_SOCKET;
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 // stream handler sample
 //////////////////////////////////////////////////////////////////////////
-#ifndef NOTHREAD
+#ifdef HAVE_THREAD
 typedef struct {
 	int state;
 	pthread_t thread;
@@ -239,7 +171,7 @@ int uhAsyncDataTest(UrlHandlerParam* param)
 {
 	int ret = FLAG_DATA_STREAM | FLAG_TO_FREE;
 	HANDLER_DATA* hdata = (HANDLER_DATA*)param->hs->ptr;
-	
+
 	if (param->pucBuffer) {
 		if (!hdata) {
 			// first invoke
