@@ -317,13 +317,13 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->request.pucTransport = 0;
 	phsSocket->request.pucPath = 0;
 	phsSocket->request.headerSize = 0;
+	phsSocket->request.payloadSize = 0;
 	phsSocket->request.iCSeq = 0;
 	phsSocket->fd = 0;
 	phsSocket->flags = FLAG_RECEIVING;
 	phsSocket->pucData = phsSocket->buffer;
 	phsSocket->dataLength = 0;
 	phsSocket->bufferSize = HTTP_BUFFER_SIZE;
-	phsSocket->ptr = NULL;
 	phsSocket->handler = NULL;
 	phsSocket->pxMP = NULL;
 	phsSocket->mimeType = NULL;
@@ -472,7 +472,7 @@ void* mwHttpLoop(void* _hp)
 				if (socket == 0) continue;
 
 				// create a new socket structure and insert it in the linked list
-				phsSocketCur=(HttpSocket*)malloc(sizeof(HttpSocket));
+				phsSocketCur=(HttpSocket*)calloc(1, sizeof(HttpSocket));
 				if (!phsSocketCur) {
 					DBG("Out of memory\n");
 					break;
@@ -859,6 +859,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.pucHeader=phsSocket->buffer;
 			up.pucBuffer=phsSocket->pucData;
 			up.pucBuffer[0]=0;
+			up.pucPayload = phsSocket->request.pucPayload;
 			up.iVarCount=-1;
 			mwParseQueryString(&up);
 			ret=(*puh->pfnUrlHandler)(&up);
@@ -1053,22 +1054,20 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						phsSocket->bufferSize = HTTP_BUFFER_SIZE;
 						phsSocket->dataLength = 0;
 					}
-				} else {
-					if (phsSocket->request.pucPayload) free(phsSocket->request.pucPayload);
-					phsSocket->bufferSize = phsSocket->response.contentLength + 1;
-					phsSocket->request.pucPayload=malloc(phsSocket->bufferSize);
-					phsSocket->request.payloadSize = phsSocket->response.contentLength;
-					phsSocket->request.pucPayload[phsSocket->request.payloadSize]=0;
-					phsSocket->dataLength = phsSocket->request.payloadSize;
-					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->request.payloadSize);
+				} else if (!phsSocket->request.pucPayload) {
+					// first receive of payload, prepare for next receive
+					phsSocket->bufferSize = phsSocket->request.payloadSize+ 1;
+					phsSocket->request.pucPayload = malloc(phsSocket->bufferSize);
 					phsSocket->pucData = phsSocket->request.pucPayload;
+					// payload length already received
+					phsSocket->dataLength -= phsSocket->request.headerSize;
+					// copy already received payload to payload buffer
+					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
+					phsSocket->request.pucPayload[phsSocket->dataLength]=0;
 				}
 			}
 #endif
 		}
-		// add header zero terminator
-		phsSocket->buffer[phsSocket->request.headerSize]=0;
-		DBG("%s",phsSocket->buffer);
 	}
     if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP) {
 		if (!phsSocket->pxMP->pchBoundaryValue[0]) {
@@ -1080,13 +1079,17 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		}
 		return 0;
 	}
-	if ( phsSocket->dataLength < phsSocket->response.contentLength ) {
+	if (phsSocket->request.payloadSize > 0 && phsSocket->dataLength < phsSocket->request.payloadSize) {
 		// there is more data
 		return 0;
 	}
 #ifndef _NO_POST
 done:
 #endif
+
+	// add header zero terminator
+	phsSocket->buffer[phsSocket->request.headerSize]=0;
+	DBG("%s",phsSocket->buffer);
 
 	if (phsSocket->request.headerSize) {
 		phsSocket->pucData = phsSocket->buffer + phsSocket->request.headerSize + 4;
@@ -1197,7 +1200,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->request.pucPayload);
 		phsSocket->request.pucPayload = 0;
 	}
-	if (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) && phsSocket->handler) {
+	if (phsSocket->handler && (ISFLAGSET(phsSocket,FLAG_DATA_STREAM) || ISFLAGSET(phsSocket,FLAG_CLOSE_CALLBACK | FLAG_CONN_CLOSE) == (FLAG_CLOSE_CALLBACK | FLAG_CONN_CLOSE))) {
 		UrlHandlerParam up;
 		UrlHandler* pfnHandler = (UrlHandler*)phsSocket->handler;
 		up.hs = phsSocket;
@@ -1998,72 +2001,57 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 		if (!*p || !memcmp(p, HTTP_HEADER_END, sizeof(HTTP_HEADER_END)))
 			break;
 		p+=2;							//skip "\r\n"
-		switch (*(p++)) {
-		case 'C':
-			if (_mwStrHeadMatch(&p,"onnection: ")) {
-				if (_mwStrHeadMatch(&p,"close")) {
-					SETFLAG(phsSocket,FLAG_CONN_CLOSE);
-				} else if (_mwStrHeadMatch(&p,"Keep-Alive")) {
-					CLRFLAG(phsSocket,FLAG_CONN_CLOSE); //FIXME!!
-				}
-			} else if (_mwStrHeadMatch(&p, "ontent-Length: ")) {
-				p+=_mwGrabToken(p,'\r',buf,sizeof(buf));
-				phsSocket->response.contentLength=atoi(buf);
-			} else if (_mwStrHeadMatch(&p, "ontent-Type: ")) {
-				if (_mwStrHeadMatch(&p, "multipart/form-data; boundary=")) {
-					// request is a multipart POST
-					buf[0] = '-';
-					buf[1] = '-';
-					p += _mwGrabToken(p ,'\r', buf + 2, sizeof(buf) - 2);
-					phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
-					strcpy(phsSocket->pxMP->pchBoundaryValue, buf);
-				} else {
-					for (; *p != '\r'; p++) {
-						if (_mwStrHeadMatch(&p, "; filename=")) {
-							p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
-							phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
-							phsSocket->pxMP->pchFilename = strdup(buf);
-							break;
-						}
+
+		if (_mwStrHeadMatch(&p,"Connection: ")) {
+			if (_mwStrHeadMatch(&p,"close")) {
+				SETFLAG(phsSocket,FLAG_CONN_CLOSE);
+			} else if (_mwStrHeadMatch(&p,"Keep-Alive")) {
+				CLRFLAG(phsSocket,FLAG_CONN_CLOSE); //FIXME!!
+			}
+		} else if (_mwStrHeadMatch(&p, "Content-Length: ")) {
+			p+=_mwGrabToken(p,'\r',buf,sizeof(buf));
+			phsSocket->request.payloadSize = atoi(buf);
+		} else if (_mwStrHeadMatch(&p, "Content-Type: ")) {
+			if (_mwStrHeadMatch(&p, "multipart/form-data; boundary=")) {
+				// request is a multipart POST
+				buf[0] = '-';
+				buf[1] = '-';
+				p += _mwGrabToken(p ,'\r', buf + 2, sizeof(buf) - 2);
+				phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
+				strcpy(phsSocket->pxMP->pchBoundaryValue, buf);
+			} else {
+				for (; *p != '\r'; p++) {
+					if (_mwStrHeadMatch(&p, "; filename=")) {
+						p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
+						phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
+						phsSocket->pxMP->pchFilename = strdup(buf);
+						break;
 					}
 				}
-			} else if (_mwStrHeadMatch(&p, "Seq: ")) {
-				phsSocket->request.iCSeq = atoi(p);
 			}
-			break;
-		case 'R':
-			if (_mwStrHeadMatch(&p,"eferer: ")) {
-				phsSocket->request.pucReferer= p;
-			} else if (_mwStrHeadMatch(&p,"ange: bytes=")) {
-				int iEndByte;
-				iLen=_mwGrabToken(p,'-',buf,sizeof(buf));
-				if (iLen==0) continue;
-				p+=iLen;
-				phsSocket->request.startByte=atoi(buf);
-				iLen=_mwGrabToken(p,'/',buf,sizeof(buf));
-				if (iLen==0) continue;
-				p+=iLen;
-				iEndByte = atoi(buf);
-				if (iEndByte > 0)
-					phsSocket->response.contentLength = (int)(iEndByte-phsSocket->request.startByte+1);
-			}
-			break;
-		case 'H':
-			if (_mwStrHeadMatch(&p,"ost: ")) {
-				phsSocket->request.pucHost = p;
-			}
-			break;
-		case 'T':
-			if (_mwStrHeadMatch(&p,"ransport: ")) {
-				phsSocket->request.pucTransport = p;
-			}
-			break;
+		} else if (_mwStrHeadMatch(&p, "CSeq: ")) {
+			phsSocket->request.iCSeq = atoi(p);
+		} else if (_mwStrHeadMatch(&p,"Referer: ")) {
+			phsSocket->request.pucReferer= p;
+		} else if (_mwStrHeadMatch(&p,"Range: bytes=")) {
+			int iEndByte;
+			iLen=_mwGrabToken(p,'-',buf,sizeof(buf));
+			if (iLen==0) continue;
+			p+=iLen;
+			phsSocket->request.startByte=atoi(buf);
+			iLen=_mwGrabToken(p,'/',buf,sizeof(buf));
+			if (iLen==0) continue;
+			p+=iLen;
+			iEndByte = atoi(buf);
+			if (iEndByte > 0)
+				phsSocket->response.contentLength = (int)(iEndByte-phsSocket->request.startByte+1);
+		} else if (_mwStrHeadMatch(&p,"Host: ")) {
+			phsSocket->request.pucHost = p;
+		} else if (_mwStrHeadMatch(&p,"Transport: ")) {
+			phsSocket->request.pucTransport = p;
 #ifndef DISABLE_BASIC_WWWAUTH
-		case 'A':
-			if (_mwStrHeadMatch(&p,"uthorization: ")) {
-				phsSocket->request.pucAuthInfo = p;
-			}
-			break;
+		} if (_mwStrHeadMatch(&p,"Authorization: ")) {
+			phsSocket->request.pucAuthInfo = p;
 #endif
 		}
 	}

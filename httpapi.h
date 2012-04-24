@@ -131,6 +131,7 @@ typedef struct _tagSubstParam {
 #define FLAG_MORE_CONTENT		0x800
 #define FLAG_TO_FREE			0x1000
 #define FLAG_CHUNK				0x2000
+#define FLAG_CLOSE_CALLBACK     0x4000
 
 #define FLAG_DATA_FILE		0x10000
 #define FLAG_DATA_RAW		0x20000
@@ -145,7 +146,7 @@ typedef struct _tagSubstParam {
 
 #define SETFLAG(hs,bit) (hs->flags|=(bit));
 #define CLRFLAG(hs,bit) (hs->flags&=~(bit));
-#define ISFLAGSET(hs,bit) ((hs->flags&(bit)))
+#define ISFLAGSET(hs,bit) (hs->flags&(bit))
 
 typedef union {
 	unsigned long laddr;
@@ -161,7 +162,7 @@ typedef struct {
 	char* pucHost;
 	int headerSize;
 	char* pucPayload;
-	int payloadSize;
+	size_t payloadSize;
 	int iCSeq;
 	const char* pucTransport;
 #ifndef DISABLE_BASIC_WWWAUTH
@@ -172,7 +173,7 @@ typedef struct {
 typedef struct {
 	int headerBytes;
 	int sentBytes;
-	int contentLength;
+	size_t contentLength;
 	HttpFileType fileType;
 } HttpResponse;
 
@@ -231,7 +232,7 @@ typedef struct _HttpSocket{
 #endif
 	unsigned int flags;
 	void* handler;				// http handler function address
-	void* ptr;					
+	void* ptr;
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
 	int iRequestCount;
@@ -248,6 +249,7 @@ typedef struct {
 	int iVarCount;
 	char *pucHeader;
 	char *pucBuffer;
+	char *pucPayload;
 	int dataBytes;
 	int contentBytes;
 	HttpFileType fileType;
@@ -290,8 +292,8 @@ typedef struct {
 
 typedef struct _httpParam {
 	HttpSocket *phsSocketHead;				/* head of the socket linked list */
-	int   bKillWebserver; 
-	int   bWebserverRunning; 
+	int   bKillWebserver;
+	int   bWebserverRunning;
 	unsigned int flags;
 	SOCKET listenSocket;
 	int httpPort;
@@ -381,7 +383,7 @@ int mwSetRcvBufSize(WORD wSize);
 PFNPOSTCALLBACK mwPostRegister(HttpParam *httpParam, PFNPOSTCALLBACK);
 
 ///////////////////////////////////////////////////////////////////////
-// mwFileUploadRegister. Specify the callback to be called whenever the 
+// mwFileUploadRegister. Specify the callback to be called whenever the
 // server has the next data chunk available from a multipart file upload.
 ///////////////////////////////////////////////////////////////////////
 PFNFILEUPLOADCALLBACK mwFileUploadRegister(HttpParam *httpParam, PFNFILEUPLOADCALLBACK);
