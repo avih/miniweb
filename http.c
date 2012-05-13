@@ -651,7 +651,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 			*(s++) = 0;
 		} else if (ISFLAGSET(up->hs,FLAG_REQUEST_POST)){
 			s = up->hs->request.pucPayload;
-			if (!strncmp(s, "<?xml", 5)) s = 0;
+			if (s[0] == '<') s = 0;
 		}
 		if (s && *s) {
 			int i;

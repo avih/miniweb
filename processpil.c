@@ -165,8 +165,8 @@ void ShellClean(SHELL_PARAM* param)
 #ifdef WIN32
 	if (param->fdRead) CloseHandle((HANDLE)param->fdRead);
 	if (param->fdWrite) CloseHandle((HANDLE)param->fdWrite);
-	CloseHandle(param->piProcInfo.hProcess);
-	CloseHandle(param->piProcInfo.hThread);
+	if (param->piProcInfo.hProcess) CloseHandle(param->piProcInfo.hProcess);
+	if (param->piProcInfo.hThread) CloseHandle(param->piProcInfo.hThread);
 	memset(&param->piProcInfo, 0, sizeof(PROCESS_INFORMATION));
 #else
 	if (param->fdRead) close(param->fdRead);
@@ -254,7 +254,7 @@ static HWND GetWindowHandle(SHELL_PARAM* param)
 }
 #endif
 
-int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
+int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 {
 #ifdef WIN32
 	SECURITY_ATTRIBUTES saAttr;
@@ -335,12 +335,8 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
 	}
 
 	siStartInfo.dwFlags |= STARTF_USESHOWWINDOW;
-	if (hasGui)  {
-		siStartInfo.wShowWindow = SW_SHOW;
-	} else {
-		siStartInfo.wShowWindow = SW_HIDE;
-		if (param->flags & (SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT | SF_REDIRECT_STDERR)) siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
-	}
+	siStartInfo.wShowWindow = window ? SW_SHOW : SW_HIDE;
+	if (param->flags & (SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT | SF_REDIRECT_STDERR)) siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
 ///////////////////////////////////////////////////////////////////////
 //	create child process
@@ -363,14 +359,9 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui)
 		free(appname);
 	}
 
-	if (hasGui) {
-		WaitForInputIdle(param->piProcInfo.hProcess, 3000);
-		GetWindowHandle(param);
-	}
-
 	if (param->pchPath) SetEnvironmentVariable("PATH",prevPath);
 	if (!fSuccess) return -1;
-	WaitForInputIdle(param->piProcInfo.hProcess,INFINITE);
+	//WaitForInputIdle(param->piProcInfo.hProcess,INFINITE);
 
 	if (param->flags & SF_REDIRECT_STDIN)
 		CloseHandle(hChildStdinRd);

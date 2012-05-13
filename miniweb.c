@@ -29,10 +29,14 @@ int uh7Zip(UrlHandlerParam* param);
 int uhFileStream(UrlHandlerParam* param);
 int uhAsyncDataTest(UrlHandlerParam* param);
 int uhRTSP(UrlHandlerParam* param);
+int uhSerial(UrlHandlerParam* param);
 
 UrlHandler urlHandlerList[]={
 	{"stats", uhStats, NULL},
-#ifndef NOTHREAD
+#ifdef ENABLE_SERIAL
+	{"serial", uhSerial, NULL},
+#endif
+#ifdef HAVE_THREAD
 	{"async", uhAsyncDataTest, NULL},
 #endif
 #ifdef MEDIA_SERVER

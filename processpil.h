@@ -44,7 +44,7 @@ int ShellRead(SHELL_PARAM* param, int timeout);
 int ShellWrite(SHELL_PARAM* param, void* data, int bytes);
 void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
-int ShellExec(SHELL_PARAM* param, char* cmdline, int hasGui);
+int ShellExec(SHELL_PARAM* param, char* cmdline, int window);
 int ShellTerminate(SHELL_PARAM* param);
 #ifdef __cplusplus
 }

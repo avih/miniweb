@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
+			OutputDirectory="$(ProjectDir)bin"
 			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -42,7 +42,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="libctb/include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;ENABLE_SERIAL;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -62,8 +63,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				AdditionalDependencies="WSock32.Lib winmm.lib"
+				OutputFile="$(OutDir)/miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames=""
@@ -496,6 +497,88 @@
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
+		<Configuration
+			Name="Release_Serial|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				InlineFunctionExpansion="0"
+				AdditionalIncludeDirectories="libctb/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;NODEBUG;ENABLE_SERIAL;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
+				ExceptionHandling="0"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="1"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="WSock32.Lib winmm.lib"
+				OutputFile="miniweb.exe"
+				LinkIncremental="1"
+				IgnoreDefaultLibraryNames=""
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -534,24 +617,8 @@
 				>
 			</File>
 			<File
-				RelativePath=".\httpvod.c"
+				RelativePath=".\httpserial.cpp"
 				>
-			</File>
-			<File
-				RelativePath=".\httpxml.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mediaserver.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
 					ExcludedFromBuild="true"
@@ -560,14 +627,14 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release_VOD|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\httpvod.c"
+				>
+			</File>
+			<File
+				RelativePath=".\httpxml.c"
+				>
 			</File>
 			<File
 				RelativePath=".\miniweb.c"
@@ -608,11 +675,55 @@
 						Name="VCCLCompilerTool"
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release_Serial|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\processpil.c"
 				>
 			</File>
+			<Filter
+				Name="libctb"
+				>
+				<File
+					RelativePath=".\libctb\src\fifo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\getopt.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\iobase.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\kbhit.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\portscan.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\win32\serport.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\serportx.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libctb\src\win32\timer.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -658,29 +769,6 @@
 				>
 			</Filter>
 		</Filter>
-		<Filter
-			Name="Web Pages"
-			>
-			<File
-				RelativePath=".\webroot\demo-dyn.htm"
-				DeploymentContent="true"
-				>
-			</File>
-			<File
-				RelativePath=".\webroot\formtest.htm"
-				DeploymentContent="true"
-				>
-			</File>
-			<File
-				RelativePath=".\webroot\index.htm"
-				DeploymentContent="true"
-				>
-			</File>
-		</Filter>
-		<File
-			RelativePath=".\Makefile"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

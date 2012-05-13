@@ -7,32 +7,64 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin\Debug\miniweb" prefix_auto="1" extension_auto="1" />
+				<Option output="bin\miniweb" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj\Debug\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DHTTPD_DEBUG" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin\Release\miniweb" prefix_auto="1" extension_auto="1" />
+				<Option output="bin\miniweb" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj\Release\" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
+					<Add option="-DHTTPD_DEBUG" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-static" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-D_NO_POST" />
+			<Add option="-DENABLE_SERIAL" />
+			<Add directory="libctb\include" />
 		</Compiler>
-		<Unit filename="main.cpp" />
+		<Linker>
+			<Add library="wsock32" />
+			<Add library="winmm" />
+		</Linker>
+		<Unit filename="http.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="httphandler.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="httppil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="httpserial.cpp" />
+		<Unit filename="httpxml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="libctb\src\fifo.cpp" />
+		<Unit filename="libctb\src\getopt.cpp" />
+		<Unit filename="libctb\src\iobase.cpp" />
+		<Unit filename="libctb\src\kbhit.cpp" />
+		<Unit filename="libctb\src\portscan.cpp" />
+		<Unit filename="libctb\src\serportx.cpp" />
+		<Unit filename="libctb\src\win32\serport.cpp" />
+		<Unit filename="libctb\src\win32\timer.cpp" />
+		<Unit filename="miniweb.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -3,12 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniweb", "miniweb.vcproj", "{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiniWebApp", "MiniWebApp\MiniWebApp.vcproj", "{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Media|Win32 = Debug_Media|Win32
 		Debug_VOD|Win32 = Debug_VOD|Win32
 		Debug|Win32 = Debug|Win32
 		Release_Media|Win32 = Release_Media|Win32
+		Release_Serial|Win32 = Release_Serial|Win32
 		Release_VOD|Win32 = Release_VOD|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
@@ -21,10 +24,26 @@ Global
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug|Win32.Build.0 = Debug|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Media|Win32.ActiveCfg = Release_Media|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Media|Win32.Build.0 = Release_Media|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Serial|Win32.ActiveCfg = Release_Serial|Win32
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_Serial|Win32.Build.0 = Release_Serial|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_VOD|Win32.ActiveCfg = Release_VOD|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release_VOD|Win32.Build.0 = Release_VOD|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.ActiveCfg = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.Build.0 = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug_Media|Win32.ActiveCfg = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug_Media|Win32.Build.0 = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug_VOD|Win32.ActiveCfg = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug_VOD|Win32.Build.0 = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Debug|Win32.Build.0 = Debug|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_Media|Win32.ActiveCfg = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_Media|Win32.Build.0 = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_Serial|Win32.ActiveCfg = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_Serial|Win32.Build.0 = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_VOD|Win32.ActiveCfg = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release_VOD|Win32.Build.0 = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release|Win32.ActiveCfg = Release|Win32
+		{A9A346D0-A08C-4040-8E5D-9A69DD1F2DFE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
