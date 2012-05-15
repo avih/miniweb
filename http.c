@@ -24,7 +24,52 @@
 ////////////////////////////////////////////////////////////////////////////
 // global variables
 ////////////////////////////////////////////////////////////////////////////
-// default pages
+const char* status200[] = {
+	"OK",		/* 200 */
+	"Created",	/* 201 */
+	"Accepted", /* 202 */
+	"Non-Authoritative Information", /* 203 */
+	"No Content", /* 204 */
+	"Reset Content", /* 205 */
+	"Partial Content", /* 206 */
+};
+
+const char* status300[] = {
+	"Multiple Choices", /* 300 */
+	"Moved Permanently", /* 301 */
+	"Found", /* 302 */
+	"See Other", /* 303 */
+	"Not Modified", /* 304 */
+	"Use Proxy", /* 305 */
+	"", /* 306 */
+	"Temporary Redirect", /* 307 */
+};
+
+const char* status400[] = {
+	"Bad Request", /* 400 */
+	"Unauthorized", /* 401 */
+	"", /* 402 */
+	"Forbidden", /* 403 */
+	"Not Found", /* 404 */
+	"Method Not Allowed", /* 405 */
+	"Not Acceptable", /* 406 */
+	"Proxy Authentication Required", /* 407 */
+	"Request Timeout", /* 408 */
+	"Conflict", /* 409 */
+	"Gone", /* 410 */
+	"Length Required", /* 411 */
+	"Precondition Failed", /* 412 */
+	"Request Entity Too Large", /* 413 */
+	"Request-URI Too Long", /* 414 */
+};
+
+const char* status500[] = {
+	"Internal Server Error", /* 500 */
+	"Not Implemented", /* 501 */
+	"Bad Gateway", /* 502 */
+	"Service Unavailable", /* 503 */
+	"Gateway Timeout", /* 504 */
+};
 
 const char* contentTypeTable[]={
 	"application/octet-stream",
@@ -319,6 +364,7 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->request.headerSize = 0;
 	phsSocket->request.payloadSize = 0;
 	phsSocket->request.iCSeq = 0;
+	phsSocket->response.statusCode = 200;
 	phsSocket->fd = 0;
 	phsSocket->flags = FLAG_RECEIVING;
 	phsSocket->pucData = phsSocket->buffer;
@@ -609,13 +655,27 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned c
 {
 	unsigned char *p = buffer;
 	unsigned char *end = buffer + 512;
+	unsigned char *status;
+
+	if (phsSocket->response.statusCode >= 200 && phsSocket->response.statusCode < 200 + sizeof(status200) / sizeof(status200[0])) {
+		status = status200[phsSocket->response.statusCode - 200];
+	} else 	if (phsSocket->response.statusCode >= 300 && phsSocket->response.statusCode < 300 + sizeof(status300) / sizeof(status300[0])) {
+		status = status300[phsSocket->response.statusCode - 300];
+	} else 	if (phsSocket->response.statusCode >= 400 && phsSocket->response.statusCode < 400 + sizeof(status400) / sizeof(status400[0])) {
+		status = status400[phsSocket->response.statusCode - 400];
+	} else 	if (phsSocket->response.statusCode >= 500 && phsSocket->response.statusCode < 500 + sizeof(status500) / sizeof(status500[0])) {
+		status = status500[phsSocket->response.statusCode - 500];
+	} else {
+		status = "";
+	}
+		
 	p+=snprintf(p, end - p, HTTP200_HEADER,
 #ifdef ENABLE_RTSP
 		(phsSocket->flags & (FLAG_REQUEST_DESCRIBE | FLAG_REQUEST_SETUP)) ? "RTSP/1.0" : "HTTP/1.1",
 #else
 		"HTTP/1.1",
 #endif
-		(phsSocket->request.startByte==0)?"200 OK":"206 Partial content",
+		phsSocket->response.statusCode, status,
 		HTTP_SERVER_NAME,
 		HTTP_KEEPALIVE_TIME,
 		MAX_CONN_REQUESTS,
@@ -1500,6 +1560,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, char* rootPath, char
 		phsSocket->response.contentLength = fileSize - phsSocket->request.startByte;
 		if (phsSocket->response.contentLength <= 0) {
 			phsSocket->request.startByte = 0;
+			phsSocket->response.statusCode = 206;
 			phsSocket->response.contentLength = fileSize;
 		}
 		if (phsSocket->request.startByte) {

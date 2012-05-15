@@ -171,6 +171,7 @@ typedef struct {
 } HttpRequest;
 
 typedef struct {
+	int statusCode;
 	int headerBytes;
 	int sentBytes;
 	size_t contentLength;

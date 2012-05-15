@@ -438,6 +438,7 @@ namespace ctb {
 	    */
 	   virtual int SetParityBit( bool parity ) = 0;
 
+	   virtual void SetTimeout( int duration ) {}
 	   /*!
 		\brief check the given baudrate against a list of standard rates.
 		\ return true, if the baudrate is a standard value, false

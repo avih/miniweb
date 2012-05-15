@@ -31,7 +31,7 @@ namespace ctb {
 		\brief a very special struct in the win32 api for controling
 		an asynchronous serial communication through the com ports.
 	   */
-	   OVERLAPPED m_ov;
+	   //OVERLAPPED m_ov;
 
 	   /*!
 		\brief The win32 API only allows to test for an existing
@@ -49,6 +49,7 @@ namespace ctb {
 		(for example, on Open, SetLineState and ChangeLineState)
 	   */
 	   int m_rtsdtr_state;
+	   int m_timeout;
 
 	   int CloseDevice();
 	   int OpenDevice(const char* devname, void* dcs);
@@ -67,6 +68,7 @@ namespace ctb {
 	   int SetLineState( SerialLineState flags );
 	   int SetParityBit( bool parity );
 	   int Write(char* buf,size_t len);
+	   void SetTimeout( int duration );
     };
 
 } // namespace ctb

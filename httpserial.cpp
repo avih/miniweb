@@ -20,7 +20,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 	char* port = mwGetVarValue(param->pxVars, "port", "");
 	vector<ctb::SerialPort*>::iterator it;
 	int size = serials.size();
-	cerr << "[SERIAL] " << size << " opened ports";
+	//cerr << "[SERIAL] " << size << " opened ports" << endl;
 	for (it = serials.begin() ; it < serials.end(); it++) {
 		char *s = (*it)->m_devname;
 		if (!strncmp(s, "\\\\.\\", 4)) {
@@ -60,52 +60,61 @@ extern "C" int uhSerial(UrlHandlerParam* param)
             param->dataBytes = sprintf(param->pucBuffer, "Port closed");
         } else {
             param->dataBytes = sprintf(param->pucBuffer, "No port opened");
+			param->hs->response.statusCode = 503;
         }
 		param->fileType=HTTPFILETYPE_TEXT;
 	} else if (!strcmp(param->pucRequest, "/read")) {
 		int timeout = mwGetVarValueInt(param->pxVars, "timeout", 0);
+		int bytes = mwGetVarValueInt(param->pxVars, "bytes", param->dataBytes);
 		char* eos = mwGetVarValue(param->pxVars, "eos", 0);
 		if (eos) {
 			if (serialPort->ReadUntilEOS(param->pucBuffer, (size_t*)&param->dataBytes, eos, timeout) == -1)
 				param->dataBytes = 0;
 		} else {
-			param->dataBytes = serialPort->Read(param->pucBuffer, param->dataBytes);
+			serialPort->SetTimeout(timeout);
+			param->dataBytes = serialPort->Read(param->pucBuffer, bytes);
 		}
-		if (param->dataBytes < 0) {
-			param->dataBytes = 0;
+		if (param->dataBytes == 0) {
+			param->dataBytes = sprintf(param->pucBuffer, "Timeout");
+			param->hs->response.statusCode = 503;			
+		} else if (param->dataBytes < 0) {
+			param->dataBytes = sprintf(param->pucBuffer, "Error");
+			param->hs->response.statusCode = 502;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
 	} else if (!strcmp(param->pucRequest, "/write") && 
 		param->hs->request.payloadSize > 0 &&
 		param->hs->request.payloadSize == param->hs->dataLength) {
 		if (serialPort) {
-			int timeout = mwGetVarValueInt(param->pxVars, "timeout", 1000);
-			int delay = mwGetVarValueInt(param->pxVars, "delay", 0);
-			int echo = mwGetVarValueInt(param->pxVars, "echo", 0);
-			int retries = mwGetVarValueInt(param->pxVars, "retries", 0);
 			int payloadSize = param->hs->request.payloadSize;
 			int written = 0;
-			if (delay == 0 && echo == 0) {
-				written = serialPort->Write(param->pucPayload, payloadSize);
-			} else if (echo) {
-				if (delay == 0) delay = 10;
-				do {
-					written = 0;
-					for (int i = 0; i < payloadSize; i++, written++) {
-						if (serialPort->Write(param->pucPayload + i, 1) != 1) {
+			int timeout = mwGetVarValueInt(param->pxVars, "timeout", 1000);
+			int delay = mwGetVarValueInt(param->pxVars, "delay", 0);
+			char* response = mwGetVarValue(param->pxVars, "response", 0);
+			if (mwGetVarValueInt(param->pxVars, "echo", 0)) {
+				response = param->pucPayload;
+			}
+			if (response) {
+				int l = strlen(response);
+				serialPort->SetTimeout(timeout);
+				for (int i = 0; i < payloadSize; i++, written++) {
+					if (serialPort->Write(param->pucPayload + i, 1) != 1) {
+						param->hs->response.statusCode = 503;
+						break;
+					}
+					do {
+						char c;
+						if (serialPort->Read(&c, 1) != 1) {
+							param->hs->response.statusCode = 504;
+							break;
+						} else if (c == response[i]) {
+							// matched
 							break;
 						}
-						char c = 0;
-						DWORD startTime = GetTickCount();
-						do {
-							if (serialPort->Read(&c, 1) != -1 && c == param->pucPayload[i])
-								break;
-							Sleep(delay);
-						} while (GetTickCount() - startTime < timeout);
-						if (c != param->pucPayload[i])
-							break;
-					}
-				} while (written < payloadSize && retries-- > 0);
+					} while (param->hs->response.statusCode != 504);
+				}
+			} else if (delay == 0) {
+				written = serialPort->Write(param->pucPayload, payloadSize);
 			} else {
 				for (int i = 0; i < payloadSize; i++, written++) {
 					if (serialPort->Write(param->pucPayload + i, 1) != 1) {
@@ -114,9 +123,13 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 					Sleep(delay);
 				}
 			}
-			param->dataBytes = sprintf(param->pucBuffer, "%d bytes written", written);
+			param->dataBytes = sprintf(param->pucBuffer, "%d", written);
+			if (written <= 0) {
+				param->hs->response.statusCode = 504;
+			}
 		} else {
 			param->dataBytes = sprintf(param->pucBuffer, "No port opened");
+			param->hs->response.statusCode = 503;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
     } else if (!strcmp(param->pucRequest, "/open")) {
@@ -131,6 +144,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 				param->dataBytes = sprintf(param->pucBuffer, "OK - %s opened", port);
 			} else {
 				param->dataBytes = sprintf(param->pucBuffer, "Error opening %s", port);
+				param->hs->response.statusCode = 503;
 			}
 			if (!success) {
 				delete serialPort;
@@ -140,6 +154,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 			}
 		} else {
 			param->dataBytes = sprintf(param->pucBuffer, "%s already opened", port);
+			param->hs->response.statusCode = 500;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
     } else if (!strcmp(param->pucRequest, "/setline")) {

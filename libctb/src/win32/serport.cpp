@@ -37,7 +37,7 @@ namespace ctb {
 
     SerialPort::SerialPort()
     {
-	   memset( &m_ov, 0, sizeof( OVERLAPPED ) );
+	   //memset( &m_ov, 0, sizeof( OVERLAPPED ) );
 	   fd = INVALID_HANDLE_VALUE;
 	   m_rtsdtr_state = LinestateNull;
     };
@@ -50,7 +50,7 @@ namespace ctb {
     int SerialPort::CloseDevice()
     {
 	   if(fd != INVALID_HANDLE_VALUE) {
-		  CloseHandle(m_ov.hEvent);
+		  //CloseHandle(m_ov.hEvent);
 		  CloseHandle(fd);
 		  fd = INVALID_HANDLE_VALUE;
 	   }
@@ -194,7 +194,7 @@ namespace ctb {
 				    0,		// not shared
 				    NULL,	// default value for object security ?!?
 				    OPEN_EXISTING, // file (device) exists
-				    FILE_FLAG_OVERLAPPED,	// asynchron handling
+				    0,	// asynchron handling
 				    NULL); // no more handle flags
 	
 	   if(fd == INVALID_HANDLE_VALUE) {
@@ -298,6 +298,7 @@ namespace ctb {
 	   // create event for overlapped I/O
 	   // we need a event object, which inform us about the
 	   // end of an operation (here reading device)
+	   /*
 	   m_ov.hEvent = CreateEvent(NULL,// LPSECURITY_ATTRIBUTES lpsa
 						    TRUE, // BOOL fManualReset 
 						    TRUE, // BOOL fInitialState
@@ -305,6 +306,7 @@ namespace ctb {
 	   if(m_ov.hEvent == INVALID_HANDLE_VALUE) {
 		  return -3;
 	   }
+	   */
 
 	   /* THIS IS OBSOLETE!!!
 	   // event should be triggered, if there are some received data
@@ -315,6 +317,7 @@ namespace ctb {
 	   COMMTIMEOUTS cto = {MAXDWORD,0,0,0,0};
 	   if(!SetCommTimeouts(fd,&cto))
 		  return -5;
+	   m_timeout = 0;
 
 	   // for a better performance with win95/98 I increased the internal
 	   // buffer to SERIALPORT_BUFSIZE (normal size is 1024, but this can 
@@ -326,6 +329,19 @@ namespace ctb {
 	   memset(&einfo,0,sizeof(einfo));
 	   return 0;
     };
+
+	void SerialPort::SetTimeout( int duration )
+	{
+		if (duration != m_timeout) {
+			COMMTIMEOUTS cto = {MAXDWORD,0,0,0,0};
+			if (duration) {
+				cto.ReadTotalTimeoutConstant = duration;
+				cto.WriteTotalTimeoutConstant = duration;
+			}
+			if (SetCommTimeouts(fd,&cto))
+				m_timeout = duration;
+		}
+	}
 
     int SerialPort::Read(char* buf,size_t len)
     {
@@ -340,7 +356,7 @@ namespace ctb {
 			 break;
 		  }
 	   }
-	   if(!ReadFile(fd,buf,len,&read,&m_ov)) {
+	   if(!ReadFile(fd,buf,len,&read,0)) {
 		  // if we use a asynchrone reading, ReadFile gives always
 		  // FALSE
 		  // ERROR_IO_PENDING means ok, other values show an error
@@ -429,7 +445,7 @@ namespace ctb {
     int SerialPort::Write(char* buf,size_t len)
     {
 	   DWORD write;
-	   if(!WriteFile(fd,buf,len,&write,&m_ov)) {
+	   if(!WriteFile(fd,buf,len,&write,0)) {
 		  if(GetLastError() != ERROR_IO_PENDING) {
 			 return -1;
 		  }
@@ -439,10 +455,12 @@ namespace ctb {
 			 FlushFileBuffers(fd);
 			 // first you must call GetOverlappedResult, then you
 			 // get the REALLY transmitted count of bytes
+			 /*
 			 if(!GetOverlappedResult(fd,&m_ov,&write,TRUE)) {
 				// ooops... something is going wrong
 				return (int)write;
 			 }
+			 */
 		  }
 	   }
 	   return write;
