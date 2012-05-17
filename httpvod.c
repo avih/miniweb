@@ -337,7 +337,7 @@ void vodInit()
 	prefixlen = strlen(vodroot) + 1;
  	EnumDir(vodroot);
 
-	fpdup = fopen("webroot/dup.htm", "w");
+	fpdup = fopen("htdocs/dup.htm", "w");
 	fprintf(fpdup, "<html><body>");
 	for (i = 0; i < filecount; i++) {
 		if (!AddClip(filelist[i])) count++;

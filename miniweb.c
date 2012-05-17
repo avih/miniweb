@@ -172,7 +172,7 @@ int main(int argc,char* argv[])
 	//fill in default settings
 	mwInitParam(&httpParam);
 	httpParam.maxClients=32;
-	httpParam.pchWebPath="webroot";
+	httpParam.pchWebPath="htdocs";
 #ifndef DISABLE_BASIC_WWWAUTH
 	httpParam.pxAuthHandler = authHandlerList;
 #endif
