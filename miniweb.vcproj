@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(ProjectDir)bin"
+			OutputDirectory="$(SolutionDir)bin\"
 			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -64,7 +64,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib winmm.lib"
-				OutputFile="$(OutDir)/miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames=""
@@ -99,7 +99,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
+			OutputDirectory="$(SolutionDir)bin\"
 			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -145,7 +145,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
@@ -180,7 +180,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release_VOD|Win32"
-			OutputDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)bin\"
 			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -225,7 +225,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -259,7 +259,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_VOD|Win32"
-			OutputDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)bin\"
 			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -304,7 +304,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				GenerateDebugInformation="true"
@@ -338,8 +338,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_Media|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)bin\"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -383,7 +383,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames=""
@@ -418,8 +418,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release_Media|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)bin\"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -464,7 +464,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
@@ -499,8 +499,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release_Serial|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)bin\"
+			IntermediateDirectory="$(TEMP)\$(PlatformName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -523,7 +523,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="0"
+				InlineFunctionExpansion="2"
+				FavorSizeOrSpeed="1"
+				WholeProgramOptimization="true"
 				AdditionalIncludeDirectories="libctb/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;NODEBUG;ENABLE_SERIAL;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
@@ -546,7 +548,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib winmm.lib"
-				OutputFile="miniweb.exe"
+				OutputFile="$(OutDir)\miniweb.exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
