@@ -157,7 +157,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 			param->hs->response.statusCode = 500;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
-    } else if (!strcmp(param->pucRequest, "/setline")) {
+    } else if (!strcmp(param->pucRequest, "/setline") && serialPort) {
 		int state = mwGetVarValueInt(param->pxVars, "DTR", -1);
 		if (state == 1) {
 			serialPort->SetLineState(ctb::LinestateDtr);
