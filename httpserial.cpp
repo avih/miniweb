@@ -22,11 +22,11 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 	int size = serials.size();
 	//cerr << "[SERIAL] " << size << " opened ports" << endl;
 	for (it = serials.begin() ; it < serials.end(); it++) {
-		char *s = (*it)->m_devname;
-		if (!strncmp(s, "\\\\.\\", 4)) {
-			s += 4;
+		char *p = (*it)->m_devname;
+		if (!strncmp(p, "\\\\.\\", 4)) {
+			p += 4;
 		}
-		if (!strcmp(s, port)) {
+		if (!strcmp(p, port)) {
 			serialPort = *it;
 			break;
 		}
@@ -38,6 +38,13 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		s << "<?xml version=\"1.0\"?>"
 			<< "<SerialPorts>";
         if( ctb::GetAvailablePorts( ports )) {
+			for (it = serials.begin() ; it < serials.end(); it++) {
+				char *p = (*it)->m_devname;
+				if (!strncmp(p, "\\\\.\\", 4)) {
+					p += 4;
+				}
+				s << "<Port open=\"1\">" << p << "</Port>";
+			}
             for( int i = 0; i < ports.size(); i++) {
 				s << "<Port>" << ports[i] << "</Port>";
             }
@@ -154,7 +161,6 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 			}
 		} else {
 			param->dataBytes = sprintf(param->pucBuffer, "%s already opened", port);
-			param->hs->response.statusCode = 500;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
     } else if (!strcmp(param->pucRequest, "/setline") && serialPort) {
