@@ -73,6 +73,8 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		} else if (param->dataBytes < 0) {
 			param->dataBytes = sprintf(param->pucBuffer, "Error");
 			param->hs->response.statusCode = 502;
+		} else {
+			param->pucBuffer[param->dataBytes] = 0;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
 	} else if (!strcmp(param->pucRequest, "/write") &&
@@ -179,6 +181,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		param->dataBytes = sprintf(param->pucBuffer, "OK");
     } else if (!strcmp(param->pucRequest, "/close")) {
         if (serialPort) {
+            cerr << "[" << serialPort->m_devname << "] Port closed" << endl;
 			for (it = serials.begin() ; it < serials.end(); it++) {
 				if (*it == serialPort) {
 					serials.erase(it);
@@ -188,7 +191,6 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 				}
 			}
             param->dataBytes = sprintf(param->pucBuffer, "Port closed");
-            cerr << "[" << serialPort->m_devname << "] Port closed" << endl;
         } else {
             param->dataBytes = sprintf(param->pucBuffer, "No port opened");
 			param->hs->response.statusCode = 503;

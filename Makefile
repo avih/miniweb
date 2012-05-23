@@ -17,11 +17,6 @@ else
 OS="Linux"
 endif
 
-ifndef DISABLE_POST
-HTTPOBJ+= httppost.o
-DEFINES+= -DHTTPPOST
-endif
-
 ifdef ENABLE_AUTH
 HTTPOBJ+= httpauth.o
 DEFINES+= -DHTTPAUTH

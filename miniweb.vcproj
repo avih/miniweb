@@ -714,15 +714,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\libctb\src\win32\serport.cpp"
-					>
-				</File>
-				<File
 					RelativePath=".\libctb\src\serportx.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\libctb\src\win32\timer.cpp"
 					>
 				</File>
 			</Filter>
