@@ -272,6 +272,8 @@ namespace ctb {
 		baudrate, protocol, wordlen and so on.
 	   */
 	   SerialPort_DCS m_dcs;
+	   int m_timeout;
+
     public:
 
 	   /*!

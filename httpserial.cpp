@@ -58,13 +58,15 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		int timeout = mwGetVarValueInt(param->pxVars, "timeout", 0);
 		int bytes = mwGetVarValueInt(param->pxVars, "bytes", param->dataBytes);
 		char* eos = mwGetVarValue(param->pxVars, "eos", 0);
+		serialPort->SetTimeout(timeout);
 		if (eos) {
-			if (serialPort->ReadUntilEOS(param->pucBuffer, (size_t*)&param->dataBytes, eos, timeout) == -1)
-				param->dataBytes = 0;
+			if (serialPort->ReadUntilEOS(param->pucBuffer, (size_t*)&param->dataBytes, eos, timeout) == -1) {
+                param->dataBytes = 0;
+			}
 		} else {
-			serialPort->SetTimeout(timeout);
 			param->dataBytes = serialPort->Read(param->pucBuffer, bytes);
 		}
+		cerr << "[" << serialPort->m_devname << "] " << param->dataBytes << " bytes read" << endl;
 		if (param->dataBytes == 0) {
 			param->dataBytes = sprintf(param->pucBuffer, "Timeout");
 			param->hs->response.statusCode = 503;
@@ -95,7 +97,12 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 					}
 					do {
 						char c;
-						if (serialPort->Read(&c, 1) != 1) {
+						int ret = serialPort->Read(&c, 1);
+						if (ret != 1) {
+                            msleep(10);
+						    ret = serialPort->Read(&c, 1);
+						}
+						if (ret != 1) {
 							param->hs->response.statusCode = 504;
 							break;
 						} else if (c == response[i]) {
@@ -115,6 +122,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 				}
 			}
 			param->dataBytes = sprintf(param->pucBuffer, "%d", written);
+			cerr << "[" << serialPort->m_devname << "] " << written << " bytes written" << endl;
 			if (written <= 0) {
 				param->hs->response.statusCode = 504;
 			}
@@ -142,6 +150,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 				serialPort = 0;
 			} else {
 				serials.push_back(serialPort);
+				cerr << "[" << serialPort->m_devname << "] Port opened" << endl;
 			}
 		} else {
 			param->dataBytes = sprintf(param->pucBuffer, "%s already opened", port);
@@ -166,6 +175,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		} else if (state == 0) {
 			serialPort->ClrLineState(ctb::LinestateCts);
 		}
+		cerr << "[" << serialPort->m_devname << "] Line set" << endl;
 		param->dataBytes = sprintf(param->pucBuffer, "OK");
     } else if (!strcmp(param->pucRequest, "/close")) {
         if (serialPort) {
@@ -178,15 +188,14 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 				}
 			}
             param->dataBytes = sprintf(param->pucBuffer, "Port closed");
+            cerr << "[" << serialPort->m_devname << "] Port closed" << endl;
         } else {
             param->dataBytes = sprintf(param->pucBuffer, "No port opened");
 			param->hs->response.statusCode = 503;
         }
 		param->fileType=HTTPFILETYPE_TEXT;
     } else {
-        param->dataBytes = sprintf(param->pucBuffer, "Invalid request - %s", param->pucRequest);
-        param->hs->response.statusCode = 404;
+        return 0;
     }
-    cerr << "[SERIAL] " << param->pucBuffer << endl;
     return FLAG_DATA_RAW;
 }

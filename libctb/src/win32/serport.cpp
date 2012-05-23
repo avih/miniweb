@@ -338,8 +338,8 @@ namespace ctb {
 				cto.ReadTotalTimeoutConstant = duration;
 				cto.WriteTotalTimeoutConstant = duration;
 			}
-			if (SetCommTimeouts(fd,&cto))
-				m_timeout = duration;
+			SetCommTimeouts(fd,&cto);
+			m_timeout = duration;
 		}
 	}
 

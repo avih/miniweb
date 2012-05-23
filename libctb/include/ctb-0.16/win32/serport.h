@@ -49,7 +49,6 @@ namespace ctb {
 		(for example, on Open, SetLineState and ChangeLineState)
 	   */
 	   int m_rtsdtr_state;
-	   int m_timeout;
 
 	   int CloseDevice();
 	   int OpenDevice(const char* devname, void* dcs);

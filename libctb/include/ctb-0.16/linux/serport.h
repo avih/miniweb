@@ -87,6 +87,8 @@ namespace ctb {
 	   int SetLineState( SerialLineState flags );
 
 	   int Write(char* buf,size_t len);
+
+	   void SetTimeout( int duration );
     };
 
 } // namespace ctb

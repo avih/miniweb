@@ -81,7 +81,7 @@ namespace ctb {
 	   int err = 0;
 	   // only close an open file handle
 	   if(fd < 0) return EBADF;
-	   // With some systems, it is recommended to flush the serial port's 
+	   // With some systems, it is recommended to flush the serial port's
 	   // Output before closing it, in order to avoid a possible hang of
 	   // the process...
 	   // Thanks to Germain (I couldn't answer you, because your email
@@ -179,7 +179,7 @@ namespace ctb {
 		  *(int*)args = count;
 		  return 0;
 	   case CTB_SER_SETPAR:
-		  return SetParityBit( *(int*)args == 1 ); 
+		  return SetParityBit( *(int*)args == 1 );
 	   default:
 		  return -1;
 	   }
@@ -247,7 +247,7 @@ namespace ctb {
 			 t.c_cflag &= ~PARODD;
 			 break;
 		  }
-		  
+
 		  // stopbits
 		  if(m_dcs.stopbits == 2)
 			 t.c_cflag |= CSTOPB;
@@ -288,7 +288,7 @@ namespace ctb {
 		  tcsetattr(fd,TCSANOW,&t);
 		  // it's careless, but in the moment we don't test
 		  // the return of tcsetattr (normally there is no error)
-	
+
 		  // request the actual numbers of breaks, framing, overrun
 		  // and parity errors (because Linux summing all of them during
 		  // system lifetime, not only while serial port is open.
@@ -312,8 +312,8 @@ namespace ctb {
 	   if(m_fifo->items() > 0) {
 		  return m_fifo->read(buf,len);
 	   }
-	   // Read() (using read() ) will return an 'error' EAGAIN as it is 
-	   // set to non-blocking. This is not a true error within the 
+	   // Read() (using read() ) will return an 'error' EAGAIN as it is
+	   // set to non-blocking. This is not a true error within the
 	   // functionality of Read, and thus should be handled by the caller.
 	   int n = read(fd,buf,len);
 	   if((n < 0) && (errno == EAGAIN)) return 0;
@@ -338,7 +338,7 @@ namespace ctb {
 	* Obtaining the actual baud rate is a little tricky since unix traditionally
 	* somehow ignored the possibility to set non-standard baud rates.
 	* 1. Standard baud rates are set in tty->termios->c_cflag
-	* 2. If these are not enough, you can set any speed using alt_speed as 
+	* 2. If these are not enough, you can set any speed using alt_speed as
 	* follows:
 	*    - set tty->termios->c_cflag speed to B38400
 	*    - set your real speed in tty->alt_speed; it gets ignored when
@@ -359,13 +359,13 @@ namespace ctb {
 
     int SerialPort::SetBaudrateAny( int baudrate )
     {
-	   struct serial_struct ser_info; 
+	   struct serial_struct ser_info;
 
-	   int result = ioctl( fd, TIOCGSERIAL, &ser_info ); 
+	   int result = ioctl( fd, TIOCGSERIAL, &ser_info );
 
 	   ser_info.flags = ASYNC_SPD_CUST | ASYNC_LOW_LATENCY;
 
-	   ser_info.custom_divisor = ser_info.baud_base / baudrate; 
+	   ser_info.custom_divisor = ser_info.baud_base / baudrate;
 
 	   result = ioctl( fd, TIOCSSERIAL, &ser_info );
 
@@ -385,7 +385,7 @@ namespace ctb {
 	   tcsetattr(fd,TCSANOW,&t);
 
 	   return tcgetattr( fd, &t );
-	   
+
     };
 
     int SerialPort::SetBaudrate( int baudrate )
@@ -410,8 +410,8 @@ namespace ctb {
 	   // the parity
 	   tcgetattr( fd, &t );
 
-	   if( parity ) { 
-		  
+	   if( parity ) {
+
 		  t.c_cflag |= PARENB | CMSPAR | PARODD;
 
 	   }
@@ -421,7 +421,7 @@ namespace ctb {
 
 		  t.c_cflag &= ~PARODD;
 
-	   }		  
+	   }
 
 	   tcsetattr( fd,TCSANOW, &t );
 
@@ -432,12 +432,28 @@ namespace ctb {
 
     int SerialPort::Write(char* buf,size_t len)
     {
-	   // Write() (using write() ) will return an 'error' EAGAIN as it is 
-	   // set to non-blocking. This is not a true error within the 
+	   // Write() (using write() ) will return an 'error' EAGAIN as it is
+	   // set to non-blocking. This is not a true error within the
 	   // functionality of Write, and thus should be handled by the caller.
 	   int n = write(fd,buf,len);
 	   if((n < 0) && (errno == EAGAIN)) return 0;
 	   return n;
     };
 
+    void SerialPort::SetTimeout( int duration )
+    {
+        if (duration != m_timeout) {
+            // MIN = 1 means, in TIME (1/10 secs) defined timeout
+            // will be started AFTER receiving the first byte
+            // so we must set MIN = 0. (timeout starts immediately, abort
+            // also without readed byte)
+            t.c_cc[VMIN] = duration / 100;
+            // timeout in 1/10 secs
+            // no timeout for non blocked transfer
+            t.c_cc[VTIME] = duration / 100;
+            // write the settings
+            tcsetattr(fd,TCSANOW,&t);
+            m_timeout = duration;
+        }
+    }
 } // namespace ctb

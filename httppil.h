@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/select.h>
+#include <netdb.h>
 
 #if !defined(O_BINARY)
 #define O_BINARY 0
