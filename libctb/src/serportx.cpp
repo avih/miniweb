@@ -14,7 +14,7 @@ namespace ctb {
 
 	   // default wordlen is 8
 	   if( ( protocol[ 0 ] >= '5' ) && ( protocol[ 0 ] <= '8' )) {
-		  
+
 		  dcs.wordlen = protocol[ 0 ] - '0';
 
 	   }
@@ -39,7 +39,7 @@ namespace ctb {
 	   }
 	   // default stopbits is 1
 	   if( ( protocol[ 2 ] >= '1' ) && ( protocol[ 2 ] <= '2' )) {
-		  
+
 		  dcs.stopbits = protocol[ 2 ] - '0';
 
 	   }
@@ -74,12 +74,12 @@ namespace ctb {
 
 #if defined ( WIN32 )
 	   // some systems like WinCE doesn't like the extended port numbering...
-	   portnumber < 10 ? devname << "com" << portnumber : 
+	   portnumber < 10 ? devname << "com" << portnumber :
 		  devname << "\\\\.\\com" << portnumber;
 #else
 	   devname << "/dev/ttyS" << ( portnumber - 1 );
 #endif
-    
+
 	   return Open( devname.str().c_str(), baudrate, protocol, flowControl );
     }
 
@@ -102,3 +102,11 @@ namespace ctb {
     }
 
 } // namespace ctb
+
+#ifdef WIN32
+#include "win32/serport.cpp"
+#include "win32/timer.cpp"
+#else
+#include "linux/serport.cpp"
+#include "linux/timer.cpp"
+#endif
