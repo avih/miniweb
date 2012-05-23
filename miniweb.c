@@ -136,17 +136,19 @@ void Shutdown()
 	UninitSocket();
 }
 
+#ifdef WIN32
 char* GetLocalAddrString()
 {
 	// get local ip address
 	struct sockaddr_in sock;
 	char hostname[128];
-	HOSTENT * lpHost;
+	struct hostent * lpHost;
 	gethostname(hostname, 128);
 	lpHost = gethostbyname(hostname);
 	memcpy(&(sock.sin_addr), lpHost->h_addr_list[0], lpHost->h_length);
 	return inet_ntoa(sock.sin_addr);
 }
+#endif
 
 int MiniWebQuit(int arg) {
 	static int quitting = 0;
@@ -162,7 +164,7 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 	char* p = strrchr(argv0, '/');
 	if (!p) p = strrchr(argv0, '\\');
 	if (!p) {
-		strcpy(buffer, path);	
+		strcpy(buffer, path);
 	} else {
 		int l = p - argv0 + 1;
 		memcpy(buffer, argv0, l);
@@ -185,6 +187,7 @@ int main(int argc,char* argv[])
 	//fill in default settings
 	mwInitParam(&httpParam);
 	httpParam.maxClients=32;
+	httpParam.httpPort = 8000;
 	GetFullPath(httpParam.pchWebPath, argv[0], "htdocs");
 #ifndef DISABLE_BASIC_WWWAUTH
 	httpParam.pxAuthHandler = authHandlerList;
@@ -243,7 +246,11 @@ int main(int argc,char* argv[])
 
 	{
 		int n;
+#ifdef WIN32
 		printf("Host: %s:%d\n", GetLocalAddrString(), httpParam.httpPort);
+#else
+		printf("Port: %d\n", httpParam.httpPort);
+#endif
 		printf("Web root: %s\n",httpParam.pchWebPath);
 		printf("Max clients: %d\n",httpParam.maxClients);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);

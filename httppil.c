@@ -27,12 +27,12 @@ int InitSocket()
 {
 #ifdef WIN32
 	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(2, 1), &wsaData) && 
+	if (WSAStartup(MAKEWORD(2, 1), &wsaData) &&
 		WSAStartup(MAKEWORD(1, 1), &wsaData )) {
 		return 0;
 	}
 #endif
-	return 1;   
+	return 1;
 }
 
 void UninitSocket()
@@ -53,11 +53,11 @@ char *GetTimeString()
 }
 #endif
 
-#ifndef NOTHREAD
+#ifdef ENABLE_THREAD
 int ThreadCreate(pthread_t *pth, void* (*start_routine)(void*), void* arg)
 {
 #ifndef HAVE_PTHREAD
-	DWORD dwid;	    
+	DWORD dwid;
 	*pth=CreateThread(0,0,(LPTHREAD_START_ROUTINE)start_routine,arg,0,&dwid);
 	return *pth!=NULL?0:1;
 #else
@@ -225,3 +225,7 @@ int IsFileExist(const char* filename)
 	return (stat_ret.st_mode & S_IFREG) != 0;
 #endif
 }
+
+#ifdef WIN32
+#define usleep(us) Sleep(us / 1000)
+#endif

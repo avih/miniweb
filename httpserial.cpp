@@ -52,7 +52,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
             s << "<Error/>";
         }
 		s << "</SerialPorts>";
-		param->dataBytes = _snprintf(param->pucBuffer, param->dataBytes, "%s", s.str().c_str());
+		param->dataBytes = snprintf(param->pucBuffer, param->dataBytes, "%s", s.str().c_str());
 		param->fileType=HTTPFILETYPE_XML;
     } else if (!strcmp(param->pucRequest, "/close")) {
         if (serialPort) {
@@ -83,13 +83,13 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		}
 		if (param->dataBytes == 0) {
 			param->dataBytes = sprintf(param->pucBuffer, "Timeout");
-			param->hs->response.statusCode = 503;			
+			param->hs->response.statusCode = 503;
 		} else if (param->dataBytes < 0) {
 			param->dataBytes = sprintf(param->pucBuffer, "Error");
 			param->hs->response.statusCode = 502;
 		}
 		param->fileType=HTTPFILETYPE_TEXT;
-	} else if (!strcmp(param->pucRequest, "/write") && 
+	} else if (!strcmp(param->pucRequest, "/write") &&
 		param->hs->request.payloadSize > 0 &&
 		param->hs->request.payloadSize == param->hs->dataLength) {
 		if (serialPort) {
@@ -127,7 +127,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 					if (serialPort->Write(param->pucPayload + i, 1) != 1) {
 						break;
 					}
-					Sleep(delay);
+					usleep(delay * 1000);
 				}
 			}
 			param->dataBytes = sprintf(param->pucBuffer, "%d", written);
@@ -143,7 +143,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
         int baudrate = mwGetVarValueInt(param->pxVars, "baudrate", 9600);
         char* proto = mwGetVarValue(param->pxVars, "protocol", "8N1");
 		char sport[16];
-		_snprintf(sport, sizeof(sport), isdigit(port[3]) && atoi(port + 3) >= 10 ? "\\\\.\\%s" : "%s", port);
+		snprintf(sport, sizeof(sport), isdigit(port[3]) && atoi(port + 3) >= 10 ? "\\\\.\\%s" : "%s", port);
 		if (!serialPort) {
 			bool success = false;
             serialPort = new ctb::SerialPort();

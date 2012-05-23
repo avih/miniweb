@@ -7,8 +7,8 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin\miniweb" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\Debug\" />
+				<Option output="bin/miniweb" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -17,8 +17,8 @@
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin\miniweb" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\Release\" />
+				<Option output="bin/miniweb" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -34,12 +34,8 @@
 			<Add option="-fexceptions" />
 			<Add option="-D_NO_POST" />
 			<Add option="-DENABLE_SERIAL" />
-			<Add directory="libctb\include" />
+			<Add directory="libctb/include" />
 		</Compiler>
-		<Linker>
-			<Add library="wsock32" />
-			<Add library="winmm" />
-		</Linker>
 		<Unit filename="http.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -53,14 +49,12 @@
 		<Unit filename="httpxml.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="libctb\src\fifo.cpp" />
-		<Unit filename="libctb\src\getopt.cpp" />
-		<Unit filename="libctb\src\iobase.cpp" />
-		<Unit filename="libctb\src\kbhit.cpp" />
-		<Unit filename="libctb\src\portscan.cpp" />
-		<Unit filename="libctb\src\serportx.cpp" />
-		<Unit filename="libctb\src\win32\serport.cpp" />
-		<Unit filename="libctb\src\win32\timer.cpp" />
+		<Unit filename="libctb/src/fifo.cpp" />
+		<Unit filename="libctb/src/getopt.cpp" />
+		<Unit filename="libctb/src/iobase.cpp" />
+		<Unit filename="libctb/src/kbhit.cpp" />
+		<Unit filename="libctb/src/portscan.cpp" />
+		<Unit filename="libctb/src/serportx.cpp" />
 		<Unit filename="miniweb.c">
 			<Option compilerVar="CC" />
 		</Unit>
