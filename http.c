@@ -971,7 +971,6 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 ////////////////////////////////////////////////////////////////////////////
 int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 {
-#ifndef _NO_POST
     if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 		if (phsSocket->pxMP && phsSocket->pxMP->pchBoundaryValue[0]) {
 			// multipart and has valid boundary string
@@ -984,7 +983,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			goto done;
 		}
     }
-#endif
 
 	// read next chunk of data
 	{
@@ -1075,7 +1073,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			phsSocket->request.pucPath = malloc(i + 1);
 			memcpy(phsSocket->request.pucPath, path, i);
 			phsSocket->request.pucPath[i] = 0;
-#ifndef _NO_POST
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 				hp->stats.reqPostCount++;
 				if (phsSocket->pxMP) {
@@ -1100,11 +1097,11 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 							goto done;
 						}
 						return 0;
-					} else if (hp->pfnFileUpload) {
+					} else {
 						// direct POST with filename in Content-Type
 						phsSocket->dataLength -= phsSocket->request.headerSize;
 						pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
-						(hp->pfnFileUpload)(pxMP, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
+						if (hp->pfnFileUpload) (hp->pfnFileUpload)(pxMP, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 						pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
 						phsSocket->pucData = phsSocket->buffer;
 						phsSocket->bufferSize = HTTP_BUFFER_SIZE;
@@ -1122,26 +1119,25 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->request.pucPayload[phsSocket->dataLength]=0;
 				}
 			}
-#endif
 		}
 	}
-    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP && hp->pfnFileUpload) {
+    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP) {
 		if (!phsSocket->pxMP->pchBoundaryValue[0]) {
 			// no boundary, simply receive raw data
-			if (phsSocket->dataLength == phsSocket->bufferSize) {
+			if (phsSocket->dataLength == phsSocket->bufferSize && hp->pfnFileUpload) {
 				(hp->pfnFileUpload)(phsSocket->pxMP, phsSocket->pucData, phsSocket->dataLength);
 				phsSocket->dataLength = 0;
 			}
 		}
 		return 0;
 	}
+
+	DBG("[%d] Payload: %d Data Length: %d\n", phsSocket->socket, phsSocket->request.payloadSize, phsSocket->dataLength);
 	if (phsSocket->request.payloadSize > 0 && phsSocket->dataLength < phsSocket->request.payloadSize) {
 		// there is more data
 		return 0;
 	}
-#ifndef _NO_POST
 done:
-#endif
 
 	// add header zero terminator
 	phsSocket->buffer[phsSocket->request.headerSize]=0;

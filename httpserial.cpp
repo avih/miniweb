@@ -54,22 +54,6 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 		s << "</SerialPorts>";
 		param->dataBytes = snprintf(param->pucBuffer, param->dataBytes, "%s", s.str().c_str());
 		param->fileType=HTTPFILETYPE_XML;
-    } else if (!strcmp(param->pucRequest, "/close")) {
-        if (serialPort) {
-			for (it = serials.begin() ; it < serials.end(); it++) {
-				if (*it == serialPort) {
-					serials.erase(it);
-					delete serialPort;
-					serialPort = 0;
-					break;
-				}
-			}
-            param->dataBytes = sprintf(param->pucBuffer, "Port closed");
-        } else {
-            param->dataBytes = sprintf(param->pucBuffer, "No port opened");
-			param->hs->response.statusCode = 503;
-        }
-		param->fileType=HTTPFILETYPE_TEXT;
 	} else if (!strcmp(param->pucRequest, "/read")) {
 		int timeout = mwGetVarValueInt(param->pxVars, "timeout", 0);
 		int bytes = mwGetVarValueInt(param->pxVars, "bytes", param->dataBytes);
@@ -183,8 +167,25 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 			serialPort->ClrLineState(ctb::LinestateCts);
 		}
 		param->dataBytes = sprintf(param->pucBuffer, "OK");
+    } else if (!strcmp(param->pucRequest, "/close")) {
+        if (serialPort) {
+			for (it = serials.begin() ; it < serials.end(); it++) {
+				if (*it == serialPort) {
+					serials.erase(it);
+					delete serialPort;
+					serialPort = 0;
+					break;
+				}
+			}
+            param->dataBytes = sprintf(param->pucBuffer, "Port closed");
+        } else {
+            param->dataBytes = sprintf(param->pucBuffer, "No port opened");
+			param->hs->response.statusCode = 503;
+        }
+		param->fileType=HTTPFILETYPE_TEXT;
     } else {
-        return 0;
+        param->dataBytes = sprintf(param->pucBuffer, "Invalid request - %s", param->pucRequest);
+        param->hs->response.statusCode = 404;
     }
     cerr << "[SERIAL] " << param->pucBuffer << endl;
     return FLAG_DATA_RAW;
