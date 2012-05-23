@@ -226,6 +226,3 @@ int IsFileExist(const char* filename)
 #endif
 }
 
-#ifdef WIN32
-#define usleep(us) Sleep(us / 1000)
-#endif

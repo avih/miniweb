@@ -572,11 +572,7 @@ void* mwHttpLoop(void* _hp)
 				}
 			}
 			// call idle event
-			if (hp->pfnIdleCallback) {
-				(*hp->pfnIdleCallback)(hp);
-			}
-
-
+			if (hp->pfnIdleCallback) (*hp->pfnIdleCallback)(hp);
 		}
 	}
 
@@ -999,7 +995,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SYSLOG(LOG_INFO,"[%d] socket closed by client\n",phsSocket->socket);
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 
-			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP) {
+			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP && hp->pfnFileUpload) {
 				HttpMultipart* pxMP = phsSocket->pxMP;
 				if (!pxMP->pchBoundaryValue[0]) {
 					// no boundary, commit remaining data
@@ -1104,7 +1100,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 							goto done;
 						}
 						return 0;
-					} else {
+					} else if (hp->pfnFileUpload) {
 						// direct POST with filename in Content-Type
 						phsSocket->dataLength -= phsSocket->request.headerSize;
 						pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
@@ -1129,7 +1125,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 #endif
 		}
 	}
-    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP) {
+    if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST) && phsSocket->pxMP && hp->pfnFileUpload) {
 		if (!phsSocket->pxMP->pchBoundaryValue[0]) {
 			// no boundary, simply receive raw data
 			if (phsSocket->dataLength == phsSocket->bufferSize) {
@@ -1243,7 +1239,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 #endif
 	}
 	phsSocket->fd = 0;
-	if (phsSocket->pxMP) {
+	if (phsSocket->pxMP && hp->pfnFileUpload) {
 		int i;
 		HttpMultipart *pxMP = phsSocket->pxMP;
 		(hp->pfnFileUpload)(pxMP , 0, 0);
@@ -1842,6 +1838,7 @@ int _mwSubstVariables(HttpParam* hp, char* pchData, int iLength, int* piBytesUse
 	int lastpos,pos=0,used=0;
 	SubstParam sp;
 	int iValueBytes;
+	if (!hp->pfnSubst) return -1;
     DBG("_SubstVariables input len %d\n",iLength);
 	iLength--;
 	for(;;) {

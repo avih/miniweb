@@ -127,7 +127,7 @@ extern "C" int uhSerial(UrlHandlerParam* param)
 					if (serialPort->Write(param->pucPayload + i, 1) != 1) {
 						break;
 					}
-					usleep(delay * 1000);
+					msleep(delay);
 				}
 			}
 			param->dataBytes = sprintf(param->pucBuffer, "%d", written);
