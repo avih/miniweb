@@ -300,7 +300,7 @@ typedef struct _httpParam {
 	int httpPort;
 	int maxClients;
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
-	char *pchWebPath;
+	char pchWebPath[128];
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */
 #ifndef DISABLE_BASIC_WWWAUTH
 	AuthHandler *pxAuthHandler;     /* pointer to authorization handler array */

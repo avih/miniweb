@@ -655,7 +655,7 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned c
 {
 	unsigned char *p = buffer;
 	unsigned char *end = buffer + 512;
-	unsigned char *status;
+	const unsigned char *status;
 
 	if (phsSocket->response.statusCode >= 200 && phsSocket->response.statusCode < 200 + sizeof(status200) / sizeof(status200[0])) {
 		status = status200[phsSocket->response.statusCode - 200];
@@ -668,7 +668,7 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned c
 	} else {
 		status = "";
 	}
-		
+
 	p+=snprintf(p, end - p, HTTP200_HEADER,
 #ifdef ENABLE_RTSP
 		(phsSocket->flags & (FLAG_REQUEST_DESCRIBE | FLAG_REQUEST_SETUP)) ? "RTSP/1.0" : "HTTP/1.1",

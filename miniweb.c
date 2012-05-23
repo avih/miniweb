@@ -157,6 +157,19 @@ int MiniWebQuit(int arg) {
 	return 0;
 }
 
+void GetFullPath(char* buffer, char* argv0, char* path)
+{
+	char* p = strrchr(argv0, '/');
+	if (!p) p = strrchr(argv0, '\\');
+	if (!p) {
+		strcpy(buffer, path);	
+	} else {
+		int l = p - argv0 + 1;
+		memcpy(buffer, argv0, l);
+		strcpy(buffer + l, path);
+	}
+}
+
 int main(int argc,char* argv[])
 {
 	printf("MiniWeb (built on %s) (C)2005-2012 Stanley Huang\n\n", __DATE__);
@@ -172,7 +185,7 @@ int main(int argc,char* argv[])
 	//fill in default settings
 	mwInitParam(&httpParam);
 	httpParam.maxClients=32;
-	httpParam.pchWebPath="htdocs";
+	GetFullPath(httpParam.pchWebPath, argv[0], "htdocs");
 #ifndef DISABLE_BASIC_WWWAUTH
 	httpParam.pxAuthHandler = authHandlerList;
 #endif
@@ -196,7 +209,7 @@ int main(int argc,char* argv[])
 					if ((++i)<argc) httpParam.httpPort=atoi(argv[i]);
 					break;
 				case 'r':
-					if ((++i)<argc) httpParam.pchWebPath=argv[i];
+					if ((++i)<argc) strncpy(httpParam.pchWebPath, argv[i], sizeof(httpParam.pchWebPath) - 1);
 					break;
 				case 'l':
 					if ((++i)<argc) fpLog=freopen(argv[i],"w",stderr);
