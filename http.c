@@ -242,7 +242,9 @@ int mwServerShutdown(HttpParam* hp)
 int mwGetLocalFileName(HttpFilePath* hfp)
 {
 	char ch;
-	char *p=hfp->cFilePath,*s=hfp->pchHttpPath,*upLevel=NULL;
+	char *p = (char*)hfp->cFilePath;
+	char *s = (char*)hfp->pchHttpPath;
+	char *upLevel = NULL;
 
 	hfp->pchExt=NULL;
 	hfp->fTailSlash=0;
@@ -572,7 +574,9 @@ void* mwHttpLoop(void* _hp)
 				}
 			}
 			// call idle event
-			if (hp->pfnIdleCallback) (*hp->pfnIdleCallback)(hp);
+			if (hp->pfnIdleCallback) {
+				(*hp->pfnIdleCallback)(hp);
+			}
 		}
 	}
 
@@ -1336,7 +1340,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 		struct stat st;
 		char *s;
 		size_t bytes;
-		if (GETWORD(cFileName)==DEFWORD('.',0)) continue;
+		if (!strcmp(cFileName, ".")) continue;
 		DBG("Checking %s ...\n",cFileName);
 		bytes=(int)(p-pagebuf);
 		if (bytes+384>bufsize) {
@@ -1406,7 +1410,7 @@ void _mwSend404Page(HttpSocket* phsSocket)
 // _mwStartSendFile
 // Setup for sending of a file
 ////////////////////////////////////////////////////////////////////////////
-int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, char* rootPath, char* filePath)
+int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath, const char* filePath)
 {
 #ifndef WINCE
 	struct stat st;
@@ -1719,7 +1723,7 @@ int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket)
 	if (ISFLAGSET(phsSocket, FLAG_CUSTOM_HEADER)) {
 		return _mwSendRawDataChunk(hp, phsSocket);
 	} else {
-		unsigned char header[HTTP200_HDR_EST_SIZE];
+		char header[HTTP200_HDR_EST_SIZE];
 		int offset=0,hdrsize,bytes;
 #ifndef WINCE
 		hdrsize=_mwBuildHttpHeader(phsSocket,time(NULL),header);

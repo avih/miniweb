@@ -186,7 +186,7 @@ typedef struct {
 // Callback function protos
 typedef int (*PFNPOSTCALLBACK)(PostParam*);
 typedef int (*PFNSUBSTCALLBACK)(SubstParam*);
-typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, OCTET*, size_t);
+typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, char*, size_t);
 typedef int (*PFNIDLECALLBACK)(void* hp);
 
 typedef enum {
@@ -223,7 +223,7 @@ typedef struct _HttpSocket{
 
 	HttpRequest request;
 	HttpResponse response;
-	unsigned char *pucData;
+	char *pucData;
 	int bufferSize;			// the size of buffer pucData pointing to
 	int dataLength;
 #ifdef WINCE
@@ -239,7 +239,7 @@ typedef struct _HttpSocket{
 	int iRequestCount;
 	char* mimeType;
 	HttpMultipart* pxMP;
-	unsigned char buffer[HTTP_BUFFER_SIZE];
+	char buffer[HTTP_BUFFER_SIZE];
 } HttpSocket;
 
 typedef struct {
@@ -260,7 +260,7 @@ typedef struct {
 typedef int (*PFNURLCALLBACK)(UrlHandlerParam*);
 
 typedef struct {
-	char* pchUrlPrefix;
+	const char* pchUrlPrefix;
 	PFNURLCALLBACK pfnUrlHandler;
 	MW_EVENT_HANDLER pfnEventHandler;
 	void *p_sys;
@@ -325,8 +325,8 @@ typedef struct _httpParam {
 } HttpParam;
 
 typedef struct {
-	char* pchRootPath;
-	char* pchHttpPath;
+	const char* pchRootPath;
+	const char* pchHttpPath;
 	char cFilePath[MAX_PATH];
 	char* pchExt;
 	int fTailSlash;

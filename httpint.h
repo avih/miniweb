@@ -123,8 +123,7 @@ int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket);
 int _mwGetToken(char* pchBuffer,int iTokenNumber,char** ppchToken); 
 __inline char _mwDecodeCharacter(char* pchEncodedChar);
 int _mwLoadFileChunk(HttpParam *hp, HttpSocket* phsSocket);
-OCTET* _mwFindMultipartBoundary(OCTET *poHaystack, int iHaystackSize, 
-                                  OCTET *poNeedle);
+char* _mwFindMultipartBoundary(char *poHaystack, int iHaystackSize, char *poNeedle);
 void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp);
 BOOL _mwCheckAuthentication(HttpSocket* phsSocket);
 int _mwStartSendMemoryData(HttpSocket* phsSocket);

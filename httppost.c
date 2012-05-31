@@ -19,7 +19,7 @@
 // _mwFindMultipartBoundary
 // Searches a memory buffer for a multi-part boundary string
 ////////////////////////////////////////////////////////////////////////////
-OCTET* _mwFindMultipartBoundary(OCTET *poHaystack, int iHaystackSize, OCTET *poNeedle)
+char* _mwFindMultipartBoundary(char *poHaystack, int iHaystackSize, char *poNeedle)
 {
   int i;
   int iNeedleLength = (int)strlen(poNeedle);
