@@ -136,7 +136,6 @@ void Shutdown()
 	UninitSocket();
 }
 
-#ifdef WIN32
 char* GetLocalAddrString()
 {
 	// get local ip address
@@ -145,10 +144,9 @@ char* GetLocalAddrString()
 	struct hostent * lpHost;
 	gethostname(hostname, 128);
 	lpHost = gethostbyname(hostname);
-	memcpy(&(sock.sin_addr), lpHost->h_addr_list[0], lpHost->h_length);
+	memcpy(&(sock.sin_addr), (void*)lpHost->h_addr_list[0], lpHost->h_length);
 	return inet_ntoa(sock.sin_addr);
 }
-#endif
 
 int MiniWebQuit(int arg) {
 	static int quitting = 0;
@@ -246,11 +244,7 @@ int main(int argc,char* argv[])
 
 	{
 		int n;
-#ifdef WIN32
 		printf("Host: %s:%d\n", GetLocalAddrString(), httpParam.httpPort);
-#else
-		printf("Port: %d\n", httpParam.httpPort);
-#endif
 		printf("Web root: %s\n",httpParam.pchWebPath);
 		printf("Max clients: %d\n",httpParam.maxClients);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);

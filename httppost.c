@@ -75,11 +75,11 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
 {
   // if found any vars
   if (pp->iNumParams>0) {
-    int iReturn;
+    //int iReturn;
     
     // call app callback to process post vars
     //ASSERT(g_httpParam.pfnPost!=NULL);
-	iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
+	//iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
     
 #ifdef HTTPAUTH
     switch(iReturn) {

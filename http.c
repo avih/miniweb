@@ -651,11 +651,11 @@ SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 	return socket;
 } // end of _mwAcceptSocket
 
-int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, unsigned char* buffer)
+int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buffer)
 {
-	unsigned char *p = buffer;
-	unsigned char *end = buffer + 512;
-	const unsigned char *status;
+	char *p = buffer;
+	char *end = buffer + 512;
+	const char *status;
 
 	if (phsSocket->response.statusCode >= 200 && phsSocket->response.statusCode < 200 + sizeof(status200) / sizeof(status200[0])) {
 		status = status200[phsSocket->response.statusCode - 200];
@@ -1019,7 +1019,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	if (phsSocket->request.headerSize==0) { //FIXME
 		int i=0;
 		char *path = 0;
-		unsigned char *headerEnd = strstr(phsSocket->buffer, HTTP_HEADER_END);
+		char *headerEnd = strstr(phsSocket->buffer, HTTP_HEADER_END);
 
 		if (!headerEnd)
 			return 0;
