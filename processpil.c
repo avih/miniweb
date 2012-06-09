@@ -154,7 +154,7 @@ int ShellTerminate(SHELL_PARAM* param)
 	ret=TerminateProcess(param->piProcInfo.hProcess,0)?0:-1;
 #else
 	if (!param->pid) return 0;
-	ret=kill(param->pid,SIGSTOP);
+	ret=kill(param->pid,SIGKILL);
 	param->pid=0;
 #endif
 	return ret;
@@ -200,7 +200,7 @@ int ShellWait(SHELL_PARAM* param, int iTimeout)
 }
 
 #ifdef WIN32
-static char* GetAppName(char* commandLine)
+static char* GetAppName(const char* commandLine)
 {
 	char* appname;
 	char* p;
@@ -213,10 +213,15 @@ static char* GetAppName(char* commandLine)
 		p = strchr(appname, '\"');
 		*p = 0;
 	} else {
-		appname = _strdup(commandLine);
-		p = strchr(appname, ' ');
+		p = strchr(commandLine, ' ');
 		if (p) {
-			*p = 0;
+			int l = p - commandLine;
+			appname = malloc(l + 5);
+			strncpy(appname, commandLine, l);
+			appname[l] = 0;
+			if (!strchr(appname, '.')) strcat(appname, ".exe");
+		} else {
+			appname = _strdup(commandLine);
 		}
 	}
 	return appname;	
@@ -254,7 +259,49 @@ static HWND GetWindowHandle(SHELL_PARAM* param)
 }
 #endif
 
-int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
+char** Tokenize(char* str, char delimiter)
+{
+	char** tokens;
+	int n = 1;
+	int i;
+	char *p;
+
+	// find out number of tokens
+	p = str;
+	for (;;) {
+		while (*p && *p != delimiter) p++;
+		if (!*p) break;
+		n++;
+		while (*(++p) == delimiter);
+	}
+	// allocate buffer for array
+	tokens = (char**)calloc(n + 1, sizeof(char*));
+	// store pointers to tokens
+	p = str;
+	for (i = 0; i < n; i++) {
+		if (*p == '\"') {
+			tokens[i] = ++p;
+			while (*p && *p != '\"') p++;
+			if (!*p) {
+				i++;
+				break;
+			}
+		} else {
+			tokens[i] = p;
+			while (*p && *p != delimiter) p++;
+			if (!*p) {
+				i++;
+				break;
+			}
+		}
+		*p = 0;
+		while (*(++p) == delimiter);
+	}
+	//tokens[i] = "";
+	return tokens;
+}
+
+int ShellExec(SHELL_PARAM* param, const char* cmdline)
 {
 #ifdef WIN32
 	SECURITY_ATTRIBUTES saAttr;
@@ -263,13 +310,20 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 	char newPath[256],prevPath[256];
 	HANDLE hChildStdinRd, hChildStdinWr, hChildStdoutRd, hChildStdoutWr;
 #else
-	int fdin[2], fdout[2],pid,i;
+	int fdin[2], fdout[2],pid;
 	int fdStdinChild;
 	int fdStdoutChild;
-	char **args=NULL,*argString=NULL, *p;
 	char *filePath;
-	char newPath[256],*prevPath;
+	char *prevPath;
  	char *env[2];
+#endif
+
+	char *_cmdline = strdup(cmdline);
+	char **argv = Tokenize(_cmdline, ' ');
+#if 0
+    for ( i = 0; argv[i] != NULL; i++) {
+        printf("	argv[%d]=%s\n", i, argv[i]);
+    }
 #endif
 
 #ifdef WIN32
@@ -335,7 +389,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 	}
 
 	siStartInfo.dwFlags |= STARTF_USESHOWWINDOW;
-	siStartInfo.wShowWindow = window ? SW_SHOW : SW_HIDE;
+	siStartInfo.wShowWindow = SW_HIDE;
 	if (param->flags & (SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT | SF_REDIRECT_STDERR)) siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
 ///////////////////////////////////////////////////////////////////////
@@ -346,7 +400,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 	{
 		char* appname = GetAppName(cmdline);
 		fSuccess = CreateProcess(appname,
-			cmdline,	// command line
+			(char*)cmdline,	// command line
 			NULL,					// process security attributes
 			NULL,					// primary thread security attributes
 			TRUE,					// handles are inherited
@@ -361,7 +415,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 
 	if (param->pchPath) SetEnvironmentVariable("PATH",prevPath);
 	if (!fSuccess) return -1;
-	//WaitForInputIdle(param->piProcInfo.hProcess,INFINITE);
+	WaitForInputIdle(param->piProcInfo.hProcess,INFINITE);
 
 	if (param->flags & SF_REDIRECT_STDIN)
 		CloseHandle(hChildStdinRd);
@@ -385,28 +439,20 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 	pid = fork();
 	if (pid == -1) return -1;
 	if (pid == 0) { /* chid process */
+	    int i;
 		//generate argument list
-		for (p=cmdline,i=2;*p;p++) {
-			if (*p==' ') i++;
-		}
-		args=malloc(i*sizeof(char*));
-		argString=strdup(cmdline);
-		i=0;
-		if (argString) {
-			p=strtok(argString," ");
-			while (p) {
-				args[i++]=p;
-				p=strtok(NULL," ");
-			}
-		}
-		args[i]=NULL;
-		p=strrchr(args[0],'/');
-		if (p) {
-			filePath=args[0];
-			args[0]=p+1;
-		} else {
-			filePath=args[0];
-		}
+#ifdef _DEBUG
+		printf("cmdline:%s\n", cmdline);
+#endif
+		//TODO: Tokenize() is not good
+		filePath=argv[0];
+//		p=strrchr(args[0],'/');
+//		if (p) {
+//			filePath=args[0];
+//			args[0]=p+1;
+//		} else {
+//			filePath=args[0];
+//		}
 
 		//set PATH
 		env[0]=NULL;
@@ -424,7 +470,10 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 			close(fdout[0]);
 			dup2(fdStdoutChild, 1);
 		}
-		if (execve(filePath, args, env)<0) {
+		for ( i = 0; env[i] != NULL; i++) {
+			printf("env[%d]=%s\n", i, env[i]);
+		}
+		if (execve(filePath, argv, env)<0) {
 			printf("Error starting specified program\n");
 		}
 		return 0;
@@ -437,5 +486,7 @@ int ShellExec(SHELL_PARAM* param, char* cmdline, int window)
 	}
 	param->pid=pid;
 #endif
+    free(_cmdline);
+    free(argv);
 	return 0;
 }
