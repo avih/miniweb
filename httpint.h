@@ -89,6 +89,7 @@
 #define HTTPUPLOAD_CHUNKSIZE (HTTPMAXRECVBUFFER / 2/*bytes*/)
 #define MAX_REQUEST_PATH_LEN (512/*bytes*/)
 #define MAX_REQUEST_SIZE (2*1024 /*bytes*/)
+#define MAX_POST_PAYLOAD_SIZE (256*1024 /*bytes*/)
 
 #ifndef WINCE
 #define SLASH '/'

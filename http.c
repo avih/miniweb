@@ -1113,7 +1113,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					}
 				} else if (!phsSocket->request.pucPayload) {
 					// first receive of payload, prepare for next receive
-					phsSocket->bufferSize = phsSocket->request.payloadSize+ 1;
+					if (phsSocket->request.payloadSize > MAX_POST_PAYLOAD_SIZE) phsSocket->request.payloadSize = MAX_POST_PAYLOAD_SIZE;
+					phsSocket->bufferSize = phsSocket->request.payloadSize + 1;
 					phsSocket->request.pucPayload = malloc(phsSocket->bufferSize);
 					phsSocket->pucData = phsSocket->request.pucPayload;
 					// payload length already received
