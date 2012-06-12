@@ -904,6 +904,8 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 		// remove RTSP protocol and host name from URL
 		p = strchr(p + 7, '/');
 		if (p) path = p + 1;
+	} else {
+		while (*path == '/') path++;
 	}
 	up.pxVars=NULL;
 	for (puh=hp->pxUrlHandler; puh && puh->pchUrlPrefix; puh++) {
@@ -1138,7 +1140,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 	}
 
 	DBG("[%d] Payload: %d Data Length: %d\n", phsSocket->socket, phsSocket->request.payloadSize, phsSocket->dataLength);
-	if (phsSocket->request.payloadSize > 0 && phsSocket->dataLength < phsSocket->request.payloadSize) {
+	if (phsSocket->request.payloadSize > 0 && phsSocket->dataLength < (int)phsSocket->request.payloadSize) {
 		// there is more data
 		return 0;
 	}
@@ -1323,7 +1325,7 @@ int _mwStrHeadMatch(char** pbuf1, const char* buf2) {
 	return i;
 }
 
-#ifndef _NO_LISTDIR
+#ifdef ENABLE_DIRLIST
 int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 {
 	char cFileName[128];
@@ -1523,7 +1525,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 #endif
 		}
 
-#ifndef _NO_LISTDIR
+#ifdef ENABLE_DIRLIST
 		if (phsSocket->fd <= 0 && (hp->flags & FLAG_DIR_LISTING)) {
 			SETFLAG(phsSocket,FLAG_DATA_RAW);
 			if (!hfp.fTailSlash) {
