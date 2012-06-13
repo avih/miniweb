@@ -621,7 +621,7 @@ int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs)
 SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 {
     SOCKET socket;
-	int namelen=sizeof(struct sockaddr);
+	socklen_t namelen=sizeof(struct sockaddr);
 
 	socket=accept(hp->listenSocket, (struct sockaddr*)sinaddr,&namelen);
 
