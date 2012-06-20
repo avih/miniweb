@@ -97,6 +97,7 @@ const char* contentTypeTable[]={
 	"application/x-datastream",
 	"application/x-mpegURL",
 	"application/sdp",
+	"application/binhex",
 };
 
 char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
