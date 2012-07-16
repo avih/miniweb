@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-O2
-HTTPOBJ = httppil.o http.o httpxml.o httphandler.o
+HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
 TARGET = miniweb
