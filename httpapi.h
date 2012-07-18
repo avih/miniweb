@@ -196,7 +196,7 @@ typedef enum {
 	MW_PARSE_ARGS,
 } MW_EVENT;
 
-typedef int (*MW_EVENT_HANDLER)(MW_EVENT msg, int argi, void* argp);
+typedef int (*PFNEVENTHANDLER)(MW_EVENT msg, int argi, void* argp);
 
 typedef struct {
 	time_t startTime;
@@ -263,7 +263,7 @@ typedef int (*PFNURLCALLBACK)(UrlHandlerParam*);
 typedef struct {
 	const char* pchUrlPrefix;
 	PFNURLCALLBACK pfnUrlHandler;
-	MW_EVENT_HANDLER pfnEventHandler;
+	PFNEVENTHANDLER pfnEventHandler;
 	void *p_sys;
 } UrlHandler;
 
