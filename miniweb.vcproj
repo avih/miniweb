@@ -64,7 +64,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib winmm.lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames=""
@@ -145,7 +145,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
@@ -225,7 +225,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -304,7 +304,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				GenerateDebugInformation="true"
@@ -383,7 +383,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
 				GenerateManifest="false"
 				IgnoreDefaultLibraryNames=""
@@ -464,7 +464,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"
@@ -548,7 +548,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="WSock32.Lib winmm.lib"
-				OutputFile="$(OutDir)\miniweb.exe"
+				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
 				GenerateDebugInformation="true"

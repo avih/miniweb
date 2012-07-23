@@ -65,6 +65,8 @@ typedef unsigned __int16 uint16_t;
 typedef __int32 int32_t;
 typedef unsigned __int32 uint32_t;
 
+#define atoll _atoi64
+
 typedef DWORD (WINAPI *PFNGetProcessId)(HANDLE hProcess);
 
 #else

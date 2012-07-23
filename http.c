@@ -712,7 +712,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 			*(s++) = 0;
 		} else if (ISFLAGSET(up->hs,FLAG_REQUEST_POST)){
 			s = up->hs->request.pucPayload;
-			if (s[0] == '<') s = 0;
+			if (s && s[0] == '<') s = 0;
 		}
 		if (s && *s) {
 			int i;
