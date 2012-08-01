@@ -31,7 +31,7 @@ void mwWriteXmlString(char** pbuf, int* pbufsize, int indent, char* str)
 		*((*pbuf) ++) = ' ';
 	}
 	bufsize -= indent * 2;
-	len = snprintf(*pbuf, bufsize, "%s\n", str);
+	len = snprintf(*pbuf, bufsize, "%s%s", str, indent ? "\n" : "");
 	*pbuf += len;
 	bufsize -= len;
 	*pbufsize = bufsize;

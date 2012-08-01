@@ -697,6 +697,9 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buff
 	if (phsSocket->flags & FLAG_CHUNK) {
 		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
 	}
+	if (phsSocket->response.statusCode == 301 || phsSocket->response.statusCode == 307) {
+		p += sprintf(p, "Location: %s\r\n", phsSocket->pucData);
+	}
 	strcpy(p, "\r\n");
 	return (int)(p- buffer + 2);
 }
@@ -928,44 +931,39 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			ret=(*puh->pfnUrlHandler)(&up);
 			if (!ret) continue;
 			phsSocket->flags|=ret;
-			if (ret & FLAG_DATA_REDIRECT) {
-				_mwRedirect(phsSocket, up.pucBuffer);
-				DBG("URL handler: redirect to %s\n", up.pucBuffer);
-			} else {
-				phsSocket->response.fileType=up.fileType;
-				hp->stats.urlProcessCount++;
-				phsSocket->handler = puh;
-				if (ret & FLAG_DATA_RAW) {
-					SETFLAG(phsSocket, FLAG_DATA_RAW);
-					phsSocket->pucData=up.pucBuffer;
-					phsSocket->dataLength=up.dataBytes;
-					phsSocket->response.contentLength=up.contentBytes>0?up.contentBytes:up.dataBytes;
-					if (ret & FLAG_TO_FREE) {
-						phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
-					}
-					DBG("URL handler: raw data\n");
-				} else if (ret & FLAG_DATA_STREAM) {
-					SETFLAG(phsSocket, FLAG_DATA_STREAM);
-					phsSocket->pucData = up.pucBuffer;
-					phsSocket->dataLength = up.dataBytes;
-					phsSocket->response.contentLength = 0;
-					DBG("URL handler: stream\n");
-				} else if (ret & FLAG_DATA_FILE) {
-					SETFLAG(phsSocket, FLAG_DATA_FILE);
-					if (up.pucBuffer[0]) {
-						free(phsSocket->request.pucPath);
-						phsSocket->request.pucPath=strdup(up.pucBuffer);
-					}
-					DBG("URL handler: file\n");
-				} else if (ret & FLAG_DATA_FD) {
-					SETFLAG(phsSocket, FLAG_DATA_FILE);
-					DBG("URL handler: file descriptor\n");
-				} else if (ret & FLAG_DATA_SOCKET) {
-					SETFLAG(phsSocket, FLAG_DATA_SOCKET);
-					DBG("URL handler: socket\n");
+			phsSocket->response.fileType=up.fileType;
+			hp->stats.urlProcessCount++;
+			phsSocket->handler = puh;
+			if (ret & FLAG_DATA_RAW) {
+				SETFLAG(phsSocket, FLAG_DATA_RAW);
+				phsSocket->pucData=up.pucBuffer;
+				phsSocket->dataLength=up.dataBytes;
+				phsSocket->response.contentLength=up.contentBytes>0?up.contentBytes:up.dataBytes;
+				if (ret & FLAG_TO_FREE) {
+					phsSocket->ptr=up.pucBuffer;	//keep the pointer which will be used to free memory later
 				}
-				break;
+				DBG("URL handler: raw data\n");
+			} else if (ret & FLAG_DATA_STREAM) {
+				SETFLAG(phsSocket, FLAG_DATA_STREAM);
+				phsSocket->pucData = up.pucBuffer;
+				phsSocket->dataLength = up.dataBytes;
+				phsSocket->response.contentLength = 0;
+				DBG("URL handler: stream\n");
+			} else if (ret & FLAG_DATA_FILE) {
+				SETFLAG(phsSocket, FLAG_DATA_FILE);
+				if (up.pucBuffer[0]) {
+					free(phsSocket->request.pucPath);
+					phsSocket->request.pucPath=strdup(up.pucBuffer);
+				}
+				DBG("URL handler: file\n");
+			} else if (ret & FLAG_DATA_FD) {
+				SETFLAG(phsSocket, FLAG_DATA_FILE);
+				DBG("URL handler: file descriptor\n");
+			} else if (ret & FLAG_DATA_SOCKET) {
+				SETFLAG(phsSocket, FLAG_DATA_SOCKET);
+				DBG("URL handler: socket\n");
 			}
+			break;
 		}
 	}
 	if (up.pxVars) free(up.pxVars);
@@ -1196,8 +1194,6 @@ done:
 	} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 		// send requested page
 		return _mwStartSendFile(hp,phsSocket);
-	} else if (ISFLAGSET(phsSocket,FLAG_DATA_SOCKET | FLAG_DATA_REDIRECT)) {
-		return 0;
 	}
 	SYSLOG(LOG_INFO,"Unexpected error occurred\n");
 	return -1;
@@ -1209,9 +1205,6 @@ done:
 ////////////////////////////////////////////////////////////////////////////
 int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 {
-	if (ISFLAGSET(phsSocket,FLAG_DATA_REDIRECT)) {
-		return 1;
-	}
 	if (phsSocket->dataLength<=0 && !ISFLAGSET(phsSocket,FLAG_DATA_STREAM)) {
 		SYSLOG(LOG_INFO,"[%d] Data sending completed (%d/%d)\n",phsSocket->socket,phsSocket->response.sentBytes,phsSocket->response.contentLength);
 		return 1;

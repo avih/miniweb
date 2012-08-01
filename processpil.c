@@ -490,3 +490,14 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
     free(argv);
 	return 0;
 }
+
+int ShellRun(const char* cmdline)
+{
+	SHELL_PARAM shell = {0};
+	int ret = ShellExec(&shell, cmdline);
+	if (ret == 0) {
+		ShellWait(&shell, -1);
+	}
+	ShellClean(&shell);
+	return ret;
+}
