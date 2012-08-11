@@ -141,6 +141,37 @@ int mwGetVarValueInt(HttpVariables* vars, const char *varname, int defval)
 	return defval;
 }
 
+static unsigned int hex2uint32(const char *p)
+{
+	register char c;
+	register unsigned int i = 0;
+	for(c=*p;;){
+		if (c>='A' && c<='F')
+			c-=7;
+		else if (c>='a' && c<='f')
+			c-=39;
+		else if (c<'0' || c>'9')
+			break;
+		i=(i<<4)|(c&0xF);
+		c=*(++p);
+	}
+	return i;
+}
+
+unsigned int mwGetVarValueHex(HttpVariables* vars, const char *varname, unsigned int defval)
+{
+	int i;
+	if (vars && varname) {
+		for (i=0; (vars+i)->name; i++) {
+			if (!strcmp((vars+i)->name,varname)) {
+				char *p = (vars+i)->value;
+				return p ? hex2uint32(p) : defval;
+			}
+		}
+	}
+	return defval;
+}
+
 int mwGetHttpDateTime(time_t timer, char *buf, int bufsize)
 {
 #ifndef WINCE

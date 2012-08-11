@@ -400,6 +400,7 @@ int mwGetHttpDateTime(time_t tm, char *buf, int bufsize);
 int mwGetLocalFileName(HttpFilePath* hfp);
 char* mwGetVarValue(HttpVariables* vars, const char *varname, const char *defval);
 int mwGetVarValueInt(HttpVariables* vars, const char *varname, int defval);
+unsigned int mwGetVarValueHex(HttpVariables* vars, const char *varname, unsigned int defval);
 int mwParseQueryString(UrlHandlerParam* up);
 int mwGetContentType(const char *pchExtname);
 void mwDecodeString(char* s);
