@@ -141,7 +141,7 @@ int mwGetVarValueInt(HttpVariables* vars, const char *varname, int defval)
 	return defval;
 }
 
-static unsigned int hex2uint32(const char *p)
+static unsigned int hex2uint(const char *p)
 {
 	register char c;
 	register unsigned int i = 0;
@@ -165,7 +165,7 @@ unsigned int mwGetVarValueHex(HttpVariables* vars, const char *varname, unsigned
 		for (i=0; (vars+i)->name; i++) {
 			if (!strcmp((vars+i)->name,varname)) {
 				char *p = (vars+i)->value;
-				return p ? hex2uint32(p) : defval;
+				return p ? hex2uint(p) : defval;
 			}
 		}
 	}
