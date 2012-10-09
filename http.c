@@ -958,7 +958,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.pucBuffer[0]=0;
 			up.pucPayload = phsSocket->request.pucPayload;
 			up.iVarCount=-1;
-			mwParseQueryString(&up);
+			if (!ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) mwParseQueryString(&up);
 			ret=(*puh->pfnUrlHandler)(&up);
 			if (!ret) continue;
 			phsSocket->flags|=ret;
