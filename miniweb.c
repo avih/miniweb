@@ -206,6 +206,21 @@ int main(int argc,char* argv[])
 		for (i=1;i<argc;i++) {
 			if (argv[i][0]=='-') {
 				switch (argv[i][1]) {
+				case 'h':
+				case 'u':
+					fprintf(stderr,"\nMiniWeb (built on %s) (C)2005-2012 Stanley Huang\n\n", __DATE__);
+					fprintf(stderr,"Usage: miniweb -h | -u  : display this help screen\n"
+						       "               -v       : log status/error info\n"
+						       "               -p       : specifiy http port [default 8000]\n"
+						       "               -r       : specify http document directory [default .]\n"
+						       "               -l       : specify log file\n"
+						       "               -m       : specifiy max clients [default 32]\n"
+						       "               -d       : toggle directory listing [default ON]\n\n");
+					fflush(stderr);
+                                        exit(1);
+
+				case 'v':
+					do_verbose = TRUE;
 				case 'p':
 					if ((++i)<argc) httpParam.httpPort=atoi(argv[i]);
 					break;
