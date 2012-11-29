@@ -219,8 +219,6 @@ int main(int argc,char* argv[])
 					fflush(stderr);
                                         exit(1);
 
-				case 'v':
-					do_verbose = TRUE;
 				case 'p':
 					if ((++i)<argc) httpParam.httpPort=atoi(argv[i]);
 					break;
