@@ -57,6 +57,10 @@
 typedef HANDLE pthread_t;
 typedef HANDLE pthread_mutex_t;
 #endif
+#define open _open
+#define read _read
+#define write _write
+#define close _close
 
 #define atoll _atoi64
 

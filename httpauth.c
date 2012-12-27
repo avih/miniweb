@@ -17,23 +17,21 @@
 
 #ifdef HTTPAUTH  
 
-extern HttpParam g_httpParam;
-
 ////////////////////////////////////////////////////////////////////////////
 // _mwCheckAuthentication
 // Check if a connected peer is authenticated
 ////////////////////////////////////////////////////////////////////////////
-BOOL _mwCheckAuthentication(HttpSocket* phsSocket)
+BOOL _mwCheckAuthentication(HttpParam *hp, HttpSocket* phsSocket)
 {
 	if (!ISFLAGSET(phsSocket,FLAG_AUTHENTICATION))
 		return TRUE;
-	if (g_httpParam.dwAuthenticatedNode!=phsSocket->ipAddr.laddr) {
+	if (hp->dwAuthenticatedNode!=phsSocket->ipAddr.laddr) {
 		// Not authenticated
-		g_httpParam.stats.authFailCount++;
+		hp->stats.authFailCount++;
 		return FALSE;
 	} 
     // Extend authentication period
-    g_httpParam.tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
+    hp->tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
   return TRUE;
 }
 

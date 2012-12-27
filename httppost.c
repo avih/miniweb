@@ -71,15 +71,14 @@ PFNPOSTCALLBACK mwPostRegister(HttpParam *httpParam, PFNPOSTCALLBACK pfnPostCb)
 // _mwNotifyPostVars
 // Process posted variables and do callback with parameter list
 ////////////////////////////////////////////////////////////////////////////
-void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
+void _mwNotifyPostVars(HttpParam *hp, HttpSocket* phsSocket, PostParam *pp)
 {
   // if found any vars
   if (pp->iNumParams>0) {
-    //int iReturn;
+    int iReturn;
     
     // call app callback to process post vars
-    //ASSERT(g_httpParam.pfnPost!=NULL);
-	//iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
+	iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
     
 #ifdef HTTPAUTH
     switch(iReturn) {
@@ -98,13 +97,13 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
         getpeername(phsSocket->socket,
                     (struct sockaddr*)&sinAddress,&sLength);
         
-        g_httpParam.dwAuthenticatedNode=ntohl(sinAddress.sin_addr.s_addr);
+        hp->dwAuthenticatedNode=ntohl(sinAddress.sin_addr.s_addr);
         
         DBG("Http authenticated node %s\n",
                inet_ntoa(sinAddress.sin_addr));
         
         // Set authentication period
-        g_httpParam.tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
+        hp->tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
       }
       break;
     case WEBPOST_NOTAUTHENTICATED:
@@ -115,7 +114,7 @@ void _mwNotifyPostVars(HttpSocket* phsSocket, PostParam *pp)
                     (struct sockaddr*)&sinAddress,&sLength); 
         DBG("Http authentication fail! (%s NOT authenticated)\n",
                inet_ntoa(sinAddress.sin_addr));
-        g_httpParam.dwAuthenticatedNode=0;
+        hp->dwAuthenticatedNode=0;
       }
       break;
     }
@@ -197,7 +196,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       if (pchStart == NULL || pchEnd == NULL) {
 		if (strncmp(phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2, "--\r\n",4) == 0) {
 			// yes, we're all done
-			_mwNotifyPostVars(phsSocket, &(pxMP->pp));
+			_mwNotifyPostVars(httpParam, phsSocket, &(pxMP->pp));
 			DBG("Multipart POST on socket %d complete!\n", phsSocket->socket);
 			return 1;
 		} else {
@@ -224,13 +223,13 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       // Is peer authenticated to post this var?
 	  if (
 #ifdef HTTPAUTH
-		_mwCheckAuthentication(phsSocket)
+		_mwCheckAuthentication(httpParam, phsSocket)
 #else
 		1
 #endif
 		) {
         
-        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName = calloc(pchEnd-pchStart+1, sizeof(char));
+        pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName = (char*)calloc(pchEnd-pchStart+1, sizeof(char));
         memcpy(pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName, pchStart, pchEnd-pchStart);
         
         if (pchFilename!=NULL) {
@@ -285,7 +284,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
     
     if (strncmp(phsSocket->buffer + strlen(pxMP->pchBoundaryValue) + 2, "--\r\n",4) == 0) {
 		// yes, we're all done
-		_mwNotifyPostVars(phsSocket, &(pxMP->pp));
+		_mwNotifyPostVars(httpParam, phsSocket, &(pxMP->pp));
 		DBG("Multipart POST on socket %d complete!\n", phsSocket->socket);
 		return 1;
     }
@@ -327,7 +326,7 @@ void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
   BOOL bAuthenticated;
   
 #ifdef HTTPAUTH
-  bAuthenticated=_mwCheckAuthentication(phsSocket);
+  bAuthenticated=_mwCheckAuthentication(httpParam, phsSocket);
 #else
   bAuthenticated=TRUE;
 #endif
@@ -394,7 +393,7 @@ void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
     }
 
     // process and callback with list of vars
-    _mwNotifyPostVars(phsSocket, &pp);
+    _mwNotifyPostVars(httpParam, phsSocket, &pp);
 
   } else {
     // redirect to index page

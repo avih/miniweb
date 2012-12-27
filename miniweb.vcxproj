@@ -157,11 +157,6 @@
     </ClCompile>
     <ClCompile Include="httpxml.c" />
     <ClCompile Include="miniweb.c" />
-    <ClCompile Include="mpd.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Serial|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="processpil.c" />
     <ClCompile Include="libctb\src\fifo.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -187,7 +182,6 @@
     <ClInclude Include="httpclient.h" />
     <ClInclude Include="httpint.h" />
     <ClInclude Include="httppil.h" />
-    <ClInclude Include="httpvod.h" />
     <ClInclude Include="httpxml.h" />
     <ClInclude Include="processpil.h" />
     <ClInclude Include="revision.h" />

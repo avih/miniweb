@@ -165,7 +165,7 @@ typedef struct {
 	size_t payloadSize;
 	int iCSeq;
 	const char* pucTransport;
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 	const char* pucAuthInfo;
 #endif
 } HttpRequest;
@@ -186,7 +186,7 @@ typedef struct {
 // Callback function protos
 typedef int (*PFNPOSTCALLBACK)(PostParam*);
 typedef int (*PFNSUBSTCALLBACK)(SubstParam*);
-typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, char*, size_t);
+typedef int (*PFNFILEUPLOADCALLBACK)(HttpMultipart*, OCTET*, size_t);
 typedef int (*PFNIDLECALLBACK)(void* hp);
 
 typedef enum {
@@ -266,13 +266,14 @@ typedef struct {
 	void *p_sys;
 } UrlHandler;
 
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 #define AUTH_NO_NEED (0)
 #define AUTH_SUCCESSED (1)
 #define AUTH_REQUIRED (2)
 #define AUTH_FAILED (-1)
 
-#define MAX_AUTH_INFO_LEN 128
+#define MAX_AUTH_INFO_LEN 64
+
 typedef struct {
 	char* pchUrlPrefix;
 	char pchUsername[MAX_AUTH_INFO_LEN];
@@ -302,7 +303,7 @@ typedef struct _httpParam {
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
 	char pchWebPath[128];
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 	AuthHandler *pxAuthHandler;     /* pointer to authorization handler array */
 #endif
 #ifndef DISABLE_VIRTUAL_PATH

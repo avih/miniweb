@@ -786,7 +786,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 	return up->iVarCount;
 }
 
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 ////////////////////////////////////////////////////////////////////////////
 // _mwBase64Encode
 // buffer size of out_str is (in_len * 4 / 3 + 1)
@@ -866,11 +866,11 @@ void _mwSend401AuthorizationRequired(HttpParam* hp, HttpSocket* phsSocket, int r
 	int body_len = 0, hdrsize = 0;
 
 	if (reason == AUTH_REQUIRED) {
-		body = "required";
+		body = "Authentication required";
 		body_len = 8;
 	}
 	else {
-		body = "failed";
+		body = "Authentication failed";
 		body_len = 6;
 	}
 
@@ -1191,7 +1191,7 @@ done:
 	SYSLOG(LOG_INFO,"[%d] request path: %s\n",phsSocket->socket,phsSocket->request.pucPath);
 	hp->stats.reqCount++;
 
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 	if (hp->pxAuthHandler != NULL) {
 		int ret = _mwBasicAuthorizationHandlers(hp, phsSocket);
 		switch (ret) {
@@ -2067,7 +2067,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 	char *p=phsSocket->buffer;		//pointer to header data
 	HttpRequest *req=&phsSocket->request;
 
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 	phsSocket->request.pucAuthInfo = NULL;
 #endif
 
@@ -2134,7 +2134,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 			phsSocket->request.pucHost = p;
 		} else if (_mwStrHeadMatch(&p,"Transport: ")) {
 			phsSocket->request.pucTransport = p;
-#ifndef DISABLE_BASIC_WWWAUTH
+#ifdef HTTPAUTH
 		} if (_mwStrHeadMatch(&p,"Authorization: ")) {
 			phsSocket->request.pucAuthInfo = p;
 #endif
