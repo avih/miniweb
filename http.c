@@ -1117,7 +1117,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					HttpMultipart *pxMP = phsSocket->pxMP;
 					pxMP->pp.pchPath = phsSocket->request.pucPath;
 
-					if (!pxMP->pchFilename) {
+					if (ISFLAGSET(phsSocket, FLAG_MULTIPART)) {
 						// multipart POST
 						phsSocket->dataLength -= (phsSocket->request.headerSize);
 						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
@@ -1277,7 +1277,6 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 			free(pxMP->pp.stParams[i].pchParamName);
 			free(pxMP->pp.stParams[i].pchParamValue);
 		}
-		//if (pxMP->pchFilename) free(pxMP->pchFilename);
 		free(pxMP);
 		phsSocket->pxMP = 0;
 	}
@@ -2071,6 +2070,8 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 	phsSocket->request.pucAuthInfo = NULL;
 #endif
 
+	CLRFLAG(phsSocket, FLAG_MULTIPART);
+
 	p = strstr(phsSocket->buffer, "HTTP/1.");
 	do {
 		if (p) continue;
@@ -2099,6 +2100,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 		} else if (_mwStrHeadMatch(&p, "Content-Type: ")) {
 			if (_mwStrHeadMatch(&p, "multipart/form-data; boundary=")) {
 				// request is a multipart POST
+				SETFLAG(phsSocket, FLAG_MULTIPART);
 				buf[0] = '-';
 				buf[1] = '-';
 				p += _mwGrabToken(p ,'\r', buf + 2, sizeof(buf) - 2);
@@ -2109,7 +2111,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 					if (_mwStrHeadMatch(&p, "; filename=")) {
 						p += _mwGrabToken(p ,'\r', buf, sizeof(buf));
 						phsSocket->pxMP = calloc(1, sizeof(HttpMultipart));
-						phsSocket->pxMP->pchFilename = strdup(buf);
+						strncpy(phsSocket->pxMP->pchFilename, buf, sizeof(phsSocket->pxMP->pchFilename) - 1);
 						break;
 					}
 				}

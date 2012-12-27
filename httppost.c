@@ -177,15 +177,13 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   for (; pchBoundarySearch != NULL; pchBoundarySearch = _mwFindMultipartBoundary(phsSocket->buffer, 
                                                    HTTPMAXRECVBUFFER, 
 												   pxMP->pchBoundaryValue)) {
-    if (pxMP->pchFilename) {
+    if (pxMP->pchFilename[0] && pxMP->oFileuploadStatus != HTTPUPLOAD_LASTCHUNK) {
       // It's the last chunk of the posted file
       // Warning: MAY BE BIGGER THAN HTTPUPLOAD_CHUNKSIZE
-      pxMP->oFileuploadStatus |= HTTPUPLOAD_LASTCHUNK;
+      pxMP->oFileuploadStatus = HTTPUPLOAD_LASTCHUNK;
       (httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, (DWORD)pchBoundarySearch - (DWORD)phsSocket->buffer);
-      pxMP->pchFilename = NULL;
       
-      DBG("Multipart file POST on socket %d complete\n",
-                   phsSocket->socket);
+      DBG("Multipart file POST on socket %d complete\n",  phsSocket->socket);
     }
     
     else {
@@ -255,7 +253,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
         pxMP->pp.iNumParams++;
         
         if (pchFilename!=NULL) {
-          pxMP->pchFilename = pxMP->pp.stParams[pxMP->pp.iNumParams-1].pchParamValue;
+          strncpy(pxMP->pchFilename, pxMP->pp.stParams[pxMP->pp.iNumParams-1].pchParamValue, sizeof(pxMP->pchFilename) - 1);
           
           // shift to start of file data
           pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
@@ -291,9 +289,9 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
     
   }
   
-  // check if buffer is full
+  // check if receive buffer is full, if so, flush half of the buffer
   if (pxMP->writeLocation == HTTPMAXRECVBUFFER) {
-    if (pxMP->pchFilename != NULL) {
+    if (pxMP->oFileuploadStatus != HTTPUPLOAD_LASTCHUNK) {
       // callback with next chunk of posted file
 		if ((httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE)) {
 			return 1;
