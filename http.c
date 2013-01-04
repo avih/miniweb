@@ -141,7 +141,7 @@ int mwGetVarValueInt(HttpVariables* vars, const char *varname, int defval)
 	return defval;
 }
 
-static unsigned int hex2uint(const char *p)
+static unsigned int hex2uint32(const char *p)
 {
 	register char c;
 	register unsigned int i = 0;
@@ -165,7 +165,7 @@ unsigned int mwGetVarValueHex(HttpVariables* vars, const char *varname, unsigned
 		for (i=0; (vars+i)->name; i++) {
 			if (!strcmp((vars+i)->name,varname)) {
 				char *p = (vars+i)->value;
-				return p ? hex2uint(p) : defval;
+				return p ? hex2uint32(p) : defval;
 			}
 		}
 	}
@@ -715,7 +715,11 @@ int mwParseQueryString(UrlHandlerParam* up)
 			int i;
 			int n = 1;
 			//get number of variables
-			for (p = s; *p ; ) if (*(p++)=='&') n++;
+			for (p = s; *p ; p++) {
+				if (*p < 32 || *p > 127)
+					return 0;
+				if (*p == '&') n++;
+			}
 			up->pxVars = calloc(n + 1, sizeof(HttpVariables));
 			up->iVarCount = n;
 			//store variable name and value
