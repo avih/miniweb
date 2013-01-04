@@ -138,9 +138,8 @@ typedef struct _tagSubstParam {
 #define FLAG_DATA_RAW		0x20000
 #define FLAG_DATA_FD		0x40000
 #define FLAG_DATA_STREAM	0x100000
-#define FLAG_DATA_SOCKET	0x200000
-#define FLAG_CUSTOM_HEADER	0x400000
-#define FLAG_MULTIPART		0x800000
+#define FLAG_CUSTOM_HEADER	0x200000
+#define FLAG_MULTIPART		0x400000
 
 #define FLAG_RECEIVING		0x80000000
 #define FLAG_SENDING		0x40000000
@@ -215,10 +214,10 @@ typedef struct {
 } HttpStats;
 
 #define HTTP_BUFFER_SIZE (128*1024 /*bytes*/)
+#define HTTP_MAX_CLIENTS 64
 
 // per connection/socket structure
 typedef struct _HttpSocket{
-	struct _HttpSocket *next;
 	SOCKET socket;
 	IPADDR ipAddr;
 
@@ -294,13 +293,13 @@ typedef struct {
 #define FLAG_DIR_LISTING 1
 
 typedef struct _httpParam {
-	HttpSocket *phsSocketHead;				/* head of the socket linked list */
+	HttpSocket* hsSocketQueue;				/* socket queue*/
+	int maxClients;
 	int   bKillWebserver;
 	int   bWebserverRunning;
 	unsigned int flags;
 	SOCKET listenSocket;
 	int httpPort;
-	int maxClients;
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
 	char pchWebPath[128];
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */

@@ -18,6 +18,7 @@
 #include "httppil.h"
 
 #ifndef WIN32
+#include <sys/time.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -226,3 +227,11 @@ int IsFileExist(const char* filename)
 #endif
 }
 
+#ifndef WIN32
+unsigned int GetTickCount()
+{
+	struct timeval ts;
+	gettimeofday(&ts,0);
+	return ts.tv_sec * 1000 + ts.tv_usec / 1000;
+}
+#endif

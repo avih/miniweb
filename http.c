@@ -195,7 +195,7 @@ void mwInitParam(HttpParam* hp)
 	memset(hp, 0, sizeof(HttpParam));
 	hp->httpPort = 80;
 	hp->tmSocketExpireTime = 60;
-	hp->maxClients = 8;
+	hp->maxClients = HTTP_MAX_CLIENTS;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -208,7 +208,14 @@ int mwServerStart(HttpParam* hp)
 		DBG("Error: Webserver thread already running\n");
 		return -1;
 	}
+
 	if (!fpLog) fpLog=stderr;
+
+	if (hp->maxClients == 0) {
+		SYSLOG(LOG_INFO,"Maximum clients not set\n");
+		return -1;
+	}
+	hp->hsSocketQueue = calloc(hp->maxClients, sizeof(HttpSocket));
 
 	if (hp->pxUrlHandler) {
 		int i;
@@ -252,11 +259,6 @@ int mwServerShutdown(HttpParam* hp)
 	DBG("Shutting down web server thread\n");
 	// signal webserver thread to quit
 	hp->bKillWebserver=TRUE;
-
-	for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
-		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
-			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, 0, hp);
-	}
 
 	if (hp->listenSocket) closesocket(hp->listenSocket);
 
@@ -420,6 +422,7 @@ void* mwHttpLoop(void* _hp)
 	SOCKET socket;
 	struct sockaddr_in sinaddr;
     int iRc;
+	int i;
 
   // main processing loop
 	while (!hp->bKillWebserver) {
@@ -441,22 +444,24 @@ void* mwHttpLoop(void* _hp)
 		tmCurrentTime=GetTickCount() >> 10;
 #endif
 		// build descriptor sets and close timed out sockets
-		for (phsSocketCur=hp->phsSocketHead; phsSocketCur; phsSocketCur=phsSocketCur->next) {
-			//int iError=0;
-			//int iOptSize=sizeof(int);
+		for (i = 0; i < hp->maxClients; i++) {
+			phsSocketCur = hp->hsSocketQueue + i;
 
 			// get socket fd
-			socket=phsSocketCur->socket;
+			socket = phsSocketCur->socket;
 			if (!socket) continue;
-#if 0
-			if (getsockopt(socket,SOL_SOCKET,SO_ERROR,(char*)&iError,&iOptSize)) {
-				// if a socket contains a error, close it
-				SYSLOG(LOG_INFO,"[%d] Socket no longer vaild.\n",socket);
-				phsSocketCur->flags=FLAG_CONN_CLOSE;
-				_mwCloseSocket(hp, phsSocketCur);
-				continue;
+
+			{
+				int iError=0;
+				int iOptSize=sizeof(int);
+				if (getsockopt(socket,SOL_SOCKET,SO_ERROR,(char*)&iError,&iOptSize)) {
+					// if a socket contains a error, close it
+					SYSLOG(LOG_INFO,"[%d] Socket no longer vaild.\n",socket);
+					phsSocketCur->flags=FLAG_CONN_CLOSE;
+					_mwCloseSocket(hp, phsSocketCur);
+					continue;
+				}
 			}
-#endif
 			// check expiration timer (for non-listening, in-use sockets)
 			if (tmCurrentTime > phsSocketCur->tmExpirationTime) {
 				SYSLOG(LOG_INFO,"[%d] Http socket expired\n",phsSocketCur->socket);
@@ -475,7 +480,7 @@ void* mwHttpLoop(void* _hp)
 				}
 				// check if new max socket
 				if (socket>iSelectMaxFds) {
-				iSelectMaxFds=socket;
+					iSelectMaxFds=socket;
 				}
 			}
 		}
@@ -497,20 +502,21 @@ void* mwHttpLoop(void* _hp)
 			continue;
 		}
 		if (iRc>0) {
-			HttpSocket *phsSocketNext;
+			int i;
 			// check which sockets are read/write able
-			phsSocketCur=hp->phsSocketHead;
-			while (phsSocketCur) {
+			for (i = 0; i < hp->maxClients; i++) {
 				BOOL bRead;
 				BOOL bWrite;
 
-				phsSocketNext=phsSocketCur->next;
+				phsSocketCur = hp->hsSocketQueue + i;
+
 				// get socket fd
-				socket=phsSocketCur->socket;
+				socket = phsSocketCur->socket;
+				if (!socket) continue;
 
 				// get read/write status for socket
-				bRead=FD_ISSET(socket, &fdsSelectRead);
-				bWrite=FD_ISSET(socket, &fdsSelectWrite);
+				bRead = FD_ISSET(socket, &fdsSelectRead);
+				bWrite = FD_ISSET(socket, &fdsSelectWrite);
 
 				if ((bRead|bWrite)!=0) {
 					//DBG("socket %d bWrite=%d, bRead=%d\n",phsSocketCur->socket,bWrite,bRead);
@@ -519,13 +525,9 @@ void* mwHttpLoop(void* _hp)
 						iRc=_mwProcessWriteSocket(hp, phsSocketCur);
 					} else if (bRead && ISFLAGSET(phsSocketCur,FLAG_RECEIVING)) {
 						iRc=_mwProcessReadSocket(hp,phsSocketCur);
-						if (ISFLAGSET(phsSocketCur, FLAG_DATA_SOCKET)) {
-							_mwRemoveSocket(hp, phsSocketCur);
-						}
 					} else {
 						iRc=-1;
 						DBG("Invalid socket state (flag: %08x)\n",phsSocketCur->flags);
-						SETFLAG(phsSocketCur,FLAG_CONN_CLOSE);
 					}
 					if (!iRc) {
 						// and reset expiration timer
@@ -535,30 +537,32 @@ void* mwHttpLoop(void* _hp)
 						phsSocketCur->tmExpirationTime=(GetTickCount()>>10)+hp->tmSocketExpireTime;
 #endif
 					} else {
+						SETFLAG(phsSocketCur,FLAG_CONN_CLOSE);
 						_mwCloseSocket(hp, phsSocketCur);
 					}
 				}
-				phsSocketCur=phsSocketNext;
 			}
 
 			// check if any socket to accept and accept the socket
 			if (FD_ISSET(hp->listenSocket, &fdsSelectRead)) {
-				if (hp->stats.clientCount > hp->maxClients) {
-					DBG("WARNING: clientCount:%d > maxClients:%d\n", hp->stats.clientCount, hp->maxClients);
-					msleep(200);
+				// find empty slot
+				phsSocketCur = 0;
+				for (i = 0; i < hp->maxClients; i++) {
+					if (hp->hsSocketQueue[i].socket == 0) {
+						phsSocketCur = hp->hsSocketQueue + i;
+						break;
+					}
 				}
 
-				socket = _mwAcceptSocket(hp,&sinaddr);
-				if (socket == 0) continue;
-
-				// create a new socket structure and insert it in the linked list
-				phsSocketCur=(HttpSocket*)calloc(1, sizeof(HttpSocket));
 				if (!phsSocketCur) {
-					DBG("Out of memory\n");
-					break;
+					DBG("WARNING: clientCount:%d > maxClients:%d\n", hp->stats.clientCount, hp->maxClients);
+					continue;
 				}
-				phsSocketCur->next=hp->phsSocketHead;
-				hp->phsSocketHead=phsSocketCur;	//set new header of the list
+
+				phsSocketCur->socket = _mwAcceptSocket(hp,&sinaddr);
+				if (phsSocketCur->socket == 0) continue;
+				hp->stats.clientCount++;
+
 				//fill structure with data
 				_mwInitSocketData(phsSocketCur);
 				phsSocketCur->request.pucPayload = 0;
@@ -567,7 +571,6 @@ void* mwHttpLoop(void* _hp)
 #else
 				phsSocketCur->tmAcceptTime = GetTickCount()>>10;
 #endif
-				phsSocketCur->socket=socket;
 				phsSocketCur->tmExpirationTime=phsSocketCur->tmAcceptTime+hp->tmSocketExpireTime;
 				phsSocketCur->iRequestCount=0;
 				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
@@ -577,7 +580,6 @@ void* mwHttpLoop(void* _hp)
 					phsSocketCur->ipAddr.caddr[2],
 					phsSocketCur->ipAddr.caddr[1],
 					phsSocketCur->ipAddr.caddr[0]);
-				hp->stats.clientCount++;
 				SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
 				//update max client count
 				if (hp->stats.clientCount>hp->stats.clientCountMax) hp->stats.clientCountMax=hp->stats.clientCount;
@@ -586,25 +588,6 @@ void* mwHttpLoop(void* _hp)
 			//DBG("Select Timeout\n");
 			HttpSocket *phsSocketPrev=NULL;
 			// select timeout
-			// clean up the link list
-			phsSocketCur=hp->phsSocketHead;
-			while (phsSocketCur) {
-				if (!phsSocketCur->socket) {
-					DBG("Free up socket structure 0x%08x\n", (unsigned int)phsSocketCur);
-					if (phsSocketPrev) {
-						phsSocketPrev->next=phsSocketCur->next;
-						free(phsSocketCur);
-						phsSocketCur=phsSocketPrev->next;
-					} else {
-						hp->phsSocketHead=phsSocketCur->next;
-						free(phsSocketCur);
-						phsSocketCur=hp->phsSocketHead;
-					}
-				} else {
-					phsSocketPrev=phsSocketCur;
-					phsSocketCur=phsSocketCur->next;
-				}
-			}
 			// call idle event
 			if (hp->pfnIdleCallback) {
 				(*hp->pfnIdleCallback)(hp);
@@ -612,15 +595,12 @@ void* mwHttpLoop(void* _hp)
 		}
 	}
 
-	for (phsSocketCur=hp->phsSocketHead; phsSocketCur;) {
-		HttpSocket *phsSocketNext;
-		phsSocketCur->flags|=FLAG_CONN_CLOSE;
-		_mwCloseSocket(hp, phsSocketCur);
-		phsSocketNext=phsSocketCur->next;
-		free(phsSocketCur);
-		phsSocketCur=phsSocketNext;
+	for (i=0; (hp->pxUrlHandler+i)->pchUrlPrefix; i++) {
+		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
+			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, 0, hp);
 	}
-	hp->phsSocketHead = 0;
+	free(hp->hsSocketQueue);
+	hp->hsSocketQueue = 0;
 
 	// clear state vars
 	hp->bKillWebserver=FALSE;
@@ -628,23 +608,6 @@ void* mwHttpLoop(void* _hp)
 
 	return NULL;
 } // end of _mwHttpThread
-
-int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs)
-{
-	HttpSocket* phsSocketCur=hp->phsSocketHead;
-	if (phsSocketCur == hs) {
-		hp->phsSocketHead = phsSocketCur->next;
-		return 0;
-	}
-	while (phsSocketCur) {
-		if (phsSocketCur->next == hs) {
-			phsSocketCur->next = phsSocketCur->next->next;
-			return 0;
-		}
-		phsSocketCur = phsSocketCur->next;
-	}
-	return -1;
-}
 
 ////////////////////////////////////////////////////////////////////////////
 // _mwAcceptSocket
@@ -990,9 +953,6 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			} else if (ret & FLAG_DATA_FD) {
 				SETFLAG(phsSocket, FLAG_DATA_FILE);
 				DBG("URL handler: file descriptor\n");
-			} else if (ret & FLAG_DATA_SOCKET) {
-				SETFLAG(phsSocket, FLAG_DATA_SOCKET);
-				DBG("URL handler: socket\n");
 			}
 			break;
 		}
@@ -1245,8 +1205,6 @@ int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 		return _mwSendRawDataChunk(hp, phsSocket);
 	} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 		return _mwSendFileChunk(hp, phsSocket);
-	} else if (ISFLAGSET(phsSocket, FLAG_DATA_SOCKET)) {
-		return 0;
 	} else {
 		SYSLOG(LOG_INFO,"Invalid content source\n");
 		return -1;
@@ -1303,11 +1261,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->request.pucPath);
 		phsSocket->request.pucPath = 0;
 	}
-	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE)
-#ifndef WINCE
-		&& phsSocket->iRequestCount< MAX_CONN_REQUESTS
-#endif
-		) {
+	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount< MAX_CONN_REQUESTS) {
 		_mwInitSocketData(phsSocket);
 		//reset flag bits
 		phsSocket->iRequestCount++;
@@ -1318,14 +1272,12 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 #endif
 		return;
 	}
-    if (phsSocket->socket != 0) {
-		closesocket(phsSocket->socket);
-		hp->stats.clientCount--;
-		phsSocket->iRequestCount=0;
-		SYSLOG(LOG_INFO,"[%d] socket closed after responded for %d requests\n",phsSocket->socket,phsSocket->iRequestCount);
-		SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
-		phsSocket->socket=0;
-	}
+	closesocket(phsSocket->socket);
+	hp->stats.clientCount--;
+	phsSocket->iRequestCount=0;
+	SYSLOG(LOG_INFO,"[%d] socket closed after responded for %d requests\n",phsSocket->socket,phsSocket->iRequestCount);
+	SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
+	phsSocket->socket=0;
 } // end of _mwCloseSocket
 
 int _mwStrCopy(char *dest, const char *src)

@@ -61,6 +61,16 @@ int uhStats(UrlHandlerParam* param)
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
 	node.fmt = "%d";
+	node.name = "Clients";
+	node.value = (void*)(stats->clientCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
+
+	node.fmt = "%d";
+	node.name = "ExpireTimeout";
+	node.value = (void*)(stats->timeOutCount);
+	mwWriteXmlLine(&p, &bufsize, &node, 0);
+
+	node.fmt = "%d";
 	node.name = "MaxClients";
 	node.value = (void*)(stats->clientCountMax);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
@@ -85,10 +95,13 @@ int uhStats(UrlHandlerParam* param)
 	{
 		HttpSocket *phsSocketCur;
 		time_t curtime=time(NULL);
-		for (phsSocketCur=((HttpParam*)param->hp)->phsSocketHead; phsSocketCur; phsSocketCur=phsSocketCur->next) {
+		int i;
+		for (i = 0; i < ((HttpParam*)param->hp)->maxClients; i++) {
+			phsSocketCur = ((HttpParam*)param->hp)->hsSocketQueue + i;
+			if (!phsSocketCur->socket) continue;
 			ip=phsSocketCur->ipAddr;
 			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\"/>",
-				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0],phsSocketCur->iRequestCount,phsSocketCur->tmExpirationTime-curtime);
+				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0], phsSocketCur->iRequestCount, (int)(phsSocketCur->tmExpirationTime - curtime));
 			mwWriteXmlString(&p, &bufsize, 2, buf);
 			/*
 			if (phsSocketCur->request.pucPath)

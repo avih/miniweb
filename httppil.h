@@ -116,6 +116,9 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf);
 int IsFileExist(const char* filename);
 int IsDir(const char* pchName);
 
+#ifndef WIN32
+unsigned int GetTickCount();
+#endif
 #ifdef __cplusplus
 }
 #endif
