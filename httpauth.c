@@ -15,8 +15,6 @@
 #include "httpapi.h"
 #include "httpint.h"
 
-#ifdef HTTPAUTH  
-
 ////////////////////////////////////////////////////////////////////////////
 // _mwCheckAuthentication
 // Check if a connected peer is authenticated
@@ -25,7 +23,7 @@ BOOL _mwCheckAuthentication(HttpParam *hp, HttpSocket* phsSocket)
 {
 	if (!ISFLAGSET(phsSocket,FLAG_AUTHENTICATION))
 		return TRUE;
-	if (hp->dwAuthenticatedNode!=phsSocket->ipAddr.laddr) {
+	if (hp->dwAuthenticatedNode != phsSocket->ipAddr.laddr) {
 		// Not authenticated
 		hp->stats.authFailCount++;
 		return FALSE;
@@ -34,5 +32,3 @@ BOOL _mwCheckAuthentication(HttpParam *hp, HttpSocket* phsSocket)
     hp->tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
   return TRUE;
 }
-
-#endif

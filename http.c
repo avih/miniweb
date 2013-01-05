@@ -104,8 +104,6 @@ char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
 
 FILE *fpLog=NULL;
 
-#define LOG_INFO fpLog
-
 ////////////////////////////////////////////////////////////////////////////
 // API callsc
 ////////////////////////////////////////////////////////////////////////////
@@ -400,6 +398,7 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->request.headerSize = 0;
 	phsSocket->request.payloadSize = 0;
 	phsSocket->request.iCSeq = 0;
+	phsSocket->request.pucAuthInfo = NULL;
 	phsSocket->response.statusCode = 200;
 	phsSocket->fd = 0;
 	phsSocket->flags = FLAG_RECEIVING;
@@ -753,7 +752,6 @@ int mwParseQueryString(UrlHandlerParam* up)
 	return up->iVarCount;
 }
 
-#ifdef HTTPAUTH
 ////////////////////////////////////////////////////////////////////////////
 // _mwBase64Encode
 // buffer size of out_str is (in_len * 4 / 3 + 1)
@@ -882,7 +880,7 @@ int _mwBasicAuthorizationHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			break;
 		}
 		else if (strncmp(phsSocket->request.pucAuthInfo, pah->pchAuthString, strlen(pah->pchAuthString)) == 0) { //FIXME:
-			phsSocket->request.pucAuthInfo = pah->pchOtherInfo;
+			phsSocket->request.pucAuthInfo = pah->pchOtherInfo ? pah->pchOtherInfo : "group=admin";
 			ret = AUTH_SUCCESSED; //successed
 			break;
 		}
@@ -893,7 +891,6 @@ int _mwBasicAuthorizationHandlers(HttpParam* hp, HttpSocket* phsSocket)
 
 	return ret;
 }
-#endif //DISABLE_BASIC_WWWAUTH
 
 int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 {
@@ -1155,7 +1152,6 @@ done:
 	SYSLOG(LOG_INFO,"[%d] request path: %s\n",phsSocket->socket,phsSocket->request.pucPath);
 	hp->stats.reqCount++;
 
-#ifdef HTTPAUTH
 	if (hp->pxAuthHandler != NULL) {
 		int ret = _mwBasicAuthorizationHandlers(hp, phsSocket);
 		switch (ret) {
@@ -1169,7 +1165,6 @@ done:
 			return 0;
 		}
 	}
-#endif
 
 	if (hp->pxUrlHandler) {
 		if (!_mwCheckUrlHandlers(hp,phsSocket))
@@ -2022,10 +2017,6 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 	char *p=phsSocket->buffer;		//pointer to header data
 	HttpRequest *req=&phsSocket->request;
 
-#ifdef HTTPAUTH
-	phsSocket->request.pucAuthInfo = NULL;
-#endif
-
 	CLRFLAG(phsSocket, FLAG_MULTIPART);
 
 	p = strstr(phsSocket->buffer, "HTTP/1.");
@@ -2092,10 +2083,8 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 			phsSocket->request.pucHost = p;
 		} else if (_mwStrHeadMatch(&p,"Transport: ")) {
 			phsSocket->request.pucTransport = p;
-#ifdef HTTPAUTH
 		} if (_mwStrHeadMatch(&p,"Authorization: ")) {
 			phsSocket->request.pucAuthInfo = p;
-#endif
 		}
 	}
 	return 0;					//end of header

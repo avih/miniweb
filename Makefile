@@ -1,9 +1,9 @@
 CC=gcc
 CFLAGS=-O2
-HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o
+HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o processpil.o licserver.o md5.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
-TARGET = miniweb
+TARGET = licserver
 endif
 
 DEFINES=
@@ -49,9 +49,9 @@ endif
 	$(CC) $(DEFINES) -c -o $@ $(CFLAGS) $(filter %.c, $^)
 
 
-all: $(HTTPOBJ) miniweb.o
+all: $(HTTPOBJ)
 	@echo Building for $(OS)
-	$(CC) $(LDFLAGS) $(HTTPOBJ) miniweb.o -o $(TARGET)
+	$(CC) $(LDFLAGS) $(HTTPOBJ) -o $(TARGET)
 
 min: $(HTTPOBJ) httpmin.o
 	@echo Building for $(OS)

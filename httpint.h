@@ -97,6 +97,8 @@
 #define SLASH '\\'
 #endif
 
+#define LOG_INFO fpLog
+extern FILE *fpLog;
 #ifdef NOCONSOLE
 #define SYSLOG
 #else

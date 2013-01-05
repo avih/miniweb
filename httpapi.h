@@ -165,9 +165,7 @@ typedef struct {
 	size_t payloadSize;
 	int iCSeq;
 	const char* pucTransport;
-#ifdef HTTPAUTH
 	const char* pucAuthInfo;
-#endif
 } HttpRequest;
 
 typedef struct {
@@ -214,7 +212,7 @@ typedef struct {
 } HttpStats;
 
 #define HTTP_BUFFER_SIZE (128*1024 /*bytes*/)
-#define HTTP_MAX_CLIENTS 64
+#define HTTP_MAX_CLIENTS 32
 
 // per connection/socket structure
 typedef struct _HttpSocket{
@@ -266,7 +264,6 @@ typedef struct {
 	void *p_sys;
 } UrlHandler;
 
-#ifdef HTTPAUTH
 #define AUTH_NO_NEED (0)
 #define AUTH_SUCCESSED (1)
 #define AUTH_REQUIRED (2)
@@ -275,13 +272,12 @@ typedef struct {
 #define MAX_AUTH_INFO_LEN 64
 
 typedef struct {
-	char* pchUrlPrefix;
-	char pchUsername[MAX_AUTH_INFO_LEN];
-	char pchPassword[MAX_AUTH_INFO_LEN];
-	char pchOtherInfo[MAX_AUTH_INFO_LEN];
+	const char* pchUrlPrefix;
+	const char* pchUsername;
+	const char* pchPassword;
+	const char* pchOtherInfo;
 	char pchAuthString[MAX_AUTH_INFO_LEN];
 } AuthHandler;
-#endif
 
 #ifndef DISABLE_VIRTUAL_PATH
 typedef struct {
@@ -303,9 +299,7 @@ typedef struct _httpParam {
 	int socketRcvBufSize;	/* socket receive buffer size in KB */
 	char pchWebPath[128];
 	UrlHandler *pxUrlHandler;		/* pointer to URL handler array */
-#ifdef HTTPAUTH
 	AuthHandler *pxAuthHandler;     /* pointer to authorization handler array */
-#endif
 #ifndef DISABLE_VIRTUAL_PATH
 	VirtPathHandler *pxVirtPathHandler;
 #endif

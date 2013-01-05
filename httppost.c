@@ -80,7 +80,6 @@ void _mwNotifyPostVars(HttpParam *hp, HttpSocket* phsSocket, PostParam *pp)
     // call app callback to process post vars
 	iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
     
-#ifdef HTTPAUTH
     switch(iReturn) {
     case WEBPOST_AUTHENTICATIONON:
       DBG("Http authentication on\n");
@@ -92,33 +91,26 @@ void _mwNotifyPostVars(HttpParam *hp, HttpSocket* phsSocket, PostParam *pp)
       break;
     case WEBPOST_AUTHENTICATED:
       {
+		/*
         struct sockaddr_in sinAddress;
         socklen_t sLength=sizeof(struct sockaddr_in);
         getpeername(phsSocket->socket,
                     (struct sockaddr*)&sinAddress,&sLength);
         
         hp->dwAuthenticatedNode=ntohl(sinAddress.sin_addr.s_addr);
-        
-        DBG("Http authenticated node %s\n",
-               inet_ntoa(sinAddress.sin_addr));
+		*/
+		hp->dwAuthenticatedNode = phsSocket->ipAddr.laddr;
+		SYSLOG(LOG_INFO,"[%d] Http authenticated\n", phsSocket->socket);
         
         // Set authentication period
         hp->tmAuthExpireTime = time(NULL) + HTTPAUTHTIMEOUT;
       }
       break;
     case WEBPOST_NOTAUTHENTICATED:
-      {
-        struct sockaddr_in sinAddress;
-        socklen_t sLength=sizeof(struct sockaddr_in);
-        getpeername(phsSocket->socket,
-                    (struct sockaddr*)&sinAddress,&sLength); 
-        DBG("Http authentication fail! (%s NOT authenticated)\n",
-               inet_ntoa(sinAddress.sin_addr));
-        hp->dwAuthenticatedNode=0;
-      }
+	  SYSLOG(LOG_INFO,"[%d] Http authentication failed\n", phsSocket->socket);
+      hp->dwAuthenticatedNode=0;
       break;
     }
-#endif
   }
   
 
@@ -219,13 +211,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       pchEnd=strchr(pchStart,0x22);              // find end quote
       
       // Is peer authenticated to post this var?
-	  if (
-#ifdef HTTPAUTH
-		_mwCheckAuthentication(httpParam, phsSocket)
-#else
-		1
-#endif
-		) {
+	  if (_mwCheckAuthentication(httpParam, phsSocket)) {
         
         pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName = (char*)calloc(pchEnd-pchStart+1, sizeof(char));
         memcpy(pxMP->pp.stParams[pxMP->pp.iNumParams].pchParamName, pchStart, pchEnd-pchStart);
@@ -323,12 +309,7 @@ void _mwProcessPostVars(HttpParam *httpParam, HttpSocket* phsSocket,
 {
   BOOL bAuthenticated;
   
-#ifdef HTTPAUTH
   bAuthenticated=_mwCheckAuthentication(httpParam, phsSocket);
-#else
-  bAuthenticated=TRUE;
-#endif
-
   //ASSERT(iContentOffset+contentLength<=phsSocket->dataLength);
 
   // extract the posted vars
