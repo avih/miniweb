@@ -1,9 +1,9 @@
 CC=gcc
 CFLAGS=-O2
-HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o processpil.o licserver.o md5.o
+HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o httpauth.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
-TARGET = licserver
+TARGET = miniweb
 endif
 
 DEFINES=
@@ -17,21 +17,11 @@ else
 OS="Linux"
 endif
 
-ifdef ENABLE_AUTH
-HTTPOBJ+= httpauth.o
-DEFINES+= -DHTTPAUTH
-endif
-
 ifndef DEBUG
 DFLAGS += -s
 else
 DEFINES+= -D_DEBUG
 LDFLAGS += -g
-endif
-
-ifdef ENABLE_MPD
-DEFINES+= -D_MPD
-HTTPOBJ+= mpd.o procpil.o
 endif
 
 ifdef ENABLE_VOD
@@ -49,9 +39,9 @@ endif
 	$(CC) $(DEFINES) -c -o $@ $(CFLAGS) $(filter %.c, $^)
 
 
-all: $(HTTPOBJ)
+all: $(HTTPOBJ) miniweb.o
 	@echo Building for $(OS)
-	$(CC) $(LDFLAGS) $(HTTPOBJ) -o $(TARGET)
+	$(CC) $(LDFLAGS) $(HTTPOBJ) miniweb.o -o $(TARGET)
 
 min: $(HTTPOBJ) httpmin.o
 	@echo Building for $(OS)
