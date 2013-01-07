@@ -4,6 +4,7 @@ HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o httpauth.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
 TARGET = miniweb
+HTTPOBJ += miniweb.o
 endif
 
 DEFINES=
@@ -38,10 +39,9 @@ endif
 %.o: %.c $(HEADERS)
 	$(CC) $(DEFINES) -c -o $@ $(CFLAGS) $(filter %.c, $^)
 
-
-all: $(HTTPOBJ) miniweb.o
+all: $(HTTPOBJ)
 	@echo Building for $(OS)
-	$(CC) $(LDFLAGS) $(HTTPOBJ) miniweb.o -o $(TARGET)
+	$(CC) $(LDFLAGS) $(HTTPOBJ) -o $(TARGET)
 
 min: $(HTTPOBJ) httpmin.o
 	@echo Building for $(OS)
