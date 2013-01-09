@@ -217,11 +217,11 @@ int mwServerStart(HttpParam* hp)
 
 	if (hp->pxUrlHandler) {
 		int i;
-		for (i=0;(hp->pxUrlHandler+i)->pchUrlPrefix;i++) {
-			if ((hp->pxUrlHandler+i)->pfnEventHandler &&
-				(hp->pxUrlHandler+i)->pfnEventHandler(MW_INIT, 0, hp)) {
+		for (i=0; hp->pxUrlHandler[i].pchUrlPrefix;i++) {
+			if (hp->pxUrlHandler[i].pfnEventHandler &&
+				hp->pxUrlHandler[i].pfnEventHandler(MW_INIT, &hp->pxUrlHandler[i], hp)) {
 				//remove the URL handler
-				(hp->pxUrlHandler+i)->pfnUrlHandler=NULL;
+				hp->pxUrlHandler[i].pfnUrlHandler=NULL;
 			}
 		}
 	}
@@ -594,9 +594,9 @@ void* mwHttpLoop(void* _hp)
 		}
 	}
 
-	for (i=0; (hp->pxUrlHandler+i)->pchUrlPrefix; i++) {
-		if ((hp->pxUrlHandler+i)->pfnUrlHandler && (hp->pxUrlHandler+i)->pfnEventHandler)
-			(hp->pxUrlHandler+i)->pfnEventHandler(MW_UNINIT, 0, hp);
+	for (i=0; hp->pxUrlHandler[i].pchUrlPrefix; i++) {
+		if (hp->pxUrlHandler[i].pfnUrlHandler && hp->pxUrlHandler[i].pfnEventHandler)
+			hp->pxUrlHandler[i].pfnEventHandler(MW_UNINIT, &hp->pxUrlHandler[i] , hp);
 	}
 	free(hp->hsSocketQueue);
 	hp->hsSocketQueue = 0;
@@ -912,6 +912,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 		if (puh->pfnUrlHandler && !strncmp(path,puh->pchUrlPrefix,prefixLen)) {
 			//URL prefix matches
 			memset(&up, 0, sizeof(up));
+			up.handler = puh;
 			up.hp=hp;
 			up.p_sys = puh->p_sys;
 			up.hs = phsSocket;
@@ -951,6 +952,8 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->request.pucPath=strdup(up.pucBuffer);
 				}
 				DBG("URL handler: file\n");
+			} else if (ret & FLAG_DATA_REDIRECT) {
+				_mwRedirect(phsSocket, up.pucBuffer);
 			} else if (ret & FLAG_DATA_FD) {
 				SETFLAG(phsSocket, FLAG_DATA_FILE);
 				DBG("URL handler: file descriptor\n");

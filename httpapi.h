@@ -137,6 +137,7 @@ typedef struct _tagSubstParam {
 #define FLAG_DATA_FILE		0x10000
 #define FLAG_DATA_RAW		0x20000
 #define FLAG_DATA_FD		0x40000
+#define FLAG_DATA_REDIRECT	0x80000
 #define FLAG_DATA_STREAM	0x100000
 #define FLAG_CUSTOM_HEADER	0x200000
 #define FLAG_MULTIPART		0x400000
@@ -193,7 +194,7 @@ typedef enum {
 	MW_PARSE_ARGS,
 } MW_EVENT;
 
-typedef int (*PFNEVENTHANDLER)(MW_EVENT msg, int argi, void* argp);
+typedef int (*PFNEVENTHANDLER)(MW_EVENT msg, void* handler, void* hp);
 
 typedef struct {
 	time_t startTime;
@@ -252,6 +253,7 @@ typedef struct {
 	int dataBytes;
 	int contentBytes;
 	HttpFileType fileType;
+	void* handler;
 	void *p_sys;
 } UrlHandlerParam;
 
