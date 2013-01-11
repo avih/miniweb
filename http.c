@@ -555,7 +555,7 @@ void* mwHttpLoop(void* _hp)
 
 				if (!phsSocketCur) {
 					DBG("WARNING: clientCount:%d > maxClients:%d\n", hp->stats.clientCount, hp->maxClients);
-					continue;
+					break;
 				}
 
 				phsSocketCur->socket = _mwAcceptSocket(hp,&sinaddr);
@@ -953,7 +953,8 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 				}
 				DBG("URL handler: file\n");
 			} else if (ret & FLAG_DATA_REDIRECT) {
-				_mwRedirect(phsSocket, up.pucBuffer);
+				phsSocket->pucData = up.pucBuffer;
+				DBG("URL handler: redirect\n");
 			} else if (ret & FLAG_DATA_FD) {
 				SETFLAG(phsSocket, FLAG_DATA_FILE);
 				DBG("URL handler: file descriptor\n");
@@ -1053,7 +1054,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		}
 
 		phsSocket->request.headerSize = headerEnd - phsSocket->buffer + 4;
-		DBG("[%d] header size: %d bytes\n",phsSocket->socket,phsSocket->request.headerSize);
+		DBG("[%d] HTTP Header (%d bytes):\n%s", phsSocket->socket, phsSocket->request.headerSize, phsSocket->buffer);
 		if (_mwParseHttpHeader(phsSocket)) {
 			SYSLOG(LOG_INFO,"Error parsing request\n");
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
@@ -1187,8 +1188,11 @@ done:
 	} else if (ISFLAGSET(phsSocket,FLAG_DATA_FILE)) {
 		// send requested page
 		return _mwStartSendFile(hp,phsSocket);
+	} else if (ISFLAGSET(phsSocket,FLAG_DATA_REDIRECT)) {
+		_mwRedirect(phsSocket, phsSocket->pucData);
+		return 1;
 	}
-	SYSLOG(LOG_INFO,"Unexpected error occurred\n");
+	SYSLOG(LOG_INFO,"Invalid data flag specified\n");
 	return -1;
 } // end of _mwProcessReadSocket
 
@@ -2086,8 +2090,15 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 			phsSocket->request.pucHost = p;
 		} else if (_mwStrHeadMatch(&p,"Transport: ")) {
 			phsSocket->request.pucTransport = p;
-		} if (_mwStrHeadMatch(&p,"Authorization: ")) {
+		} else if (_mwStrHeadMatch(&p,"Authorization: ")) {
 			phsSocket->request.pucAuthInfo = p;
+		} else if (_mwStrHeadMatch(&p,"X-Forwarded-For: ")) {
+			int i;
+			for (i = 3; i >= 0 && *p; i--) {
+				phsSocket->ipAddr.caddr[i] = atoi(p);
+				while (*p && *p != '\r' && *(p++) != '.');
+			}
+			DBG("[%d] Forwarded-For: %d.%d.%d.%d\n", phsSocket->fd, phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
 		}
 	}
 	return 0;					//end of header
