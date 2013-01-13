@@ -912,7 +912,6 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 		if (puh->pfnUrlHandler && !strncmp(path,puh->pchUrlPrefix,prefixLen)) {
 			//URL prefix matches
 			memset(&up, 0, sizeof(up));
-			up.handler = puh;
 			up.hp=hp;
 			up.p_sys = puh->p_sys;
 			up.hs = phsSocket;

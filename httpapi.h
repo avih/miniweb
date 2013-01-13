@@ -253,7 +253,6 @@ typedef struct {
 	int dataBytes;
 	int contentBytes;
 	HttpFileType fileType;
-	void* handler;
 	void *p_sys;
 } UrlHandlerParam;
 
