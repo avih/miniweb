@@ -494,7 +494,11 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 int ShellRun(const char* cmdline)
 {
 	SHELL_PARAM shell = {0};
-	int ret = ShellExec(&shell, cmdline);
+	int ret;
+#ifdef _DEBUG
+	printf("# %s\n", cmdline);
+#endif
+	ret = ShellExec(&shell, cmdline);
 	if (ret == 0) {
 		ShellWait(&shell, -1);
 	}
