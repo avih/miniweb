@@ -194,6 +194,7 @@ void mwInitParam(HttpParam* hp)
 	hp->httpPort = 80;
 	hp->tmSocketExpireTime = 60;
 	hp->maxClients = HTTP_MAX_CLIENTS;
+	hp->maxClientsPerIP = HTTP_MAX_CLIENTS / 2;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -555,7 +556,8 @@ void* mwHttpLoop(void* _hp)
 
 				if (!phsSocketCur) {
 					DBG("WARNING: clientCount:%d > maxClients:%d\n", hp->stats.clientCount, hp->maxClients);
-					break;
+					_mwDenySocket(hp,&sinaddr);
+					continue;
 				}
 
 				phsSocketCur->socket = _mwAcceptSocket(hp,&sinaddr);
@@ -580,6 +582,7 @@ void* mwHttpLoop(void* _hp)
 					phsSocketCur->ipAddr.caddr[1],
 					phsSocketCur->ipAddr.caddr[0]);
 				SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
+
 				//update max client count
 				if (hp->stats.clientCount>hp->stats.clientCountMax) hp->stats.clientCountMax=hp->stats.clientCount;
 			}
@@ -644,6 +647,16 @@ SOCKET _mwAcceptSocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 
 	return socket;
 } // end of _mwAcceptSocket
+
+void _mwDenySocket(HttpParam* hp,struct sockaddr_in *sinaddr)
+{
+    SOCKET socket;
+	socklen_t namelen=sizeof(struct sockaddr);
+	socket=accept(hp->listenSocket, (struct sockaddr*)sinaddr,&namelen);
+    SYSLOG(LOG_INFO,"[%d] connection denied\n",socket);
+	_mwSendErrorPage(socket, HTTP403_HEADER, HTTP403_BODY);
+	closesocket(socket);
+} // end of _mwDenySocket
 
 int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buffer)
 {
@@ -1059,6 +1072,22 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return -1;
 		} else {
+			// count connections from this IP 
+			int connThisIP = 0;
+			for (i = 0; i < hp->maxClients; i++) {
+				if (hp->hsSocketQueue[i].socket && hp->hsSocketQueue[i].ipAddr.laddr == phsSocket->ipAddr.laddr) {
+					connThisIP++;
+				}
+			}
+			if (connThisIP > hp->maxClientsPerIP) {
+				SYSLOG(LOG_INFO,"[%d] Too many connections from %d.%d.%d.%d.\n", phsSocket->socket,
+					phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
+				// too many connection from the same IP
+				_mwSendErrorPage(phsSocket->socket, HTTP403_HEADER, HTTP403_BODY);
+				closesocket(phsSocket->socket);
+				return -1;
+			}
+
 			// keep request path
 			for (i = 0; i < MAX_REQUEST_PATH_LEN; i++) {
 				if ((path[i] == ' ' && (!strncmp(path + i + 1, "HTTP/", 5) || !strncmp(path + i + 1, "RTSP/", 5)))
@@ -1074,7 +1103,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			memcpy(phsSocket->request.pucPath, path, i);
 			phsSocket->request.pucPath[i] = 0;
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
-				hp->stats.reqPostCount++;
 				if (phsSocket->pxMP) {
 					// is multipart request
 					int ret;
@@ -1178,7 +1206,6 @@ done:
 	// set state to SENDING (actual sending will occur on next select)
 	CLRFLAG(phsSocket,FLAG_RECEIVING)
 	SETFLAG(phsSocket,FLAG_SENDING);
-	hp->stats.reqGetCount++;
 	if (phsSocket->request.iHttpVer == 0) {
 		CLRFLAG(phsSocket, FLAG_CHUNK);
 	}
@@ -1277,12 +1304,12 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 #endif
 		return;
 	}
-	closesocket(phsSocket->socket);
-	hp->stats.clientCount--;
-	phsSocket->iRequestCount=0;
 	SYSLOG(LOG_INFO,"[%d] socket closed after responded for %d requests\n",phsSocket->socket,phsSocket->iRequestCount);
 	SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
-	phsSocket->socket=0;
+	closesocket(phsSocket->socket);
+	phsSocket->socket = 0;
+	hp->stats.clientCount--;
+	phsSocket->iRequestCount=0;
 } // end of _mwCloseSocket
 
 int _mwStrCopy(char *dest, const char *src)
@@ -1374,14 +1401,13 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 }
 #endif
 
-void _mwSend404Page(HttpSocket* phsSocket)
+void _mwSendErrorPage(SOCKET socket, const char* header, const char* body)
 {
 	char hdr[128];
-	int hdrsize = snprintf(hdr, sizeof(hdr), HTTP404_HEADER, HTTP_SERVER_NAME, sizeof(HTTP404_BODY) - 1);
-	SYSLOG(LOG_INFO,"[%d] Http file not found\n",phsSocket->socket);
-	// send 404 page
-	send(phsSocket->socket, hdr, hdrsize, 0);
-	send(phsSocket->socket, HTTP404_BODY, sizeof(HTTP404_BODY)-1, 0);
+	int len = strlen(body);
+	int hdrsize = snprintf(hdr, sizeof(hdr), header, HTTP_SERVER_NAME, len);
+	send(socket, hdr, hdrsize, 0);
+	send(socket, body, len, 0);
 }
 
 #ifdef WIN32
@@ -1602,7 +1628,10 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 
 	ret = _mwStartSendFile2(hp, phsSocket, hp->pchWebPath, phsSocket->request.pucPath);
 
-	if (ret != 0) _mwSend404Page(phsSocket);
+	if (ret != 0) {
+		SYSLOG(LOG_INFO,"[%d] Http file not found\n",phsSocket->socket);
+		_mwSendErrorPage(phsSocket->socket, HTTP404_HEADER, HTTP404_BODY);
+	}
 
 	return ret;
 } //end of _mwStartSendFile

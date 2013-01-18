@@ -36,7 +36,9 @@
 #endif
 #define HTTP200_HEADER "%s %d %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
-#define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: %s\r\nConnection: Keep-Alive\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
+#define HTTP403_HEADER "HTTP/1.1 403 Forbidden\r\nServer: %s\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
+#define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: %s\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
+#define HTTP403_BODY "<html><head><title>403 Forbidden</title></head><body><h1>Forbidden</h1></body></html>"
 #define HTTP404_BODY "<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL has no content.</p></body></html>"
 #define HTTPBODY_REDIRECT "<html><head><meta http-equiv=\"refresh\" content=\"0; URL=%s\"></head><body></body></html>"
 #define HTTP301_HEADER "HTTP/1.1 301 Moved Permanently\r\nServer: %s\r\nLocation: %s\r\n\r\n"
@@ -109,6 +111,7 @@ extern FILE *fpLog;
 // local helper function prototypes
 /////////////////////////////////////////////////////////////////////////////
 SOCKET _mwAcceptSocket(HttpParam* hp, struct sockaddr_in *sinaddr);
+void _mwDenySocket(HttpParam* hp,struct sockaddr_in *sinaddr);
 int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket);
 int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket);
 void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
@@ -140,5 +143,6 @@ int _mwParseHttpHeader(HttpSocket* phsSocket);
 int _mwStrCopy(char *dest, const char *src);
 int _mwStrHeadMatch(char** pbuf1, const char* buf2);
 int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs);
+void _mwSendErrorPage(SOCKET socket, const char* header, const char* body);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////

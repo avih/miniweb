@@ -198,17 +198,15 @@ typedef int (*PFNEVENTHANDLER)(MW_EVENT msg, void* handler, void* hp);
 
 typedef struct {
 	time_t startTime;
-	int clientCount;
-	int clientCountMax;
-	int reqCount;
-	int reqGetCount;
-	int fileSentCount;
+	WORD clientCount;
+	WORD clientCountMax;
+	size_t reqCount;
+	size_t fileSentCount;
 	size_t fileSentBytes;
 	int varSubstCount;
 	int urlProcessCount;
 	int timeOutCount;
 	int authFailCount;
-	int reqPostCount;
 	int fileUploadCount;
 } HttpStats;
 
@@ -291,7 +289,8 @@ typedef struct {
 
 typedef struct _httpParam {
 	HttpSocket* hsSocketQueue;				/* socket queue*/
-	int maxClients;
+	WORD maxClients;
+	WORD maxClientsPerIP;
 	int   bKillWebserver;
 	int   bWebserverRunning;
 	unsigned int flags;
