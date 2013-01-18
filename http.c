@@ -935,13 +935,13 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.pucBuffer[0]=0;
 			up.pucPayload = phsSocket->request.pucPayload;
 			up.iVarCount=-1;
+			phsSocket->handler = puh;
 			if (!ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) mwParseQueryString(&up);
 			ret=(*puh->pfnUrlHandler)(&up);
 			if (!ret) continue;
 			phsSocket->flags|=ret;
 			phsSocket->response.fileType=up.fileType;
 			hp->stats.urlProcessCount++;
-			phsSocket->handler = puh;
 			if (ret & FLAG_DATA_RAW) {
 				SETFLAG(phsSocket, FLAG_DATA_RAW);
 				phsSocket->pucData=up.pucBuffer;
@@ -1060,7 +1060,6 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 #endif
 		} else {
 			SYSLOG(LOG_INFO,"[%d] Unsupported method\n",phsSocket->socket);
-			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 			phsSocket->request.pucPath = 0;
 			return -1;
 		}
@@ -1072,22 +1071,26 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 			return -1;
 		} else {
-			// count connections from this IP 
+			int pathLen;
 			int connThisIP = 0;
+
+			// count connections from this IP and duplicated connection
+			DBG("Checking connections from IP\n");
 			for (i = 0; i < hp->maxClients; i++) {
-				if (hp->hsSocketQueue[i].socket && hp->hsSocketQueue[i].ipAddr.laddr == phsSocket->ipAddr.laddr) {
+				if (!hp->hsSocketQueue[i].socket) continue;
+				if (hp->hsSocketQueue[i].ipAddr.laddr == phsSocket->ipAddr.laddr) {
 					connThisIP++;
 				}
 			}
 			if (connThisIP > hp->maxClientsPerIP) {
-				SYSLOG(LOG_INFO,"[%d] Too many connections from %d.%d.%d.%d.\n", phsSocket->socket,
+				SYSLOG(LOG_INFO,"[%d] Too many (%d) connections from %d.%d.%d.%d.\n", phsSocket->socket, connThisIP,
 					phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
 				// too many connection from the same IP
 				_mwSendErrorPage(phsSocket->socket, HTTP403_HEADER, HTTP403_BODY);
-				closesocket(phsSocket->socket);
 				return -1;
 			}
 
+			DBG("Header parsed\n");
 			// keep request path
 			for (i = 0; i < MAX_REQUEST_PATH_LEN; i++) {
 				if ((path[i] == ' ' && (!strncmp(path + i + 1, "HTTP/", 5) || !strncmp(path + i + 1, "RTSP/", 5)))
@@ -1095,13 +1098,14 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					break;
 				}
 			}
-			if (i >= MAX_REQUEST_PATH_LEN) {
-				SETFLAG(phsSocket, FLAG_CONN_CLOSE);
+			pathLen = i;
+			if (pathLen >= MAX_REQUEST_PATH_LEN) {
 				return -1;
 			}
-			phsSocket->request.pucPath = malloc(i + 1);
-			memcpy(phsSocket->request.pucPath, path, i);
-			phsSocket->request.pucPath[i] = 0;
+
+			phsSocket->request.pucPath = malloc(pathLen + 1);
+			memcpy(phsSocket->request.pucPath, path, pathLen);
+			phsSocket->request.pucPath[pathLen] = 0;
 			if (ISFLAGSET(phsSocket,FLAG_REQUEST_POST)) {
 				if (phsSocket->pxMP) {
 					// is multipart request
@@ -2126,7 +2130,7 @@ int _mwParseHttpHeader(HttpSocket* phsSocket)
 				phsSocket->ipAddr.caddr[i] = atoi(p);
 				while (*p && *p != '\r' && *(p++) != '.');
 			}
-			DBG("[%d] Forwarded-For: %d.%d.%d.%d\n", phsSocket->fd, phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
+			DBG("[%d] Forwarded-For: %d.%d.%d.%d\n", phsSocket->socket, phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
 		}
 	}
 	return 0;					//end of header
