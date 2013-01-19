@@ -236,7 +236,7 @@ typedef struct _HttpSocket{
 	int iRequestCount;
 	char* mimeType;
 	HttpMultipart* pxMP;
-	char buffer[HTTP_BUFFER_SIZE];
+	char* buffer;
 } HttpSocket;
 
 typedef struct {

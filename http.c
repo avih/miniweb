@@ -391,6 +391,7 @@ SOCKET _mwStartListening(HttpParam* hp)
 void _mwInitSocketData(HttpSocket *phsSocket)
 {
 	memset(&phsSocket->response,0,sizeof(HttpResponse));
+	if (!phsSocket->buffer) phsSocket->buffer = malloc(HTTP_BUFFER_SIZE);
 	phsSocket->request.startByte = 0;
 	phsSocket->request.pucHost = 0;
 	phsSocket->request.pucReferer = 0;
@@ -597,9 +598,16 @@ void* mwHttpLoop(void* _hp)
 		}
 	}
 
+	// cleanup
+	DBG("Cleaning up...\n");
 	for (i=0; hp->pxUrlHandler[i].pchUrlPrefix; i++) {
 		if (hp->pxUrlHandler[i].pfnUrlHandler && hp->pxUrlHandler[i].pfnEventHandler)
 			hp->pxUrlHandler[i].pfnEventHandler(MW_UNINIT, &hp->pxUrlHandler[i] , hp);
+	}
+	for (i = 0; i < hp->maxClients; i++) {
+		hp->hsSocketQueue[i].flags |= FLAG_CONN_CLOSE;
+		_mwCloseSocket(hp, hp->hsSocketQueue + i);
+		if (hp->hsSocketQueue[i].buffer) free(hp->hsSocketQueue[i].buffer);
 	}
 	free(hp->hsSocketQueue);
 	hp->hsSocketQueue = 0;
