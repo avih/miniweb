@@ -17,6 +17,7 @@
 #define SF_REDIRECT_OUTPUT (0x8000 | SF_REDIRECT_STDOUT)
 
 typedef struct {
+	unsigned int flags;
 	char *pchCurDir;
 	char *pchPath;
 #ifdef WIN32
@@ -34,7 +35,6 @@ typedef struct {
 	char *buffer;
 	int iBufferSize;
 	int iDelimiter;
-	int flags;
 }SHELL_PARAM;
 
 #ifdef __cplusplus

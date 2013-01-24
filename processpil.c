@@ -77,7 +77,7 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 #ifdef WIN32
 		return 0;
 #else
-		return (ret>0)?offset:-1;
+		return (ret>0)?0:-1;
 #endif
 	} else if (!(param->flags & SF_READ_STDOUT_ALL)) {
 #ifdef WIN32
@@ -94,10 +94,9 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 		return ret;
 #endif
 	} else {
-#ifdef WIN32
 		int fSuccess;
-		for(;;) {
-			int i;
+		unsigned int start = GetTickCount();
+		do {
 			if (offset >= param->iBufferSize - 1) {
 				if (param->flags & SF_ALLOC) {
 					param->iBufferSize <<= 1;
@@ -106,33 +105,20 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 					offset = 0;
 				}
 			}
+#ifdef WIN32
 			fSuccess = (PeekNamedPipe(param->fdRead,0,0,0,0,0) &&
 				ReadFile(param->fdRead, param->buffer + offset, param->iBufferSize - 1 - offset, &dwRead, NULL));
 			if (!fSuccess) break;
-			// convert line-feed
-			if (param->flags & SF_CONVERT_LF) {
-				for (i = 0; i < (int)dwRead; i++) {
-					if (*(param->buffer + offset + i) == '\n' && *(param->buffer + offset + i - 1) != '\r') {
-						if (offset + (int)dwRead >= param->iBufferSize - 2) {
-							if (param->flags & SF_ALLOC) {
-								param->iBufferSize <<= 1;
-								param->buffer = realloc(param->buffer, param->iBufferSize);
-							} else {
-								break;
-							}
-						}
-						memmove(param->buffer + offset + i + 1, param->buffer + offset + i, dwRead - i);
-						param->buffer[offset + i] = '\r';
-						i++;
-						dwRead++;
-					}
-				}
-			}
 			offset += dwRead;
-		}
+#else
+			if (select(param->fdRead+1,&fds,NULL,NULL,&tv) < 1) break;
+			ret=read(param->fdRead,param->buffer + offset, param->iBufferSize - 1 - offset);
+			if (ret <= 0) break;
+			offset += ret;
+#endif
+		} while (timeout == 0 || (int)(GetTickCount() - start) < timeout);
 		param->buffer[offset]=0;
 		return offset;
-#endif
 	}
 }
 
@@ -175,7 +161,7 @@ void ShellClean(SHELL_PARAM* param)
 #endif
 	param->fdRead=0;
 	param->fdWrite=0;
-	if (param->flags & SF_ALLOC) {
+	if ((param->flags & SF_ALLOC) && param->buffer) {
 		free(param->buffer);
 		param->buffer=NULL;
 		param->iBufferSize=0;
@@ -310,7 +296,9 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 	char newPath[256],prevPath[256];
 	HANDLE hChildStdinRd, hChildStdinWr, hChildStdoutRd, hChildStdoutWr;
 #else
-	int fdin[2], fdout[2],pid;
+	int fdin[2] = {0};
+	int fdout[2] = {0};
+	int pid;
 	int fdStdinChild;
 	int fdStdoutChild;
 	char *filePath;

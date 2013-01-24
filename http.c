@@ -391,7 +391,8 @@ SOCKET _mwStartListening(HttpParam* hp)
 void _mwInitSocketData(HttpSocket *phsSocket)
 {
 	memset(&phsSocket->response,0,sizeof(HttpResponse));
-	if (!phsSocket->buffer) phsSocket->buffer = malloc(HTTP_BUFFER_SIZE);
+	if (!phsSocket->buffer)
+		phsSocket->buffer = malloc(HTTP_BUFFER_SIZE);
 	phsSocket->request.startByte = 0;
 	phsSocket->request.pucHost = 0;
 	phsSocket->request.pucReferer = 0;
@@ -503,7 +504,6 @@ void* mwHttpLoop(void* _hp)
 			continue;
 		}
 		if (iRc>0) {
-			int i;
 			// check which sockets are read/write able
 			for (i = 0; i < hp->maxClients; i++) {
 				BOOL bRead;
@@ -563,6 +563,7 @@ void* mwHttpLoop(void* _hp)
 
 				phsSocketCur->socket = _mwAcceptSocket(hp,&sinaddr);
 				if (phsSocketCur->socket == 0) continue;
+
 				hp->stats.clientCount++;
 
 				//fill structure with data
@@ -589,7 +590,6 @@ void* mwHttpLoop(void* _hp)
 			}
 		} else {
 			//DBG("Select Timeout\n");
-			HttpSocket *phsSocketPrev=NULL;
 			// select timeout
 			// call idle event
 			if (hp->pfnIdleCallback) {
