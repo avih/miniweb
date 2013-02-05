@@ -1082,6 +1082,11 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			int pathLen;
 			int connThisIP = 0;
 
+			if ((hp->flags & FLAG_DISABLE_RANGE) && phsSocket->request.startByte > 0) {
+				_mwSendErrorPage(phsSocket->socket, HTTP403_HEADER, HTTP403_BODY);
+				return -1;
+			}
+
 			// count connections from this IP and duplicated connection
 			DBG("Checking connections from IP\n");
 			for (i = 0; i < hp->maxClients; i++) {

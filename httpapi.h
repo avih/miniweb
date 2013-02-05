@@ -286,6 +286,7 @@ typedef struct {
 #endif
 
 #define FLAG_DIR_LISTING 1
+#define FLAG_DISABLE_RANGE 2
 
 typedef struct _httpParam {
 	HttpSocket* hsSocketQueue;				/* socket queue*/

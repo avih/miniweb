@@ -215,6 +215,7 @@ int main(int argc,char* argv[])
 						       "               -r       : specify http document directory [default .]\n"
 						       "               -l       : specify log file\n"
 						       "               -m       : specifiy max clients [default 32]\n"
+						       "               -n       : dis-allow multi-part download\n"
 						       "               -d       : toggle directory listing [default ON]\n\n");
 					fflush(stderr);
                                         exit(1);
@@ -231,6 +232,9 @@ int main(int argc,char* argv[])
 				case 'm':
 					if ((++i)<argc) httpParam.maxClients=atoi(argv[i]);
 					break;
+				case 'n':
+					httpParam.flags |= FLAG_DISABLE_RANGE;
+					break;
 				case 'd':
 					httpParam.flags &= ~FLAG_DIR_LISTING;
 					break;
@@ -243,7 +247,7 @@ int main(int argc,char* argv[])
 		int error = 0;
 		for (i = 0; urlHandlerList[i].pchUrlPrefix; i++) {
 			if (urlHandlerList[i].pfnEventHandler) {
-				if (urlHandlerList[i].pfnEventHandler(MW_PARSE_ARGS, argc, argv))
+				if (urlHandlerList[i].pfnEventHandler(MW_PARSE_ARGS, urlHandlerList[i].pfnEventHandler, &httpParam))
 					error++;
 			}
 		}
