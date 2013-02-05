@@ -1719,8 +1719,8 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 		phsSocket->response.sentBytes+=iBytesWritten;
 		phsSocket->pucData+=iBytesWritten;
 		phsSocket->dataLength-=iBytesWritten;
-		SYSLOG(LOG_INFO,"[%d] %d bytes sent (%d Bps)\n", phsSocket->socket, phsSocket->response.sentBytes,
-			phsSocket->response.sentBytes / (time(NULL) - phsSocket->tmAcceptTime));
+		SYSLOG(LOG_INFO,"[%d] %d bytes sent (%d KB/s)\n", phsSocket->socket, phsSocket->response.sentBytes,
+			phsSocket->response.sentBytes / (((time(NULL) - phsSocket->tmAcceptTime) << 10) + 1));
 		// if only partial data sent just return wait the remaining data to be sent next time
 		if (phsSocket->dataLength>0) return 0;
 	}
