@@ -34,7 +34,7 @@
 #ifndef HTTP_SERVER_NAME
 #define HTTP_SERVER_NAME "MiniWeb"
 #endif
-#define HTTP200_HEADER "%s %d %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=%d, max=%d\r\nConnection: %s\r\n"
+#define HTTP200_HEADER "%s %d %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))
 #define HTTP403_HEADER "HTTP/1.1 403 Forbidden\r\nServer: %s\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
 #define HTTP404_HEADER "HTTP/1.1 404 Not Found\r\nServer: %s\r\nContent-length: %d\r\nContent-Type: text/html\r\n\r\n"
@@ -144,5 +144,6 @@ int _mwStrCopy(char *dest, const char *src);
 int _mwStrHeadMatch(char** pbuf1, const char* buf2);
 int _mwRemoveSocket(HttpParam* hp, HttpSocket* hs);
 void _mwSendErrorPage(SOCKET socket, const char* header, const char* body);
+void _mwCloseAllConnections(HttpParam* hp);
 #endif
 ////////////////////////// END OF FILE //////////////////////////////////////

@@ -254,12 +254,13 @@ int mwServerStart(HttpParam* hp)
 int mwServerShutdown(HttpParam* hp)
 {
 	int i;
+	if (hp->bKillWebserver || !hp->bWebserverRunning) return -1;
 
-	DBG("Shutting down web server thread\n");
+	DBG("Shutting down...\n");
+	_mwCloseAllConnections(hp);
+
 	// signal webserver thread to quit
 	hp->bKillWebserver=TRUE;
-
-	if (hp->listenSocket) closesocket(hp->listenSocket);
 
 	// and wait for thread to exit
 	for (i=0;hp->bWebserverRunning && i<30;i++) msleep(100);
@@ -268,7 +269,9 @@ int mwServerShutdown(HttpParam* hp)
 	SzUninit(hp->szctx);
 #endif
 
-	DBG("Webserver shutdown complete\n");
+	if (!hp->bWebserverRunning)
+		DBG("Webserver shutdown complete\n");
+
 	return 0;
 }
 
@@ -411,6 +414,35 @@ void _mwInitSocketData(HttpSocket *phsSocket)
 	phsSocket->handler = NULL;
 	phsSocket->pxMP = NULL;
 	phsSocket->mimeType = NULL;
+}
+
+static int _mwGetConnFromIP(HttpParam* hp, IPADDR ip)
+{
+	int i;
+	int connThisIP = 0;
+	for (i = 0; i < hp->maxClients; i++) {
+		if (!hp->hsSocketQueue[i].socket) continue;
+		if (hp->hsSocketQueue[i].ipAddr.laddr == ip.laddr) {
+			connThisIP++;
+		}
+	}
+	return connThisIP;
+}
+
+void _mwCloseAllConnections(HttpParam* hp)
+{
+	int i;
+
+	if (hp->listenSocket) {
+		closesocket(hp->listenSocket);
+		hp->listenSocket = 0;
+	}
+	for (i = 0; i < hp->maxClients; i++) {
+		if (hp->hsSocketQueue[i].socket) {
+			closesocket(hp->hsSocketQueue[i].socket);
+			hp->hsSocketQueue[i].socket = 0;
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -563,6 +595,24 @@ void* mwHttpLoop(void* _hp)
 
 				phsSocketCur->socket = _mwAcceptSocket(hp,&sinaddr);
 				if (phsSocketCur->socket == 0) continue;
+				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
+				SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",
+					phsSocketCur->socket,
+					phsSocketCur->ipAddr.caddr[3],
+					phsSocketCur->ipAddr.caddr[2],
+					phsSocketCur->ipAddr.caddr[1],
+					phsSocketCur->ipAddr.caddr[0]);
+
+				// count connections from this IP and duplicated connection
+				DBG("Checking connections from IP\n");
+				if (_mwGetConnFromIP(hp, phsSocketCur->ipAddr) > hp->maxClientsPerIP) {
+					// too many connection from the same IP
+					SYSLOG(LOG_INFO,"[%d] Too many connections from this IP\n", phsSocketCur->socket);
+					_mwSendErrorPage(phsSocketCur->socket, HTTP403_HEADER, HTTP403_BODY);
+					closesocket(phsSocketCur->socket);
+					phsSocketCur->socket = 0;
+					continue;
+				}
 
 				hp->stats.clientCount++;
 
@@ -576,13 +626,6 @@ void* mwHttpLoop(void* _hp)
 #endif
 				phsSocketCur->tmExpirationTime=phsSocketCur->tmAcceptTime+hp->tmSocketExpireTime;
 				phsSocketCur->iRequestCount=0;
-				phsSocketCur->ipAddr.laddr=ntohl(sinaddr.sin_addr.s_addr);
-				SYSLOG(LOG_INFO,"[%d] IP: %d.%d.%d.%d\n",
-					phsSocketCur->socket,
-					phsSocketCur->ipAddr.caddr[3],
-					phsSocketCur->ipAddr.caddr[2],
-					phsSocketCur->ipAddr.caddr[1],
-					phsSocketCur->ipAddr.caddr[0]);
 				SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
 
 				//update max client count
@@ -599,15 +642,14 @@ void* mwHttpLoop(void* _hp)
 	}
 
 	// cleanup
-	DBG("Cleaning up...\n");
+	_mwCloseAllConnections(hp);
+	SYSLOG(LOG_INFO, "Cleaning up...\n");
+	for (i = 0; i < hp->maxClients; i++) {
+		if (hp->hsSocketQueue[i].buffer) free(hp->hsSocketQueue[i].buffer);
+	}
 	for (i=0; hp->pxUrlHandler[i].pchUrlPrefix; i++) {
 		if (hp->pxUrlHandler[i].pfnUrlHandler && hp->pxUrlHandler[i].pfnEventHandler)
 			hp->pxUrlHandler[i].pfnEventHandler(MW_UNINIT, &hp->pxUrlHandler[i] , hp);
-	}
-	for (i = 0; i < hp->maxClients; i++) {
-		hp->hsSocketQueue[i].flags |= FLAG_CONN_CLOSE;
-		_mwCloseSocket(hp, hp->hsSocketQueue + i);
-		if (hp->hsSocketQueue[i].buffer) free(hp->hsSocketQueue[i].buffer);
 	}
 	free(hp->hsSocketQueue);
 	hp->hsSocketQueue = 0;
@@ -615,6 +657,7 @@ void* mwHttpLoop(void* _hp)
 	// clear state vars
 	hp->bKillWebserver=FALSE;
 	hp->bWebserverRunning=FALSE;
+
 
 	return NULL;
 } // end of _mwHttpThread
@@ -666,11 +709,12 @@ void _mwDenySocket(HttpParam* hp,struct sockaddr_in *sinaddr)
 	closesocket(socket);
 } // end of _mwDenySocket
 
-int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buffer)
+int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateTime, char* buffer)
 {
 	char *p = buffer;
 	char *end = buffer + 512;
 	const char *status;
+	BOOL keepalive = !ISFLAGSET(phsSocket,FLAG_CONN_CLOSE);
 
 	if (phsSocket->response.statusCode >= 200 && phsSocket->response.statusCode < 200 + sizeof(status200) / sizeof(status200[0])) {
 		status = status200[phsSocket->response.statusCode - 200];
@@ -684,6 +728,11 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buff
 		status = "";
 	}
 
+
+	if (_mwGetConnFromIP(hp, phsSocket->ipAddr) >= hp->maxClientsPerIP) {
+		keepalive = FALSE;
+	}
+
 	p+=snprintf(p, end - p, HTTP200_HEADER,
 #ifdef ENABLE_RTSP
 		(phsSocket->flags & (FLAG_REQUEST_DESCRIBE | FLAG_REQUEST_SETUP)) ? "RTSP/1.0" : "HTTP/1.1",
@@ -692,9 +741,12 @@ int _mwBuildHttpHeader(HttpSocket *phsSocket, time_t contentDateTime, char* buff
 #endif
 		phsSocket->response.statusCode, status,
 		HTTP_SERVER_NAME,
-		HTTP_KEEPALIVE_TIME,
-		MAX_CONN_REQUESTS,
-		ISFLAGSET(phsSocket,FLAG_CONN_CLOSE)?"close":"Keep-Alive");
+		keepalive ? "keep-alive" : "close");
+
+	if (!(hp->flags & FLAG_DISABLE_RANGE)) {
+		p += snprintf(p, end - p, "Accept-Ranges: bytes\r\n");
+	}
+
 	if (contentDateTime) {
 		p += snprintf(p, end - p, "Last-Modified: ");
 		p+=mwGetHttpDateTime(contentDateTime, p, 512);
@@ -722,7 +774,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 {
 	if (up->iVarCount==-1) {
 		//parsing variables from query string
-		char *p,*s;
+		unsigned char *p,*s;
 		// get start of query string
 		s = strchr(up->pucRequest, '?');
 		if (s) {
@@ -1080,25 +1132,8 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			return -1;
 		} else {
 			int pathLen;
-			int connThisIP = 0;
 
 			if ((hp->flags & FLAG_DISABLE_RANGE) && phsSocket->request.startByte > 0) {
-				_mwSendErrorPage(phsSocket->socket, HTTP403_HEADER, HTTP403_BODY);
-				return -1;
-			}
-
-			// count connections from this IP and duplicated connection
-			DBG("Checking connections from IP\n");
-			for (i = 0; i < hp->maxClients; i++) {
-				if (!hp->hsSocketQueue[i].socket) continue;
-				if (hp->hsSocketQueue[i].ipAddr.laddr == phsSocket->ipAddr.laddr) {
-					connThisIP++;
-				}
-			}
-			if (connThisIP > hp->maxClientsPerIP) {
-				SYSLOG(LOG_INFO,"[%d] Too many (%d) connections from %d.%d.%d.%d.\n", phsSocket->socket, connThisIP,
-					phsSocket->ipAddr.caddr[3], phsSocket->ipAddr.caddr[2], phsSocket->ipAddr.caddr[1], phsSocket->ipAddr.caddr[0]);
-				// too many connection from the same IP
 				_mwSendErrorPage(phsSocket->socket, HTTP403_HEADER, HTTP403_BODY);
 				return -1;
 			}
@@ -1214,6 +1249,8 @@ done:
 		}
 	}
 
+	phsSocket->iRequestCount++;
+
 	if (hp->pxUrlHandler) {
 		if (!_mwCheckUrlHandlers(hp,phsSocket))
 			SETFLAG(phsSocket,FLAG_DATA_FILE);
@@ -1310,10 +1347,9 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket)
 		free(phsSocket->request.pucPath);
 		phsSocket->request.pucPath = 0;
 	}
-	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE) && phsSocket->iRequestCount< MAX_CONN_REQUESTS) {
+	if (!ISFLAGSET(phsSocket,FLAG_CONN_CLOSE)) {
 		_mwInitSocketData(phsSocket);
 		//reset flag bits
-		phsSocket->iRequestCount++;
 #ifndef WINCE
 		phsSocket->tmExpirationTime=time(NULL)+HTTP_KEEPALIVE_TIME;
 #else
@@ -1350,7 +1386,6 @@ int _mwStrHeadMatch(char** pbuf1, const char* buf2) {
 	return i;
 }
 
-#ifdef ENABLE_DIRLIST
 int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 {
 	char cFileName[128];
@@ -1416,7 +1451,6 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 	}
 	return 0;
 }
-#endif
 
 void _mwSendErrorPage(SOCKET socket, const char* header, const char* body)
 {
@@ -1549,7 +1583,6 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 #endif
 		}
 
-#ifdef ENABLE_DIRLIST
 		if (phsSocket->fd <= 0 && (hp->flags & FLAG_DIR_LISTING)) {
 			SETFLAG(phsSocket,FLAG_DATA_RAW);
 			if (!hfp.fTailSlash) {
@@ -1569,7 +1602,6 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 			}
 			return _mwStartSendRawData(hp, phsSocket);
 		}
-#endif
 	}
 #ifndef WINCE
 	if (phsSocket->fd > 0) {
@@ -1607,6 +1639,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 
 	// build http header
 	phsSocket->dataLength=_mwBuildHttpHeader(
+		hp,
 		phsSocket,
 #ifndef WINCE
 		st.st_mtime,
@@ -1686,7 +1719,8 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 		phsSocket->response.sentBytes+=iBytesWritten;
 		phsSocket->pucData+=iBytesWritten;
 		phsSocket->dataLength-=iBytesWritten;
-		SYSLOG(LOG_INFO,"[%d] %d bytes sent\n",phsSocket->socket,phsSocket->response.sentBytes);
+		SYSLOG(LOG_INFO,"[%d] %d bytes sent (%d Bps)\n", phsSocket->socket, phsSocket->response.sentBytes,
+			phsSocket->response.sentBytes / (time(NULL) - phsSocket->tmAcceptTime));
 		// if only partial data sent just return wait the remaining data to be sent next time
 		if (phsSocket->dataLength>0) return 0;
 	}
@@ -1756,9 +1790,9 @@ int _mwStartSendRawData(HttpParam *hp, HttpSocket* phsSocket)
 		char header[HTTP200_HDR_EST_SIZE];
 		int offset=0,hdrsize,bytes;
 #ifndef WINCE
-		hdrsize=_mwBuildHttpHeader(phsSocket,time(NULL),header);
+		hdrsize=_mwBuildHttpHeader(hp, phsSocket,time(NULL),header);
 #else
-		hdrsize=_mwBuildHttpHeader(phsSocket,0,header);
+		hdrsize=_mwBuildHttpHeader(hp, phsSocket,0,header);
 #endif
 		// send http header
 		do {

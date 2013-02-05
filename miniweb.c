@@ -172,7 +172,7 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 
 int main(int argc,char* argv[])
 {
-	printf("MiniWeb (built on %s) (C)2005-2012 Stanley Huang\n\n", __DATE__);
+	fprintf(stderr,"MiniWeb (build %d, built on %s)\n(C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n", BUILD_NO, __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
@@ -192,7 +192,7 @@ int main(int argc,char* argv[])
 #endif
 	httpParam.pxUrlHandler=urlHandlerList;
 	httpParam.flags=FLAG_DIR_LISTING;
-	httpParam.tmSocketExpireTime = 180;
+	httpParam.tmSocketExpireTime = 15;
 	httpParam.pfnPost = DefaultWebPostCallback;
 #ifdef MEDIA_SERVER
 	httpParam.pfnFileUpload = TranscodeUploadCallback;
@@ -208,15 +208,15 @@ int main(int argc,char* argv[])
 				switch (argv[i][1]) {
 				case 'h':
 				case 'u':
-					fprintf(stderr,"\nMiniWeb (built on %s) (C)2005-2012 Stanley Huang\n\n", __DATE__);
 					fprintf(stderr,"Usage: miniweb -h | -u  : display this help screen\n"
 						       "               -v       : log status/error info\n"
 						       "               -p       : specifiy http port [default 8000]\n"
 						       "               -r       : specify http document directory [default .]\n"
 						       "               -l       : specify log file\n"
 						       "               -m       : specifiy max clients [default 32]\n"
-						       "               -n       : dis-allow multi-part download\n"
-						       "               -d       : toggle directory listing [default ON]\n\n");
+						       "               -M       : specifiy max clients per IP\n"
+						       "               -n       : disallow multi-part download\n"
+						       "               -d       : disallow directory listing [default ON]\n\n");
 					fflush(stderr);
                                         exit(1);
 
@@ -231,6 +231,9 @@ int main(int argc,char* argv[])
 					break;
 				case 'm':
 					if ((++i)<argc) httpParam.maxClients=atoi(argv[i]);
+					break;
+				case 'M':
+					if ((++i)<argc) httpParam.maxClientsPerIP=atoi(argv[i]);
 					break;
 				case 'n':
 					httpParam.flags |= FLAG_DISABLE_RANGE;
@@ -263,10 +266,11 @@ int main(int argc,char* argv[])
 		int n;
 		printf("Host: %s:%d\n", GetLocalAddrString(), httpParam.httpPort);
 		printf("Web root: %s\n",httpParam.pchWebPath);
-		printf("Max clients: %d\n",httpParam.maxClients);
+		printf("Max clients (per IP): %d (%d)\n",httpParam.maxClients, httpParam.maxClientsPerIP);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
 		printf("URL handlers: %d\n",n);
-		if (httpParam.flags & FLAG_DIR_LISTING) printf("Dir listing: on\n");
+		if (httpParam.flags & FLAG_DIR_LISTING) printf("Dir listing enabled\n");
+		if (httpParam.flags & FLAG_DISABLE_RANGE) printf("Byte-range disabled\n");
 
 		//register page variable substitution callback
 		//httpParam[i].pfnSubst=DefaultWebSubstCallback;

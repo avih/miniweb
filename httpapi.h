@@ -83,7 +83,6 @@ typedef enum {
 
 #define MAXPOSTPARAMS 50
 #define MAXPOSTREDIRECTFILENAME (200)
-#define MAX_CONN_REQUESTS 999
 
 /////////////////////////////////////////////////////////////////////////////
 // typedefs
