@@ -1163,13 +1163,17 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 
 					if (ISFLAGSET(phsSocket, FLAG_MULTIPART)) {
 						// multipart POST
-						phsSocket->dataLength -= (phsSocket->request.headerSize);
-						memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
-						phsSocket->pucData = phsSocket->buffer;
-						phsSocket->request.headerSize = 0;
-						pxMP->pp.httpParam = hp;
-						pxMP->writeLocation = phsSocket->dataLength;
-						ret = _mwProcessMultipartPost(hp, phsSocket, phsSocket->dataLength != 0);
+						if (hp->pfnFileUpload) {
+							phsSocket->dataLength -= (phsSocket->request.headerSize);
+							memmove(phsSocket->buffer, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
+							phsSocket->pucData = phsSocket->buffer;
+							phsSocket->request.headerSize = 0;
+							pxMP->pp.httpParam = hp;
+							pxMP->writeLocation = phsSocket->dataLength;
+							ret = _mwProcessMultipartPost(hp, phsSocket, phsSocket->dataLength != 0);
+						} else {
+							ret = -1;
+						}
 						if (ret < 0) {
 							SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 							return -1;
