@@ -74,11 +74,11 @@ PFNPOSTCALLBACK mwPostRegister(HttpParam *httpParam, PFNPOSTCALLBACK pfnPostCb)
 void _mwNotifyPostVars(HttpParam *hp, HttpSocket* phsSocket, PostParam *pp)
 {
   // if found any vars
-  if (pp->iNumParams>0) {
+  if (pp->iNumParams>0 && hp->pfnPost) {
     int iReturn;
     
     // call app callback to process post vars
-	iReturn=(((HttpParam*)pp->httpParam)->pfnPost)(pp);
+	iReturn=(hp->pfnPost)(pp);
     
     switch(iReturn) {
     case WEBPOST_AUTHENTICATIONON:
