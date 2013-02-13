@@ -304,10 +304,11 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 	char *filePath;
 	char *prevPath;
  	char *env[2];
-#endif
 
 	char *_cmdline = strdup(cmdline);
 	char **argv = Tokenize(_cmdline, ' ');
+#endif
+
 #if 0
     for ( i = 0; argv[i] != NULL; i++) {
         printf("	argv[%d]=%s\n", i, argv[i]);
@@ -473,9 +474,10 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 		close(fdout[1]);
 	}
 	param->pid=pid;
-#endif
+
     free(_cmdline);
     free(argv);
+#endif
 	return 0;
 }
 

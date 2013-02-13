@@ -75,19 +75,19 @@ int uhStats(UrlHandlerParam* param)
 	node.value = (void*)(stats->clientCountMax);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	node.fmt = "%d";
+	node.fmt = "%u";
 	node.name = "Requests";
 	node.value = (void*)(stats->reqCount);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	node.fmt = "%d";
+	node.fmt = "%u";
 	node.name = "FileSent";
 	node.value = (void*)(stats->fileSentCount);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
-	node.fmt = "%d";
-	node.name = "ByteSent";
-	node.value = (void*)(stats->fileSentBytes);
+	node.fmt = "%u";
+	node.name = "KBSent";
+	node.value = (void*)(stats->fileSentBytes >> 10);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
 	mwWriteXmlString(&p, &bufsize, 1, "<Clients>");
