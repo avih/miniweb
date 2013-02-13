@@ -1430,8 +1430,8 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 			p+=snprintf(p, 256, "<tr><td width=35%%><a href='%s/'>%s</a></td><td width=15%%>&lt;dir&gt;</td><td width=15%%>",
 				cFileName,cFileName);
 		} else {
-			p+=snprintf(p, 256, "<tr><td width=35%%><a href='%s'>%s</a></td><td width=15%%>%u bytes</td><td width=15%%>",
-				cFileName,cFileName,st.st_size);
+			p+=snprintf(p, 256, "<tr><td width=35%%><a href='%s'>%s</a></td><td width=15%%>%u KB</td><td width=15%%>",
+				cFileName,(unsigned int)(cFileName,st.st_size >> 10));
 			s=strrchr(cFileName,'.');
 			if (s) {
 				int filetype=mwGetContentType(++s);
