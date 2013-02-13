@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O2
+CFLAGS=-O3 -Wunused-result
 HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o httpauth.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET
@@ -21,13 +21,8 @@ endif
 ifndef DEBUG
 DFLAGS += -s
 else
-DEFINES+= -D_DEBUG
+DEFINES+= -DHTTP_DEBUG
 LDFLAGS += -g
-endif
-
-ifdef ENABLE_VOD
-DEFINES+= -D_VOD
-HTTPOBJ+= httpvod.o crc32.o
 endif
 
 ifdef ENABLE_SERIAL

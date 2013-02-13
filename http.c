@@ -1431,7 +1431,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 				cFileName,cFileName);
 		} else {
 			p+=snprintf(p, 256, "<tr><td width=35%%><a href='%s'>%s</a></td><td width=15%%>%u KB</td><td width=15%%>",
-				cFileName,(unsigned int)(cFileName,st.st_size >> 10));
+				cFileName,cFileName,(unsigned int)(st.st_size >> 10));
 			s=strrchr(cFileName,'.');
 			if (s) {
 				int filetype=mwGetContentType(++s);
