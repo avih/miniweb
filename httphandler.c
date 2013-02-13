@@ -100,8 +100,10 @@ int uhStats(UrlHandlerParam* param)
 			phsSocketCur = ((HttpParam*)param->hp)->hsSocketQueue + i;
 			if (!phsSocketCur->socket) continue;
 			ip=phsSocketCur->ipAddr;
-			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\"/>",
-				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0], phsSocketCur->iRequestCount, (int)(phsSocketCur->tmExpirationTime - curtime));
+			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\" speed=\"%u\"/>",
+				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0], phsSocketCur->iRequestCount, (int)(phsSocketCur->tmExpirationTime - curtime),
+				(unsigned int)(phsSocketCur->response.sentBytes / (((curtime - phsSocketCur->tmAcceptTime) << 10) + 1))
+				);
 			mwWriteXmlString(&p, &bufsize, 2, buf);
 			/*
 			if (phsSocketCur->request.pucPath)
