@@ -1889,9 +1889,10 @@ void _mwRedirect(HttpSocket* phsSocket, char* pchPath)
 	phsSocket->response.contentLength=phsSocket->dataLength;
 	if (path != pchPath) free(path);
 	*/
-	char hdr[128];
-	int n = snprintf(hdr, sizeof(hdr), HTTP301_HEADER, HTTP_SERVER_NAME, pchPath);
-	send(phsSocket->socket, hdr, n, 0);
+	char* url = strdup(pchPath);
+	int n = snprintf(phsSocket->pucData, phsSocket->dataLength, HTTP301_HEADER, HTTP_SERVER_NAME, url);
+	free(url);
+	send(phsSocket->socket, phsSocket->pucData, n, 0);
 	SETFLAG(phsSocket, FLAG_CONN_CLOSE);
 } // end of _mwRedirect
 
