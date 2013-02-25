@@ -1,7 +1,6 @@
-/*******************************************************************
+ /*******************************************************************
 * Process Platform Independent Layer
-* Distributed under GPL license
-* Copyright (c) 2005-06 Stanley Huang <stanleyhuangyc@yahoo.com.cn>
+* Copyright (c) 2005-06 Stanley Huang <stanleyhuangyc@gmail.com>
 * All rights reserved.
 *******************************************************************/
 
@@ -77,7 +76,7 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 #ifdef WIN32
 		return 0;
 #else
-		return (ret>0)?0:-1;
+		return (ret>0)?offset:-1;
 #endif
 	} else if (!(param->flags & SF_READ_STDOUT_ALL)) {
 #ifdef WIN32
@@ -210,39 +209,9 @@ static char* GetAppName(const char* commandLine)
 			appname = _strdup(commandLine);
 		}
 	}
-	return appname;	
+	return appname;
 }
 
-BOOL CALLBACK EnumWindowCallBack(HWND hwnd, LPARAM lParam) 
-{ 
-	SHELL_PARAM *param = (SHELL_PARAM * )lParam; 
-	DWORD ProcessId;
-	char title[128];
-
-	GetWindowThreadProcessId ( hwnd, &ProcessId ); 
-
-	// note: In order to make sure we have the MainFrame, verify that the title 
-	// has Zero-Length. Under Windows 98, sometimes the Client Window ( which doesn't 
-	// have a title ) is enumerated before the MainFrame 
-
-	if ( ProcessId  == param->piProcInfo.dwProcessId && GetWindowText(hwnd, title, sizeof(title)) > 0) 
-	{ 
-		param->hWnd = hwnd; 
-		return FALSE; 
-	} 
-	else 
-	{ 
-		// Keep enumerating 
-		return TRUE; 
-	} 
-}
-
-static HWND GetWindowHandle(SHELL_PARAM* param)
-{
-	param->hWnd = 0;
-	EnumWindows( EnumWindowCallBack, (LPARAM)param ) ;
-	return 0;
-}
 #endif
 
 char** Tokenize(char* str, char delimiter)
@@ -424,7 +393,7 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 		param->fdRead = fdout[0];
 		fdStdoutChild=fdout[1];
 	}
-	
+
 	pid = fork();
 	if (pid == -1) return -1;
 	if (pid == 0) { /* chid process */
@@ -474,14 +443,13 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 		close(fdout[1]);
 	}
 	param->pid=pid;
-
     free(_cmdline);
     free(argv);
 #endif
 	return 0;
 }
 
-int ShellRun(const char* cmdline)
+int ShellRun(const char* cmdline, int* pexitcode)
 {
 	SHELL_PARAM shell = {0};
 	int ret;
@@ -492,6 +460,11 @@ int ShellRun(const char* cmdline)
 	if (ret == 0) {
 		ShellWait(&shell, -1);
 	}
+#ifdef WIN32
+	if (pexitcode) {
+		GetExitCodeProcess(shell.piProcInfo.hProcess, pexitcode);
+	}
+#endif
 	ShellClean(&shell);
 	return ret;
 }

@@ -46,7 +46,7 @@ void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
 int ShellExec(SHELL_PARAM* param, const char* cmdline);
 int ShellTerminate(SHELL_PARAM* param);
-int ShellRun(const char* cmdline);
+int ShellRun(const char* cmdline, int* pexitcode);
 
 #ifdef __cplusplus
 }
