@@ -1,5 +1,0 @@
-LIBRARY 7zDec
-EXPORTS
-	SzInit
-	SzUninit
-	SzExtractContent
