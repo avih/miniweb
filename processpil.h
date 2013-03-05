@@ -33,6 +33,7 @@ typedef struct {
 #endif
 	char *pchEnv;
 	char *buffer;
+	int iRetCode;
 	int iBufferSize;
 	int iDelimiter;
 }SHELL_PARAM;
@@ -46,7 +47,7 @@ void ShellClean(SHELL_PARAM* param);
 int ShellWait(SHELL_PARAM* param, int iTimeout);
 int ShellExec(SHELL_PARAM* param, const char* cmdline);
 int ShellTerminate(SHELL_PARAM* param);
-int ShellRun(const char* cmdline, int* pexitcode);
+int ShellRun(SHELL_PARAM* param, const char* cmdline);
 
 #ifdef __cplusplus
 }

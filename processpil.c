@@ -93,9 +93,9 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 		return ret;
 #endif
 	} else {
+#ifdef WIN32
 		int fSuccess;
-		unsigned int start = GetTickCount();
-		do {
+		for(;;) {
 			if (offset >= param->iBufferSize - 1) {
 				if (param->flags & SF_ALLOC) {
 					param->iBufferSize <<= 1;
@@ -104,20 +104,14 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 					offset = 0;
 				}
 			}
-#ifdef WIN32
 			fSuccess = (PeekNamedPipe(param->fdRead,0,0,0,0,0) &&
 				ReadFile(param->fdRead, param->buffer + offset, param->iBufferSize - 1 - offset, &dwRead, NULL));
 			if (!fSuccess) break;
 			offset += dwRead;
-#else
-			if (select(param->fdRead+1,&fds,NULL,NULL,&tv) < 1) break;
-			ret=read(param->fdRead,param->buffer + offset, param->iBufferSize - 1 - offset);
-			if (ret <= 0) break;
-			offset += ret;
-#endif
-		} while (timeout == 0 || (int)(GetTickCount() - start) < timeout);
+		}
 		param->buffer[offset]=0;
 		return offset;
+#endif
 	}
 }
 
@@ -160,7 +154,7 @@ void ShellClean(SHELL_PARAM* param)
 #endif
 	param->fdRead=0;
 	param->fdWrite=0;
-	if ((param->flags & SF_ALLOC) && param->buffer) {
+	if (param->flags & SF_ALLOC) {
 		free(param->buffer);
 		param->buffer=NULL;
 		param->iBufferSize=0;
@@ -172,6 +166,7 @@ int ShellWait(SHELL_PARAM* param, int iTimeout)
 #ifdef WIN32
 	switch (WaitForSingleObject(param->piProcInfo.hProcess,(iTimeout==-1)?INFINITE:iTimeout)) {
 	case WAIT_OBJECT_0:
+		GetExitCodeProcess(param->piProcInfo.hProcess, &param->iRetCode);
 		return 1;
 	case WAIT_TIMEOUT:
 		return 0;
@@ -265,9 +260,7 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 	char newPath[256],prevPath[256];
 	HANDLE hChildStdinRd, hChildStdinWr, hChildStdoutRd, hChildStdoutWr;
 #else
-	int fdin[2] = {0};
-	int fdout[2] = {0};
-	int pid;
+	int fdin[2], fdout[2],pid;
 	int fdStdinChild;
 	int fdStdoutChild;
 	char *filePath;
@@ -347,7 +340,7 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 	}
 
 	siStartInfo.dwFlags |= STARTF_USESHOWWINDOW;
-	siStartInfo.wShowWindow = SW_HIDE;
+	siStartInfo.wShowWindow = (param->flags & SF_SHOW_WINDOW) ? SW_SHOW : SW_HIDE;
 	if (param->flags & (SF_REDIRECT_STDIN | SF_REDIRECT_STDOUT | SF_REDIRECT_STDERR)) siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
 ///////////////////////////////////////////////////////////////////////
@@ -449,22 +442,24 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 	return 0;
 }
 
-int ShellRun(const char* cmdline, int* pexitcode)
+int ShellRun(SHELL_PARAM* param, const char* cmdline)
 {
-	SHELL_PARAM shell = {0};
 	int ret;
+	SHELL_PARAM* proc = param;
+	if (!param) proc = calloc(1, sizeof(SHELL_PARAM));
+
 #ifdef _DEBUG
 	printf("# %s\n", cmdline);
 #endif
-	ret = ShellExec(&shell, cmdline);
+	ret = ShellExec(proc, cmdline);
 	if (ret == 0) {
-		ShellWait(&shell, -1);
+		if (proc->flags & SF_READ_STDOUT_ALL)
+			ShellRead(proc, -1);
+		else
+			ShellWait(proc, -1);
 	}
-#ifdef WIN32
-	if (pexitcode) {
-		GetExitCodeProcess(shell.piProcInfo.hProcess, pexitcode);
-	}
-#endif
-	ShellClean(&shell);
+	ShellClean(proc);
+
+	if (!param) free(proc);
 	return ret;
 }
