@@ -930,6 +930,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\httpauth.c"
+				>
+			</File>
+			<File
 				RelativePath=".\httpclient.c"
 				>
 				<FileConfiguration

@@ -875,7 +875,7 @@ void _mwBase64Encode(const char *in_str, int in_len, char *out_str)
 int _mwGetBaisAuthorization(const char* username, const char* password, char* out /*OUT*/)
 {
 	const char prefix[] = "Basic ";
-	int len = strlen(username) + 1 + strlen(password);
+	int len = (int)(strlen(username) + 1 + strlen(password));
 	int out_len = sizeof(prefix) + (len * 4 / 3 + 1) + 2;
 	char *tmp, *p;
 
@@ -988,7 +988,7 @@ int _mwCheckUrlHandlers(HttpParam* hp, HttpSocket* phsSocket)
 			up.hp=hp;
 			up.p_sys = puh->p_sys;
 			up.hs = phsSocket;
-			up.dataBytes=phsSocket->bufferSize;
+			up.dataBytes=(int)phsSocket->bufferSize;
 			up.pucRequest=path+prefixLen;
 			up.pucHeader=phsSocket->buffer;
 			up.pucBuffer=phsSocket->pucData;
@@ -1124,7 +1124,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			return -1;
 		}
 
-		phsSocket->request.headerSize = headerEnd - phsSocket->buffer + 4;
+		phsSocket->request.headerSize = (int)(headerEnd - phsSocket->buffer + 4);
 		DBG("[%d] HTTP Header (%d bytes):\n%s", phsSocket->socket, phsSocket->request.headerSize, phsSocket->buffer);
 		if (_mwParseHttpHeader(phsSocket)) {
 			SYSLOG(LOG_INFO,"Error parsing request\n");
@@ -1459,7 +1459,7 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 void _mwSendErrorPage(SOCKET socket, const char* header, const char* body)
 {
 	char hdr[128];
-	int len = strlen(body);
+	int len = (int)strlen(body);
 	int hdrsize = snprintf(hdr, sizeof(hdr), header, HTTP_SERVER_NAME, len);
 	send(socket, hdr, hdrsize, 0);
 	send(socket, body, len, 0);
@@ -1670,7 +1670,7 @@ int _mwStartSendFile(HttpParam* hp, HttpSocket* phsSocket)
 	VirtPathHandler* pvph;
 
 	for (pvph=hp->pxVirtPathHandler; pvph && pvph->pchUrlPrefix; pvph++) {
-		int prefixLen = strlen(pvph->pchUrlPrefix);
+		int prefixLen = (int)strlen(pvph->pchUrlPrefix);
 		if (prefixLen == 0) continue;
 		if (strncmp(pvph->pchUrlPrefix, phsSocket->request.pucPath, prefixLen) == 0) {
 			ret = _mwStartSendFile2(hp, phsSocket, pvph->pchLocalRealPath, phsSocket->request.pucPath + prefixLen);
@@ -1741,7 +1741,7 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 #endif
 	if (iBytesRead<=0) {
 		// finished with a file
-		int remainBytes = phsSocket->response.contentLength + phsSocket->response.headerBytes - phsSocket->response.sentBytes;
+		int remainBytes = (int)(phsSocket->response.contentLength + phsSocket->response.headerBytes - phsSocket->response.sentBytes);
 		DBG("[%d] EOF reached\n",phsSocket->socket);
 		if (remainBytes > 0) {
 			if (remainBytes>HTTP_BUFFER_SIZE) remainBytes=HTTP_BUFFER_SIZE;
