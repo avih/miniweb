@@ -35,7 +35,7 @@ typedef struct {
 	char *buffer;
 	int iRetCode;
 	int iBufferSize;
-	int iDelimiter;
+	int locked;
 }SHELL_PARAM;
 
 #ifdef __cplusplus

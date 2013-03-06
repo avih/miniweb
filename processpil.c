@@ -28,10 +28,7 @@
 
 int ShellRead(SHELL_PARAM* param, int timeout)
 {
-	int offset=0;
-#ifdef WIN32
-	DWORD dwRead;
-#else
+#ifndef WIN32
 	int ret;
 	fd_set fds;
 	struct timeval tv;
@@ -53,38 +50,23 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 	tv.tv_usec = (timeout - tv.tv_sec * 1000) * 1000;
 #endif
 
-	if (param->iDelimiter) {
-		for(;;) {
+	if (!(param->flags & SF_READ_STDOUT_ALL)) {
 #ifdef WIN32
-			if (!PeekNamedPipe(param->fdRead,0,0,0,0,0) ||
-					!ReadFile(param->fdRead, param->buffer+offset, 1, &dwRead, NULL))
-				return -1;
-#else
-			ret=select(param->fdRead+1,&fds,NULL,NULL,&tv);
-			if (ret<1) break;
-			ret=read(param->fdRead,param->buffer+offset,1);
-			if (ret<1) break;;
-#endif
-			if ((int)param->buffer[offset++]==param->iDelimiter) break;
-			if (offset==param->iBufferSize-1) {
-				if  (!(param->flags & SF_ALLOC)) break;
-				param->iBufferSize+=SF_BUFFER_SIZE;
-				param->buffer=realloc(param->buffer,param->iBufferSize);
-			}
-		}
-		param->buffer[offset]=0;
-#ifdef WIN32
-		return 0;
-#else
-		return (ret>0)?offset:-1;
-#endif
-	} else if (!(param->flags & SF_READ_STDOUT_ALL)) {
-#ifdef WIN32
-		if (!PeekNamedPipe(param->fdRead,0,0,0,0,0) ||
-				!ReadFile(param->fdRead, param->buffer, param->iBufferSize - 1, &dwRead, NULL))
+		DWORD bytes;
+		BOOL success;
+		if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0))
 			return -1;
-		param->buffer[dwRead]=0;
-		return dwRead;
+			
+		if (bytes == 0)
+			return 0;
+
+		param->locked++;
+		success =ReadFile(param->fdRead, param->buffer, param->iBufferSize - 1, &bytes, NULL);
+		param->locked--;
+		if (!success)
+			return -1;
+		param->buffer[bytes]=0;
+		return bytes;
 #else
 		if (select(param->fdRead+1,&fds,NULL,NULL,&tv) < 1) return -1;
 		ret=read(param->fdRead,param->buffer, param->iBufferSize - 1);
@@ -94,20 +76,26 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 #endif
 	} else {
 #ifdef WIN32
+		size_t offset = 0;
 		int fSuccess;
 		for(;;) {
-			if (offset >= param->iBufferSize - 1) {
+			DWORD bytes;
+			if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0)) {
+				return 0;
+			}
+			if (offset + bytes + 1 >= (size_t)param->iBufferSize) {
 				if (param->flags & SF_ALLOC) {
-					param->iBufferSize <<= 1;
+					param->iBufferSize = max(param->iBufferSize * 2, (int)(offset + bytes + 1));
 					param->buffer = realloc(param->buffer, param->iBufferSize);
 				} else {
-					offset = 0;
+					break;
 				}
 			}
-			fSuccess = (PeekNamedPipe(param->fdRead,0,0,0,0,0) &&
-				ReadFile(param->fdRead, param->buffer + offset, param->iBufferSize - 1 - offset, &dwRead, NULL));
+			param->locked++;
+			fSuccess = ReadFile(param->fdRead, param->buffer + offset, param->iBufferSize - 1 - offset, &bytes, NULL);
+			param->locked--;
 			if (!fSuccess) break;
-			offset += dwRead;
+			offset += bytes;
 		}
 		param->buffer[offset]=0;
 		return offset;
@@ -142,6 +130,7 @@ int ShellTerminate(SHELL_PARAM* param)
 void ShellClean(SHELL_PARAM* param)
 {
 #ifdef WIN32
+	while (param->locked) Sleep(10);
 	if (param->fdRead) CloseHandle((HANDLE)param->fdRead);
 	if (param->fdWrite) CloseHandle((HANDLE)param->fdWrite);
 	if (param->piProcInfo.hProcess) CloseHandle(param->piProcInfo.hProcess);
@@ -350,7 +339,7 @@ int ShellExec(SHELL_PARAM* param, const char* cmdline)
 
 	{
 		char* appname = GetAppName(cmdline);
-		fSuccess = CreateProcess(appname,
+		fSuccess = CreateProcess(0,
 			(char*)cmdline,	// command line
 			NULL,					// process security attributes
 			NULL,					// primary thread security attributes

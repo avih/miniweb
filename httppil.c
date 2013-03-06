@@ -134,15 +134,9 @@ void MutexUnlock(pthread_mutex_t* mutex)
 
 int IsDir(const char* pchName)
 {
-#ifdef WIN32
-	DWORD attr=GetFileAttributes(pchName);
-	//if (attr==INVALID_FILE_ATTRIBUTES) return 0;
-	return (attr & FILE_ATTRIBUTE_DIRECTORY)?1:0;
-#else
 	struct stat stDirInfo;
 	if (stat( pchName, &stDirInfo) < 0) return 0;
 	return (stDirInfo.st_mode & S_IFDIR)?1:0;
-#endif //WIN32
 }
 
 int ReadDir(const char* pchDir, char* pchFileNameBuf)
