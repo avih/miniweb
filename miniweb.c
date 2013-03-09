@@ -185,7 +185,7 @@ int main(int argc,char* argv[])
 	//fill in default settings
 	mwInitParam(&httpParam);
 	httpParam.maxClients=32;
-	httpParam.httpPort = 8000;
+	httpParam.httpPort = 80;
 	GetFullPath(httpParam.pchWebPath, argv[0], "htdocs");
 #ifndef DISABLE_BASIC_WWWAUTH
 	httpParam.pxAuthHandler = authHandlerList;
@@ -210,7 +210,7 @@ int main(int argc,char* argv[])
 				case 'u':
 					fprintf(stderr,"Usage: miniweb -h | -u  : display this help screen\n"
 						       "               -v       : log status/error info\n"
-						       "               -p       : specifiy http port [default 8000]\n"
+						       "               -p       : specifiy http port [default 80]\n"
 						       "               -r       : specify http document directory [default .]\n"
 						       "               -l       : specify log file\n"
 						       "               -m       : specifiy max clients [default 32]\n"

@@ -51,10 +51,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -274,33 +276,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="crc32.c" />
     <ClCompile Include="http.c" />
     <ClCompile Include="httpauth.c" />
-    <ClCompile Include="httpclient.c" />
     <ClCompile Include="httphandler.c" />
     <ClCompile Include="httppil.c" />
     <ClCompile Include="httppost.c" />
-    <ClCompile Include="httpvod.c" />
+    <ClCompile Include="httpserial.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="httpxml.c" />
-    <ClCompile Include="mediaserver.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_VOD|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="miniweb.c" />
-    <ClCompile Include="mpd.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_Media|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_Media|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="processpil.c" />
-    <ClCompile Include="rtsp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="httpapi.h" />
-    <ClInclude Include="httpclient.h" />
     <ClInclude Include="httpint.h" />
     <ClInclude Include="httppil.h" />
     <ClInclude Include="httpvod.h" />
