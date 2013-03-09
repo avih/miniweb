@@ -17,7 +17,6 @@
 
 #define VER_MAJOR 0
 #define VER_MINOR 8
-//#define HTTPD_DEBUG
 
 #ifndef min
 #define min(x,y) (x>y?y:x)
