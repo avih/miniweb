@@ -1618,7 +1618,6 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 		phsSocket->response.contentLength = fileSize - phsSocket->request.startByte;
 		if (phsSocket->response.contentLength <= 0) {
 			phsSocket->request.startByte = 0;
-			phsSocket->response.statusCode = 206;
 			phsSocket->response.contentLength = fileSize;
 		}
 		if (phsSocket->request.startByte) {
@@ -1627,6 +1626,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 #else
 			SetFilePointer(phsSocket->fd, phsSocket->request.startByte, 0, FILE_BEGIN);
 #endif
+			phsSocket->response.statusCode = 206;
 		}
 		if (!phsSocket->response.fileType && hfp.pchExt) {
 			phsSocket->response.fileType=mwGetContentType(hfp.pchExt);
