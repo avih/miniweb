@@ -231,6 +231,7 @@ typedef struct _HttpSocket{
 	void* ptr;
 	time_t tmAcceptTime;
 	time_t tmExpirationTime;
+	DWORD dwResumeTick;
 	int iRequestCount;
 	char* mimeType;
 	HttpMultipart* pxMP;

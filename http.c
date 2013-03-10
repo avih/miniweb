@@ -503,6 +503,13 @@ void* mwHttpLoop(void* _hp)
 				phsSocketCur->flags=FLAG_CONN_CLOSE;
 				_mwCloseSocket(hp, phsSocketCur);
 			} else {
+				if (phsSocketCur->dwResumeTick) {
+					// suspended
+					if (phsSocketCur->dwResumeTick > GetTickCount())
+						continue;
+					else
+						phsSocketCur->dwResumeTick = 0;
+				}
 				if (ISFLAGSET(phsSocketCur,FLAG_RECEIVING)) {
 					// add to read descriptor set
 					FD_SET(socket,&fdsSelectRead);
@@ -614,7 +621,7 @@ void* mwHttpLoop(void* _hp)
 #endif
 				phsSocketCur->tmExpirationTime=phsSocketCur->tmAcceptTime+hp->tmSocketExpireTime;
 				phsSocketCur->iRequestCount=0;
-				SYSLOG(LOG_INFO,"Connected clients: %d\n",hp->stats.clientCount);
+				DBG("Connected clients: %d\n",hp->stats.clientCount);
 
 				//update max client count
 				if (hp->stats.clientCount>hp->stats.clientCountMax) hp->stats.clientCountMax=hp->stats.clientCount;
@@ -1696,15 +1703,16 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 {
 	int iBytesWritten;
 	int iBytesRead;
-	
+
 	if (hp->maxDownloadSpeed) {
 		int speed = (unsigned int)(phsSocket->response.sentBytes / (((time(NULL) - phsSocket->tmAcceptTime) << 10) + 1));
 		if (speed && speed > hp->maxDownloadSpeed) {
 			DBG("[%d] speed limit applied\n", phsSocket->socket);
+			// set resume time, before that, this socket will not be processed
+			phsSocket->dwResumeTick = GetTickCount() + 1000;
 			return 0;
 		}
 	}
-
 	if (phsSocket->dataLength > 0) {
 		if ((phsSocket->flags & FLAG_CHUNK) && ISFLAGSET(phsSocket, FLAG_HEADER_SENT)) {
 			char buf[16];
@@ -1837,12 +1845,12 @@ int _mwSendRawDataChunk(HttpParam *hp, HttpSocket* phsSocket)
 		iBytesWritten=(int)send(phsSocket->socket, phsSocket->pucData, phsSocket->dataLength, 0);
 		if (iBytesWritten<=0) {
 			// failure - close connection
-			SYSLOG(LOG_INFO,"Connection closed\n");
+			DBG("Connection closed\n");
 			SETFLAG(phsSocket,FLAG_CONN_CLOSE);
 			_mwCloseSocket(hp, phsSocket);
 			return -1;
 		} else {
-			SYSLOG(LOG_INFO,"[%d] sent %d bytes of raw data\n",phsSocket->socket,iBytesWritten);
+			DBG("[%d] sent %d bytes of raw data\n",phsSocket->socket,iBytesWritten);
 			hp->stats.fileSentBytes+=iBytesWritten;
 			phsSocket->response.sentBytes+=iBytesWritten;
 			phsSocket->pucData+=iBytesWritten;
