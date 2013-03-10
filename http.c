@@ -1287,7 +1287,7 @@ done:
 int _mwProcessWriteSocket(HttpParam *hp, HttpSocket* phsSocket)
 {
 	if (phsSocket->dataLength<=0 && !ISFLAGSET(phsSocket,FLAG_DATA_STREAM)) {
-		SYSLOG(LOG_INFO,"[%d] Data sending completed (%d/%d)\n",phsSocket->socket,phsSocket->response.sentBytes,phsSocket->response.contentLength);
+		DBG("[%d] Data sending completed (%d/%d)\n",phsSocket->socket,phsSocket->response.sentBytes,phsSocket->response.contentLength);
 		return 1;
 	}
 	//SYSLOG(LOG_INFO,"[%d] sending data\n",phsSocket->socket);

@@ -288,10 +288,10 @@ typedef struct {
 
 typedef struct _httpParam {
 	HttpSocket* hsSocketQueue;				/* socket queue*/
-	WORD maxClients;
-	WORD maxClientsPerIP;
-	int   bKillWebserver;
-	int   bWebserverRunning;
+	int maxClients;
+	int maxClientsPerIP;
+	int bKillWebserver;
+	int bWebserverRunning;
 	unsigned int flags;
 	SOCKET listenSocket;
 	int httpPort;
