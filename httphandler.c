@@ -25,7 +25,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
 int uhStats(UrlHandlerParam* param)
 {
 	char *p;
-	char buf[256];
+	char buf[384];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;
 	IPADDR ip = param->hs->ipAddr;
@@ -86,8 +86,8 @@ int uhStats(UrlHandlerParam* param)
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
 	node.fmt = "%u";
-	node.name = "KBSent";
-	node.value = (void*)(stats->fileSentBytes >> 10);
+	node.name = "FileSentMB";
+	node.value = (void*)(stats->fileSentBytes >> 20);
 	mwWriteXmlLine(&p, &bufsize, &node, 0);
 
 	mwWriteXmlString(&p, &bufsize, 1, "<Clients>");
