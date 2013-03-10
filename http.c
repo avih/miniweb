@@ -1698,6 +1698,14 @@ int _mwSendFileChunk(HttpParam *hp, HttpSocket* phsSocket)
 {
 	int iBytesWritten;
 	int iBytesRead;
+	
+	if (hp->maxDownloadSpeed) {
+		int speed = (unsigned int)(phsSocket->response.sentBytes / (((time(NULL) - phsSocket->tmAcceptTime) << 10) + 1));
+		if (speed > hp->maxDownloadSpeed) {
+			SYSLOG(LOG_INFO,"[%d] speed limit applied\n", phsSocket->socket);
+			return 0;
+		}
+	}
 
 	if (phsSocket->dataLength > 0) {
 		if ((phsSocket->flags & FLAG_CHUNK) && ISFLAGSET(phsSocket, FLAG_HEADER_SENT)) {

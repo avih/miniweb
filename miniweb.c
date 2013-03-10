@@ -172,7 +172,7 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 
 int main(int argc,char* argv[])
 {
-	fprintf(stderr,"MiniWeb (build %d, built on %s)\n(C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n", BUILD_NO, __DATE__);
+	fprintf(stderr,"MiniWeb (built on %s)\n(C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n", __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
@@ -207,16 +207,16 @@ int main(int argc,char* argv[])
 			if (argv[i][0]=='-') {
 				switch (argv[i][1]) {
 				case 'h':
-				case 'u':
-					fprintf(stderr,"Usage: miniweb -h | -u  : display this help screen\n"
-						       "               -v       : log status/error info\n"
-						       "               -p       : specifiy http port [default 80]\n"
-						       "               -r       : specify http document directory [default .]\n"
-						       "               -l       : specify log file\n"
-						       "               -m       : specifiy max clients [default 32]\n"
-						       "               -M       : specifiy max clients per IP\n"
-						       "               -n       : disallow multi-part download\n"
-						       "               -d       : disallow directory listing [default ON]\n\n");
+					fprintf(stderr,"Usage: miniweb	-h	: display this help screen\n"
+						       "		-v	: log status/error info\n"
+						       "		-p	: specifiy http port [default 80]\n"
+						       "		-r	: specify http document directory [default htdocs]\n"
+						       "		-l	: specify log file\n"
+						       "		-m	: specifiy max clients [default 32]\n"
+						       "		-M	: specifiy max clients per IP\n"
+							   "		-s	: specifiy download speed limit in KB/s [default: none]\n"
+							   "		-n	: disallow multi-part download [default: allow]\n"
+						       "		-d	: disallow directory listing [default ON]\n\n");
 					fflush(stderr);
                                         exit(1);
 
@@ -234,6 +234,9 @@ int main(int argc,char* argv[])
 					break;
 				case 'M':
 					if ((++i)<argc) httpParam.maxClientsPerIP=atoi(argv[i]);
+					break;
+				case 's':
+					if ((++i)<argc) httpParam.maxDownloadSpeed=atoi(argv[i]);
 					break;
 				case 'n':
 					httpParam.flags |= FLAG_DISABLE_RANGE;

@@ -25,7 +25,7 @@ void _mwCloseSocket(HttpParam* hp, HttpSocket* phsSocket);
 int uhStats(UrlHandlerParam* param)
 {
 	char *p;
-	char buf[128];
+	char buf[256];
 	HttpStats *stats=&((HttpParam*)param->hp)->stats;
 	HttpRequest *req=&param->hs->request;
 	IPADDR ip = param->hs->ipAddr;
@@ -100,10 +100,9 @@ int uhStats(UrlHandlerParam* param)
 			phsSocketCur = ((HttpParam*)param->hp)->hsSocketQueue + i;
 			if (!phsSocketCur->socket) continue;
 			ip=phsSocketCur->ipAddr;
-			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\" speed=\"%u\"/>",
+			sprintf(buf,"<Client ip=\"%d.%d.%d.%d\" requests=\"%d\" expire=\"%d\" speed=\"%u\" path=\"%s\"/>",
 				ip.caddr[3],ip.caddr[2],ip.caddr[1],ip.caddr[0], phsSocketCur->iRequestCount, (int)(phsSocketCur->tmExpirationTime - curtime),
-				(unsigned int)(phsSocketCur->response.sentBytes / (((curtime - phsSocketCur->tmAcceptTime) << 10) + 1))
-				);
+				(unsigned int)(phsSocketCur->response.sentBytes / (((curtime - phsSocketCur->tmAcceptTime) << 10) + 1)), phsSocketCur->request.pucPath);
 			mwWriteXmlString(&p, &bufsize, 2, buf);
 			/*
 			if (phsSocketCur->request.pucPath)

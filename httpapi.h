@@ -313,6 +313,7 @@ typedef struct _httpParam {
 	DWORD dwAuthenticatedNode;
 	time_t tmAuthExpireTime;
 	time_t tmSocketExpireTime;
+	int maxDownloadSpeed; /* maximum download speed in KB/s */
 	HttpStats stats;
 	u_long hlBindIP;
 	void* szctx;
