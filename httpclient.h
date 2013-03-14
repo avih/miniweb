@@ -42,12 +42,12 @@ typedef struct {
 } POST_CHUNK;
 
 typedef struct {
-	int sockfd;
+	unsigned short flags;
 	HTTP_METHOD method;
+	int sockfd;
 	HTTP_STATES state;
 	const char *url;
 	const char *proxy;
-	unsigned short flags;
 	unsigned short port;
 	char* referer;
 	char* header;

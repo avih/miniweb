@@ -54,11 +54,11 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 #ifdef WIN32
 		DWORD bytes;
 		BOOL success;
-		if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0))
-			return -1;
-			
-		if (bytes == 0)
-			return 0;
+		DWORD start = GetTickCount();
+		do {
+			if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0)) return -1;
+		} while (bytes == 0 && WaitForSingleObject(param->piProcInfo.hProcess, 50) == WAIT_TIMEOUT && GetTickCount() - start < (DWORD)timeout);
+		if (bytes == 0) return 0;
 
 		param->locked++;
 		success =ReadFile(param->fdRead, param->buffer, param->iBufferSize - 1, &bytes, NULL);
@@ -80,9 +80,12 @@ int ShellRead(SHELL_PARAM* param, int timeout)
 		int fSuccess;
 		for(;;) {
 			DWORD bytes;
-			if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0)) {
-				return 0;
-			}
+			DWORD start = GetTickCount();
+			do {
+				if (!PeekNamedPipe(param->fdRead,0,0,0,&bytes,0)) return -1;
+			} while (bytes == 0 && WaitForSingleObject(param->piProcInfo.hProcess, 50) == WAIT_TIMEOUT && GetTickCount() - start < (DWORD)timeout);
+			if (bytes == 0) return 0;
+
 			if (offset + bytes + 1 >= (size_t)param->iBufferSize) {
 				if (param->flags & SF_ALLOC) {
 					param->iBufferSize = max(param->iBufferSize * 2, (int)(offset + bytes + 1));
