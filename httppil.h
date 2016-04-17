@@ -16,11 +16,12 @@
 #endif
 
 #ifdef WINCE
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #define snprintf _snprintf
 
 #elif defined(WIN32)
+#include <winsock2.h>
 #include <windows.h>
 #include <io.h>
 

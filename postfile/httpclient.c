@@ -9,7 +9,7 @@
 #include <io.h>
 #include <fcntl.h>
 #ifdef WIN32
-#include <Winsock2.h>
+#include <winsock2.h>
 #endif
 #include "httpclient.h"
 

@@ -1,4 +1,4 @@
-CC=gcc
+CC?=gcc
 CFLAGS=-O3 -Wunused-result
 HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o httpauth.o
 HEADERS = httpint.h httpapi.h httpxml.h
@@ -11,7 +11,7 @@ DEFINES=
 
 ifdef WINDIR
 DEFINES+= -DWIN32
-LDFLAGS += -lwsock32
+LDADD += -lws2_32
 OS="Win32"
 else
 #CFLAGS+= -fPIC
@@ -36,11 +36,11 @@ endif
 
 all: $(HTTPOBJ)
 	@echo Building for $(OS)
-	$(CC) $(LDFLAGS) $(HTTPOBJ) -o $(TARGET)
+	$(CC) $(LDFLAGS) $(HTTPOBJ) $(LDADD) -o $(TARGET)
 
 min: $(HTTPOBJ) httpmin.o
 	@echo Building for $(OS)
-	$(CC) $(LDFLAGS) $(HTTPOBJ) httpmin.o -o httpd
+	$(CC) $(LDFLAGS) $(HTTPOBJ) httpmin.o $(LDADD) -o httpd
 
 install: all
 	@rm -f /usr/bin/$(TARGET)

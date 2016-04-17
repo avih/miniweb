@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <string.h>
 #ifdef WIN32
-#include <Winsock2.h>
+#include <winsock2.h>
 #include <io.h>
 
 #define read _read
