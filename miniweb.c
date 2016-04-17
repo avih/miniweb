@@ -200,6 +200,8 @@ int main(int argc,char* argv[])
 	httpParam.pfnFileUpload = DefaultWebFileUploadCallback;
 #endif
 
+	const char *ifcarg = 0;
+
 	//parsing command line arguments
 	{
 		int i;
@@ -210,6 +212,7 @@ int main(int argc,char* argv[])
 					fprintf(stderr,"Usage: miniweb	-h	: display this help screen\n"
 						       "		-v	: log status/error info\n"
 						       "		-p	: specifiy http port [default 80]\n"
+						       "		-i	: interface [default 0.0.0.0]\n"
 						       "		-r	: specify http document directory [default htdocs]\n"
 						       "		-l	: specify log file\n"
 						       "		-m	: specifiy max clients [default 32]\n"
@@ -222,6 +225,10 @@ int main(int argc,char* argv[])
 
 				case 'p':
 					if ((++i)<argc) httpParam.httpPort=atoi(argv[i]);
+					break;
+				case 'i':
+					if ((++i)<argc) httpParam.hlBindIP = inet_addr(argv[i]);
+					if (httpParam.hlBindIP) ifcarg = argv[i];
 					break;
 				case 'r':
 					if ((++i)<argc) strncpy(httpParam.pchWebPath, argv[i], sizeof(httpParam.pchWebPath) - 1);
@@ -267,7 +274,7 @@ int main(int argc,char* argv[])
 
 	{
 		int n;
-		printf("Host: %s:%d\n", GetLocalAddrString(), httpParam.httpPort);
+		printf("Host: %s:%d\n", (ifcarg ? ifcarg : GetLocalAddrString()), httpParam.httpPort);
 		printf("Web root: %s\n",httpParam.pchWebPath);
 		printf("Max clients (per IP): %d (%d)\n",httpParam.maxClients, httpParam.maxClientsPerIP);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
