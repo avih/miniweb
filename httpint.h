@@ -32,7 +32,7 @@
 
 // HTTP messages/part messages
 #ifndef HTTP_SERVER_NAME
-#define HTTP_SERVER_NAME "MiniWeb"
+#define HTTP_SERVER_NAME "MiniWeb-avih"
 #endif
 #define HTTP200_HEADER "%s %d %s\r\nServer: %s\r\nCache-control: no-cache\r\nPragma: no-cache\r\nConnection: %s\r\n"
 #define HTTP200_HDR_EST_SIZE ((sizeof(HTTP200_HEADER)+256)&(-4))

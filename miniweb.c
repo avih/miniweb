@@ -172,7 +172,9 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 
 int main(int argc,char* argv[])
 {
-	fprintf(stderr,"MiniWeb (built on %s)\n(C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n", __DATE__);
+	fprintf(stderr,"MiniWeb (avih fork) https://github.com/avih/miniweb (built on %s)\n"
+	               "Originally: (C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n",
+	               __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
