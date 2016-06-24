@@ -11,7 +11,7 @@ DEFINES=
 
 ifdef WINDIR
 DEFINES+= -DWIN32
-LDADD += -lws2_32
+LDADD += -lws2_32 -lshell32
 OS="Win32"
 else
 #CFLAGS+= -fPIC

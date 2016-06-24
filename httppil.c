@@ -25,6 +25,8 @@
 #include <unistd.h>
 #endif
 
+#include "win32/win_compat.h"
+
 int InitSocket()
 {
 #ifdef WIN32
@@ -135,8 +137,8 @@ void MutexUnlock(pthread_mutex_t* mutex)
 
 int IsDir(const char* pchName)
 {
-	struct stat stDirInfo;
-	if (stat( pchName, &stDirInfo) < 0) return 0;
+	struct cc_stat_s stDirInfo;
+	if (cc_stat( pchName, &stDirInfo) < 0) return 0;
 	return (stDirInfo.st_mode & S_IFDIR)?1:0;
 }
 
@@ -144,7 +146,7 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf)
 {
 #if defined(WIN32) || defined(WINCE)
 	static HANDLE hFind=NULL;
-	WIN32_FIND_DATA finddata;
+	cc_WIN32_FIND_DATA finddata;
 
 	if (!pchFileNameBuf) {
 		if (hFind) {
@@ -161,7 +163,7 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf)
 		len = strlen(pchDir);
 		p = malloc(len + 5);
 		snprintf(p, len + 5, "%s\\*.*", pchDir);
-		hFind=FindFirstFile(p,&finddata);
+		hFind=cc_FindFirstFile(p,&finddata);
 		free(p);
 		if (hFind==INVALID_HANDLE_VALUE) {
 			hFind=NULL;
@@ -171,7 +173,7 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf)
 		return 0;
 	}
 	if (!hFind) return -1;
-	if (!FindNextFile(hFind,&finddata)) {
+	if (!cc_FindNextFile(hFind,&finddata)) {
 		FindClose(hFind);
 		hFind=NULL;
 		return -1;
@@ -215,8 +217,8 @@ int IsFileExist(const char* filename)
 	FindClose(hFind);
 	return 1;
 #else
-	struct stat stat_ret;
-	if (stat(filename, &stat_ret) != 0) return 0;
+	struct cc_stat_s stat_ret;
+	if (cc_stat(filename, &stat_ret) != 0) return 0;
 
 	return (stat_ret.st_mode & S_IFREG) != 0;
 #endif

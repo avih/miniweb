@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include "httpapi.h"
 #include "httpint.h"
+#include "win32/win_compat.h"
 
 #ifdef _7Z
 #include "7zDec/7zInc.h"
@@ -1445,15 +1446,16 @@ int hpf(HttpSocket* s, const char *fmt, ...) {
 
 int _mwListDirectory_internal(HttpSocket* phsSocket, char* dir, int isscript, int isroot)
 {
-	char cFileName[128];
-	char cFilePath[MAX_PATH];
+	char cFileName[cc_USIZE(128)];
+	char cFilePath[cc_USIZE(MAX_PATH)];
 	char tmp[512] = {0};
-	int ret, first = 1;
+	char *sep = "";
+	int ret;
 
 	if (!*dir) strcpy(dir, ".");
 	DBG("Listing directory: %s\n",dir);
 	for (ret=ReadDir(dir,cFileName); !ret; ret=ReadDir(NULL,cFileName)) {
-		struct stat st;
+		struct cc_stat_s st;
 		char *ext, *trail;
 		int isdir = 0;
 		size_t bytes;
@@ -1462,7 +1464,7 @@ int _mwListDirectory_internal(HttpSocket* phsSocket, char* dir, int isscript, in
 		if (isroot && !strcmp(cFileName, "..")) continue;
 		DBG("Checking %s ...\n",cFileName);
 		snprintf(cFilePath, sizeof(cFilePath), "%s/%s",dir,cFileName);
-		if (stat(cFilePath,&st)) continue;
+		if (cc_stat(cFilePath,&st)) continue;
 
 		// setup ftype to hold the file type string
 		if ((isdir = (st.st_mode & S_IFDIR))) {
@@ -1477,10 +1479,8 @@ int _mwListDirectory_internal(HttpSocket* phsSocket, char* dir, int isscript, in
 		trail = (isdir && strcmp(cFileName, "..") ? "/" : "");
 
 		if (isscript) {
-			if (first) first = 0;
-			else hpf(phsSocket, "|");
-			hpf(phsSocket, "%s%s?", cFileName, trail);
-			hpf(phsSocket, "%s%lu?", (isdir ? "-" : ""), (unsigned long)(isdir ? 1u : st.st_size));
+			hpf(phsSocket, "%s%s%s?", sep, cFileName, trail); sep = "|";
+			hpf(phsSocket, "%lld?", (long long)(isdir ? -1ll : (long long)st.st_size));
 			hpf(phsSocket, "%s?", ftype);
 			hpf(phsSocket, "%u", (unsigned int)(st.st_mtime));
 		} else {
@@ -1498,6 +1498,7 @@ int _mwListDirectory_internal(HttpSocket* phsSocket, char* dir, int isscript, in
 }
 
 const char *dir_list_js = ""
+"document.title = title; document.getElementById('title').innerHTML = title;\n"
 "var DEF_ORDER = 'N+';  // by name by default\n"
 "var DEF_DIR = {N: 1, S: -1, T: 1, M: -1};  // default dir for each column (date/size are reversed)\n"
 "var DIR2ARG = {'-1' : '-', '1': '+'};\n"
@@ -1533,7 +1534,7 @@ const char *dir_list_js = ""
 "function golink(n) { document.getElementById('link' + n).click(); }\n"
 "function dispKB(n) {\n"
 " return n == 0 ? 0 : n < 512 ? 1 :\n"
-"	       (''+((512 + n)>>>10)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n"
+"        (''+Math.round(n/1024)).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\");\n"
 "}\n"
 "\n"
 "// files: '|' separated, where each file is <name>?<size>?<type>?<modified>\n"
@@ -1574,10 +1575,11 @@ int _mwListDirectory(HttpSocket* phsSocket, char* dir)
 	if (strchr(disp_path, '?')) *strchr(disp_path, '?') = 0;  // remove sort args
 	if (disp_path[0]) disp_path[strlen(disp_path) - 1] = 0;  // remove trailing '/'
 	hp_init(phsSocket);
-	hpf(phsSocket, "<html><head><meta charset='utf-8'/><title>/%s</title><style>\n"
+	hpf(phsSocket, "<html><head><meta charset='utf-8'/><title><noscript>/%s</noscript></title><style>\n"
 	               "td, th{padding: 0.1em 1em; white-space:pre; line-height: 1em;} tr:not(:first-child):hover{background: #ff8;}"
-	               "\n</style></head><body><table style='border: 0px;'><h2>Directory of /%s</h2>",
-	    disp_path, disp_path);
+	               "\n</style></head><body><table style='border: 0px;'><h2>Directory of <noscript>/%s</noscript><span id='title'></span></h2>"
+	               "<script>\nvar title = decodeURI(\"/%s\");\n</script>",
+	    disp_path, disp_path, disp_path);
 
 	hpf(phsSocket, "<noscript>\n");
 	_mwListDirectory_internal(phsSocket, dir, 0, !*disp_path);
@@ -1613,7 +1615,7 @@ void _mwSendErrorPage(SOCKET socket, const char* header, const char* body)
 int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath, const char* filePath)
 {
 #ifndef WINCE
-	struct stat st;
+	struct cc_stat_s st;
 #endif
 	HttpFilePath hfp;
 
@@ -1626,7 +1628,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 		hfp.pchHttpPath=filePath; //phsSocket->request.pucPath;
 		mwGetLocalFileName(&hfp);
 #ifndef WINCE
-		if (stat(hfp.cFilePath,&st) < 0) {
+		if (cc_stat(hfp.cFilePath,&st) < 0) {
 #ifdef _7Z
 			char* szfile = 0;
 			char *p = strstr(hfp.cFilePath, ".7z/");
@@ -1652,16 +1654,16 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 			}
 			if (p) *p = SLASH;
 #endif
-
 			// file/dir not found
 			return -1;
 		}
 		// open file
 		if (!(st.st_mode & S_IFDIR))
-			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
+			phsSocket->fd=cc_open(hfp.cFilePath,OPEN_FLAG);
 		else
 			phsSocket->fd = -1;
 #else
+		/* WINCE */
 		{
 			TCHAR filePath[MAX_PATH];
 			MultiByteToWideChar(CP_ACP, MB_COMPOSITE, hfp.cFilePath, strlen(hfp.cFilePath) + 1, filePath, sizeof(filePath) / sizeof(filePath[0]));
@@ -1675,7 +1677,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 		if (hfp.pchExt) hfp.pchExt++;
 		st.st_mtime = 0;
 		st.st_size = 0;
-		fstat(phsSocket->fd, &st);
+		cc_fstat(phsSocket->fd, &st);
 #endif
 	} else {
 		return -1;
@@ -1705,7 +1707,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 #ifndef WINCE
 			phsSocket->fd=open(hfp.cFilePath,OPEN_FLAG);
 			if (phsSocket->fd > 0) {
-				fstat(phsSocket->fd, &st);
+				cc_fstat(phsSocket->fd, &st);
 				hfp.pchExt = strchr(defaultPages[i], '.') + 1;
 				break;
 			}

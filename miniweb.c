@@ -15,6 +15,7 @@
 #ifdef MEDIA_SERVER
 #include "mediaserver.h"
 #endif
+#include "win32/win_compat.h"
 
 int uhMpd(UrlHandlerParam* param);
 int ehMpd(MW_EVENT msg, int argi, void* argp);
@@ -172,6 +173,8 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 
 int main(int argc,char* argv[])
 {
+	int needs_argv_free = 0;
+	argv = cc_get_argvutf8(argc, argv, &needs_argv_free);
 	fprintf(stderr,"MiniWeb (avih fork) https://github.com/avih/miniweb (built on %s)\n"
 	               "Originally: (C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n",
 	               __DATE__);
@@ -268,6 +271,7 @@ int main(int argc,char* argv[])
 		}
 		if (error > 0) {
 			printf("Error parsing command line options\n");
+			if (needs_argv_free) cc_free_argvutf8(argc, argv);
 			return -1;
 		}
 	}
@@ -296,6 +300,7 @@ int main(int argc,char* argv[])
 	}
 
 	Shutdown();
+	if (needs_argv_free) cc_free_argvutf8(argc, argv);
 	return 0;
 }
 ////////////////////////////// END OF FILE //////////////////////////////
