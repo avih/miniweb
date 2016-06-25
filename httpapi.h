@@ -42,6 +42,7 @@
 #define DEFWORD(char1,char2) (char2+(char1<<8))
 #endif
 
+#include "win32/win_compat.h"
 ///////////////////////////////////////////////////////////////////////
 // Public definitions
 ///////////////////////////////////////////////////////////////////////
@@ -171,7 +172,7 @@ typedef struct {
 	int statusCode;
 	int headerBytes;
 	int sentBytes;
-	size_t contentLength;
+	cc_off_t contentLength;
 	HttpFileType fileType;
 } HttpResponse;
 

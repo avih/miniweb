@@ -755,7 +755,7 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	}
 	p+=snprintf(p, end - p, "Content-Type: %s\r\n", phsSocket->mimeType ? phsSocket->mimeType : contentTypeTable[phsSocket->response.fileType]);
 	if (phsSocket->response.contentLength > 0 && !(phsSocket->flags & FLAG_CHUNK)) {
-		p+=snprintf(p, end - p,"Content-Length: %d\r\n", phsSocket->response.contentLength);
+		p+=snprintf(p, end - p,"Content-Length: %lld\r\n", (long long)phsSocket->response.contentLength);
 	}
 	if (phsSocket->flags & FLAG_CHUNK) {
 		p += sprintf(p, "Transfer-Encoding: chunked\r\n");
@@ -1747,7 +1747,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 	}
 #ifndef WINCE
 	if (phsSocket->fd > 0) {
-		DWORD fileSize = st.st_size;
+		cc_off_t fileSize = st.st_size;
 
 #else
 	if (phsSocket->fd != INVALID_HANDLE_VALUE) {
