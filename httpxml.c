@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include "httpxml.h"
 
 #ifdef WIN32
@@ -37,11 +38,12 @@ void mwWriteXmlString(char** pbuf, int* pbufsize, int indent, char* str)
 	*pbufsize = bufsize;
 }
 
-int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr)
+int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr, const char *fmt, ...)
 {
 	int bufsize = *pbufsize;
 	int len;
 	int i;
+	va_list args;
 
 	if (bufsize < node->indent * 2) return -1;
 	for (i = 0; i < node->indent; i++) {
@@ -66,7 +68,10 @@ int mwWriteXmlLine(char** pbuf, int* pbufsize, HTTP_XML_NODE *node, char *attr)
 		bufsize -= len;
 	}
 
-	len = snprintf(*pbuf, bufsize, node->fmt, node->value);
+
+	va_start(args, fmt);
+	len = vsnprintf(*pbuf, bufsize, fmt, args);
+	va_end(args);
 	*pbuf += len;
 	bufsize -= len;
 

@@ -50,45 +50,29 @@ int uhStats(UrlHandlerParam* param)
 	sprintf(buf, "%d.%d.%d.%d", ip.caddr[3], ip.caddr[2], ip.caddr[1], ip.caddr[0]);
 
 	node.indent = 1;
-	node.fmt = "%s";
 	node.name = "ClientIP";
-	node.value = buf;
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%s", buf);
 
-	node.fmt = "%d";
 	node.name = "UpTime";
-	node.value = (void*)(time(NULL)-stats->startTime);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%ld", (long)(time(NULL) - stats->startTime));
 
-	node.fmt = "%d";
 	node.name = "Clients";
-	node.value = (void*)(stats->clientCount);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%d", (int)stats->clientCount);
 
-	node.fmt = "%d";
 	node.name = "ExpireTimeout";
-	node.value = (void*)(stats->timeOutCount);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%d", (int)stats->timeOutCount);
 
-	node.fmt = "%d";
 	node.name = "MaxClients";
-	node.value = (void*)(stats->clientCountMax);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%d", (int)stats->clientCountMax);
 
-	node.fmt = "%u";
 	node.name = "Requests";
-	node.value = (void*)(stats->reqCount);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%u", (unsigned int)stats->reqCount);
 
-	node.fmt = "%u";
 	node.name = "FileSent";
-	node.value = (void*)(stats->fileSentCount);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%u", (unsigned int)stats->fileSentCount);
 
-	node.fmt = "%u";
 	node.name = "FileSentMB";
-	node.value = (void*)(stats->fileSentBytes >> 20);
-	mwWriteXmlLine(&p, &bufsize, &node, 0);
+	mwWriteXmlLine(&p, &bufsize, &node, 0, "%u", (unsigned int)(stats->fileSentBytes >> 20));
 
 	mwWriteXmlString(&p, &bufsize, 1, "<Clients>");
 
