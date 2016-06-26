@@ -25,7 +25,7 @@
 #ifdef HTTP_DEBUG
 #define DBG printf
 #else
-#define DBG
+#define DBG(...) /* no-op */
 #endif
 #define LOG_ERR 1
 
@@ -106,7 +106,7 @@ typedef struct {
   size_t writeLocation;
   PostParam pp;
   char pchFilename[MAX_PATH];
-  void *pxCallBackData;
+  int fd;
 } HttpMultipart;
 
 typedef struct _tagSubstParam {

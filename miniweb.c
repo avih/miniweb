@@ -104,28 +104,31 @@ int DefaultWebPostCallback(PostParam* pp)
 int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDataChunkSize)
 {
   // Do nothing with the data
-	int fd = (int)pxMP->pxCallBackData;
+	int *fd = &pxMP->fd;
 	if (!poData) {
 		// to cleanup
-		if (fd > 0) {
-			close(fd);
-			pxMP->pxCallBackData = NULL;
+		if (*fd > 0) {
+			close(*fd);
+			*fd = 0;
 		}
 		return 0;
 	}
-	if (!fd) {
+	if (!*fd) {
 		char filename[256];
 		snprintf(filename, sizeof(filename), "%s/%s", httpParam.pchWebPath, pxMP->pchFilename);
-		fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY, 0);
-		pxMP->pxCallBackData = (void*)fd;
+		*fd = open(filename, O_CREAT | O_TRUNC | O_RDWR | O_BINARY, 0);
 	}
-	if (fd <= 0) return -1;
-	write(fd, poData, dwDataChunkSize);
+	if (*fd <= 0) return -1;
+	if (write(pxMP->fd, poData, dwDataChunkSize) < 0) {
+		close(*fd);
+		*fd = -1;
+		return -1;
+	}
 	if (pxMP->oFileuploadStatus & HTTPUPLOAD_LASTCHUNK) {
-		close(fd);
-		pxMP->pxCallBackData = NULL;
+		close(*fd);
+		*fd = 0;
 	}
-	printf("Received %u bytes for multipart upload file %s\n", dwDataChunkSize, pxMP->pchFilename);
+	printf("Received %u bytes for multipart upload file %s\n", (unsigned int)dwDataChunkSize, pxMP->pchFilename);
 	return 0;
 }
 

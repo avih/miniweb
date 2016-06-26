@@ -101,7 +101,7 @@ int uhStats(UrlHandlerParam* param)
 	mwWriteXmlString(&p, &bufsize, 0, "</ServerStats>");
 
 	//return data to server
-	param->dataBytes=(int)p-(int)(param->pucBuffer);
+	param->dataBytes=(int)(p - param->pucBuffer);
 	param->fileType=HTTPFILETYPE_XML;
 	return ret;
 }
