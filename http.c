@@ -488,8 +488,9 @@ void* mwHttpLoop(void* _hp)
 
 			{
 				int iError=0;
-				int iOptSize=sizeof(int);
-				if (getsockopt(socket,SOL_SOCKET,SO_ERROR,(char*)&iError,&iOptSize)) {
+				socklen_t optlen = sizeof(int);
+				if (getsockopt(socket, SOL_SOCKET, SO_ERROR, (char*)&iError, &optlen)) {
+					// FIXME: shouldn't we check the value of optval instead?
 					// if a socket contains a error, close it
 					SYSLOG(LOG_INFO,"[%d] Socket no longer vaild.\n",socket);
 					phsSocketCur->flags=FLAG_CONN_CLOSE;
@@ -771,7 +772,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 {
 	if (up->iVarCount==-1) {
 		//parsing variables from query string
-		unsigned char *p,*s;
+		char *p, *s;
 		// get start of query string
 		s = strchr(up->pucRequest, '?');
 		if (s) {
@@ -785,7 +786,7 @@ int mwParseQueryString(UrlHandlerParam* up)
 			int n = 1;
 			//get number of variables
 			for (p = s; *p ; p++) {
-				if (*p < 32 || *p > 127)
+				if ((unsigned char)*p < 32 || (unsigned char)*p > 127)
 					return 0;
 				if (*p == '&') n++;
 			}
@@ -1068,7 +1069,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 				if (!pxMP->pchBoundaryValue[0]) {
 					// no boundary, commit remaining data
 					pxMP->oFileuploadStatus = HTTPUPLOAD_LASTCHUNK;
-					(hp->pfnFileUpload)(phsSocket->pxMP, phsSocket->pucData, (int)phsSocket->dataLength);
+					(hp->pfnFileUpload)(phsSocket->pxMP, (unsigned char*)phsSocket->pucData, (int)phsSocket->dataLength);
 				}
 				_mwCloseSocket(hp, phsSocket);
 				return 0;
@@ -1192,7 +1193,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 						// direct POST with filename in Content-Type
 						phsSocket->dataLength -= phsSocket->request.headerSize;
 						pxMP->oFileuploadStatus = HTTPUPLOAD_FIRSTCHUNK;
-						if (hp->pfnFileUpload) (hp->pfnFileUpload)(pxMP, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
+						if (hp->pfnFileUpload) (hp->pfnFileUpload)(pxMP, (unsigned char *)phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 						pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
 						phsSocket->pucData = phsSocket->buffer;
 						phsSocket->bufferSize = HTTP_BUFFER_SIZE;
@@ -1217,7 +1218,7 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 		if (!phsSocket->pxMP->pchBoundaryValue[0]) {
 			// no boundary, simply receive raw data
 			if (phsSocket->dataLength == phsSocket->bufferSize && hp->pfnFileUpload) {
-				(hp->pfnFileUpload)(phsSocket->pxMP, phsSocket->pucData, phsSocket->dataLength);
+				(hp->pfnFileUpload)(phsSocket->pxMP, (unsigned char *)phsSocket->pucData, phsSocket->dataLength);
 				phsSocket->dataLength = 0;
 			}
 		}

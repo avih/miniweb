@@ -173,7 +173,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
       // It's the last chunk of the posted file
       // Warning: MAY BE BIGGER THAN HTTPUPLOAD_CHUNKSIZE
       pxMP->oFileuploadStatus = HTTPUPLOAD_LASTCHUNK;
-      (httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, (size_t)(pchBoundarySearch - phsSocket->buffer));
+      (httpParam->pfnFileUpload)(pxMP, (unsigned char *)phsSocket->buffer, (size_t)(pchBoundarySearch - phsSocket->buffer));
 
       DBG("Multipart file POST on socket %d complete\n",  phsSocket->socket);
     }
@@ -279,7 +279,7 @@ int _mwProcessMultipartPost(HttpParam *httpParam, HttpSocket* phsSocket, BOOL fN
   if (pxMP->writeLocation == HTTPMAXRECVBUFFER) {
     if (pxMP->oFileuploadStatus != HTTPUPLOAD_LASTCHUNK) {
       // callback with next chunk of posted file
-		if ((httpParam->pfnFileUpload)(pxMP, phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE)) {
+		if ((httpParam->pfnFileUpload)(pxMP, (unsigned char *)phsSocket->buffer, HTTPUPLOAD_CHUNKSIZE)) {
 			return 1;
 		}
       pxMP->oFileuploadStatus = HTTPUPLOAD_MORECHUNKS;
