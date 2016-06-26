@@ -1102,6 +1102,15 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 			SETFLAG(phsSocket,FLAG_REQUEST_GET);
 			path = phsSocket->pucData + 5;
 		} else if (!memcmp(phsSocket->buffer, "POST", 4)) {
+				// FIXME/TODO/WIP: Disable POST completely until:
+				// 1. It's disabled by default (was enabled by default and allowed
+				//    uploading arbitrary files... duh)
+				// 2. It's reliable (e.g. support 'Expect: 100-continue')
+				// 3. Works cross platform (currently barely works, and only on windows)
+				SYSLOG(LOG_INFO,"[%d] POST is currently unsupported\n",phsSocket->socket);
+				phsSocket->request.pucPath = 0;
+				return -1;
+			// Original code:
 			SETFLAG(phsSocket,FLAG_REQUEST_POST);
 			path = phsSocket->pucData + 6;
 #ifdef ENABLE_RTSP
