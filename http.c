@@ -356,12 +356,17 @@ SOCKET _mwStartListening(HttpParam* hp)
     // bind it to the http port
     {
       struct sockaddr_in sinAddress;
+      int reuse = 1;
       memset(&sinAddress,0,sizeof(struct sockaddr_in));
       sinAddress.sin_family=AF_INET;
 	  // INADDR_ANY is 0
 	  //sinAddress.sin_addr.s_addr=htonl(hp->dwBindIP);
 	  sinAddress.sin_addr.s_addr = hp->hlBindIP;
       sinAddress.sin_port = htons(hp->httpPort); // http port
+      setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&reuse, sizeof(int));
+#ifdef SO_REUSEPORT
+      setsockopt(listenSocket, SOL_SOCKET, SO_REUSEPORT, (char *)&reuse, sizeof(int));
+#endif
       iRc=bind(listenSocket,(struct sockaddr*)&sinAddress,
                sizeof(struct sockaddr_in));
 	  if (iRc<0) {
