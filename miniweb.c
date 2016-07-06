@@ -17,6 +17,8 @@
 #endif
 #include "win32/win_compat.h"
 
+#define APP_NAME "MiniWeb-avih"
+
 int uhMpd(UrlHandlerParam* param);
 int ehMpd(MW_EVENT msg, int argi, void* argp);
 int uhStats(UrlHandlerParam* param);
@@ -132,18 +134,20 @@ int DefaultWebFileUploadCallback(HttpMultipart *pxMP, OCTET *poData, size_t dwDa
 	return 0;
 }
 
-void Shutdown()
+int Shutdown(mwShutdownCallback cb, unsigned int timeout)
 {
 	//shutdown server
-	mwServerShutdown(&httpParam);
+	int rv = mwServerShutdown(&httpParam, cb, timeout);
 	fclose(fpLog);
 	UninitSocket();
+	return rv;
 }
 
 char* GetLocalAddrString()
 {
 	// get local ip address
 	struct sockaddr_in sock;
+
 	char hostname[128];
 	struct hostent * lpHost;
 	gethostname(hostname, 128);
@@ -152,14 +156,46 @@ char* GetLocalAddrString()
 	return inet_ntoa(sock.sin_addr);
 }
 
-int MiniWebQuit(int arg) {
+#ifdef WIN32  /* Windows - Console control handler on ctrl-c (new thread) */
+
+BOOL MiniWebQuit(DWORD arg) {
 	static int quitting = 0;
-	if (quitting) return 0;
+	if (quitting) return 1;  // shouldn't reenter on windows. regardless, already being handled
 	quitting = 1;
-	if (arg) printf("\nCaught signal (%d). MiniWeb shutting down...\n",arg);
-	Shutdown();
-	return 0;
+	printf("\nCaught control signal (%d). Shutting down...\n", (int)arg);
+
+	// Shutdown() runs in the handler thread, waits for the server (main
+	// thread) to finish - up to timeout. Returns TRUE if stop succeeded.
+	if (Shutdown(0, 5000)) {
+	  printf("Cannot shut down the server, killing it instead...\n");
+	  return 0;  // couldn't kill the server, let the system kill us.
+	}
+	// success, the program continues to finish main, don't let the system kill us.
+	// possibly we never get here - if main finishes before Shutdown returns.
+	return 1;
 }
+
+#else  /* *nix - signal handler - main thread */
+
+void onShutdown()
+{
+  // Good thing we're lucky. Now main can finish.
+}
+
+void MiniWebQuit(int arg) {
+	static int quitting = 0;
+	if (quitting) return;
+	quitting = 1;
+	printf("\nCaught signal (%d), attempting to shut down...\n", arg);
+	Shutdown(onShutdown, 0);  // tell the server to shutdown but don't wait for it.
+	// since the server runs on the main thread, not much we can do in
+	// terms of using a timeout since main thread is blocked as long as
+	// we're here. If it doesn't exit, the user should kill it manually.
+	// Empirically, it always seem to exit correctly and quickly.
+	// This is bad design, but for now that's what we have.
+}
+
+#endif
 
 void GetFullPath(char* buffer, char* argv0, char* path)
 {
@@ -178,15 +214,15 @@ int main(int argc,char* argv[])
 {
 	int needs_argv_free = 0;
 	argv = cc_get_argvutf8(argc, argv, &needs_argv_free);
-	fprintf(stderr,"MiniWeb (avih fork) https://github.com/avih/miniweb (built on %s)\n"
+	fprintf(stderr,"%s https://github.com/avih/miniweb (built on %s)\n"
 	               "Originally: (C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n",
-	               __DATE__);
+	               APP_NAME, __DATE__);
 
 #ifdef WIN32
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) MiniWebQuit, TRUE );
 #else
-	signal(SIGINT, (void *) MiniWebQuit);
-	signal(SIGTERM, (void *) MiniWebQuit);
+	signal(SIGINT, MiniWebQuit);
+	signal(SIGTERM, MiniWebQuit);
 	signal(SIGPIPE, SIG_IGN);
 #endif
 
@@ -225,9 +261,10 @@ int main(int argc,char* argv[])
 						       "		-l	: specify log file\n"
 						       "		-m	: specifiy max clients [default 32]\n"
 						       "		-M	: specifiy max clients per IP\n"
-							   "		-s	: specifiy download speed limit in KB/s [default: none]\n"
-							   "		-n	: disallow multi-part download [default: allow]\n"
-						       "		-d	: disallow directory listing [default ON]\n\n");
+						       "		-s	: specifiy download speed limit in KB/s [default: none]\n"
+						       "		-n	: disallow multi-part download [default: allow]\n"
+						       "		-d	: disallow directory listing [default ON]\n\n"
+						);
 					fflush(stderr);
                                         exit(1);
 
@@ -297,12 +334,17 @@ int main(int argc,char* argv[])
 		//start server
 		if (mwServerStart(&httpParam)) {
 			printf("Error starting HTTP server\n");
+			Shutdown(0, 0);  // the server is not running but for the socket/log file.
 		} else {
 			mwHttpLoop(&httpParam);
+			printf("Shutdown complete\n");
 		}
 	}
 
-	Shutdown();
+	// No need for Shutdown() here since it must have already happened:
+	// the only way for mwHttpLoop to exit is if hp->bKillWebserver, and
+	// it's set only from mwServerShutdown, and only Shutdown calls it.
+
 	if (needs_argv_free) cc_free_argvutf8(argc, argv);
 	return 0;
 }

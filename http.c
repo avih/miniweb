@@ -236,6 +236,7 @@ int mwServerStart(HttpParam* hp)
 		DBG("Error listening on port %d\n", hp->httpPort);
 		return -1;
 	}
+	hp->postHttpLoop = 0;
 
 #ifndef WINCE
 	hp->stats.startTime=time(NULL);
@@ -243,6 +244,7 @@ int mwServerStart(HttpParam* hp)
 	hp->stats.startTime = GetTickCount()>>10;
 #endif
 	hp->bKillWebserver=FALSE;
+	hp->bKillingWebserver = FALSE;
 	hp->bWebserverRunning=TRUE;
 	if (!hp->tmSocketExpireTime) hp->tmSocketExpireTime = HTTP_EXPIRATION_TIME;
 	return 0;
@@ -252,28 +254,27 @@ int mwServerStart(HttpParam* hp)
 // mwServerShutdown
 // Shutdown the webserver
 ////////////////////////////////////////////////////////////////////////////
-int mwServerShutdown(HttpParam* hp)
+int mwServerShutdown(HttpParam* hp, mwShutdownCallback cb, unsigned int timeout_ms)
 {
 	int i;
-	if (hp->bKillWebserver || !hp->bWebserverRunning) return -1;
-
+	if (hp->bKillingWebserver || hp->bKillWebserver || !hp->bWebserverRunning)
+		return -1;  // call at invalid state
+	hp->bKillingWebserver = TRUE;
 	DBG("Shutting down...\n");
 	_mwCloseAllConnections(hp);
 
-	// signal webserver thread to quit
+	// signal webserver [possibly thread] to quit
 	hp->bKillWebserver=TRUE;
 
-	// and wait for thread to exit
-	for (i=0;hp->bWebserverRunning && i<30;i++) msleep(100);
+	if (cb) {  // we're same thread as the server. setup the callback and return.
+		hp->postHttpLoop = cb;
+		return 0;  // as success as we can get at this stage
+	}
 
-#ifdef _7Z
-	SzUninit(hp->szctx);
-#endif
-
-	if (!hp->bWebserverRunning)
-		DBG("Webserver shutdown complete\n");
-
-	return 0;
+	// we're different thread than the server, we can wait for it
+	for (i = 0; hp->bWebserverRunning && i <= timeout_ms; i += 100)
+		msleep(100);
+	return (hp->bWebserverRunning ? -1 : 0);
 }
 
 int mwGetLocalFileName(HttpFilePath* hfp)
@@ -650,16 +651,26 @@ void* mwHttpLoop(void* _hp)
 	for (i = 0; i < hp->maxClients; i++) {
 		if (hp->hsSocketQueue[i].buffer) free(hp->hsSocketQueue[i].buffer);
 	}
+
 	for (i=0; hp->pxUrlHandler[i].pchUrlPrefix; i++) {
 		if (hp->pxUrlHandler[i].pfnUrlHandler && hp->pxUrlHandler[i].pfnEventHandler)
 			hp->pxUrlHandler[i].pfnEventHandler(MW_UNINIT, &hp->pxUrlHandler[i] , hp);
 	}
+
 	free(hp->hsSocketQueue);
 	hp->hsSocketQueue = 0;
 
 	// clear state vars
 	hp->bKillWebserver=FALSE;
 	hp->bWebserverRunning=FALSE;
+
+#ifdef _7Z
+	SzUninit(hp->szctx);
+#endif
+
+	if (hp->postHttpLoop)
+		hp->postHttpLoop();
+	hp->postHttpLoop = 0;
 
 
 	return NULL;

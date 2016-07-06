@@ -288,11 +288,14 @@ typedef struct {
 #define FLAG_DIR_LISTING 1
 #define FLAG_DISABLE_RANGE 2
 
+typedef void (*mwShutdownCallback)(void);  // void onShutdown(void) { ... }
+
 typedef struct _httpParam {
 	HttpSocket* hsSocketQueue;				/* socket queue*/
 	int maxClients;
 	int maxClientsPerIP;
 	int bKillWebserver;
+	int bKillingWebserver;
 	int bWebserverRunning;
 	unsigned int flags;
 	SOCKET listenSocket;
@@ -319,6 +322,7 @@ typedef struct _httpParam {
 	HttpStats stats;
 	u_long hlBindIP;
 	void* szctx;
+	mwShutdownCallback postHttpLoop; // only the shutdown handler should set this
 } HttpParam;
 
 typedef struct {
@@ -366,8 +370,23 @@ void* mwHttpLoop(void* _hp);
 ///////////////////////////////////////////////////////////////////////
 // mwServerShutdown. Shutdown the webserver (closes connections and
 // releases resources)
+// Note: this funtion cannot guarantee successful shutdown, and it
+//       operates in one of two modes:
+//   1. If cb is provided, it indicates that the caller is running on
+//      the same thread as the server. At this case, it only signals
+//      the server to shutdown, ignores timeout_ms, will always return 0,
+//      and will call cb after the shutdown completes. It's up to the
+//      caller to handle timeout in case the callback is never invoked.
+//   2. if cb is not provided, the function assumes that it runs on a
+//      different thread than the server, will signal the server to
+//      shutdown, and will wait timeout_ms to let it complete. It will
+//      return 0 if the shutdown completed successfully, or negative
+//      value if the server didn't shutdown within the timeout.
+//
+//      Calling this function more than once will always return -1 for
+//      redundant calls (this resets when starting the server again).
 ///////////////////////////////////////////////////////////////////////
-int mwServerShutdown(HttpParam* hp);
+int mwServerShutdown(HttpParam*, mwShutdownCallback cb, unsigned int timeout_ms);
 
 ///////////////////////////////////////////////////////////////////////
 // mwSetRcvBufSize. Change the TCP windows size of acceped sockets
