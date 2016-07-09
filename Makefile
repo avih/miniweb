@@ -15,6 +15,7 @@ LDADD += -lws2_32 -lshell32
 OS="Win32"
 else
 #CFLAGS+= -fPIC
+LDADD += -lrt
 OS="Linux"
 endif
 

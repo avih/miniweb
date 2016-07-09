@@ -17,6 +17,11 @@
 #endif
 #include "win32/win_compat.h"
 
+#ifndef WIN32
+#include <signal.h>
+#include <time.h>
+#endif
+
 #define APP_NAME "MiniWeb-avih"
 
 int uhMpd(UrlHandlerParam* param);
@@ -156,6 +161,7 @@ char* GetLocalAddrString()
 	return inet_ntoa(sock.sin_addr);
 }
 
+#define SHUTDOWN_TIMEOUT_MS 5000
 #ifdef WIN32  /* Windows - Console control handler on ctrl-c (new thread) */
 
 BOOL MiniWebQuit(DWORD arg) {
@@ -166,7 +172,7 @@ BOOL MiniWebQuit(DWORD arg) {
 
 	// Shutdown() runs in the handler thread, waits for the server (main
 	// thread) to finish - up to timeout. Returns TRUE if stop succeeded.
-	if (Shutdown(0, 5000)) {
+	if (Shutdown(0, SHUTDOWN_TIMEOUT_MS)) {
 	  printf("Cannot shut down the server, killing it instead...\n");
 	  return 0;  // couldn't kill the server, let the system kill us.
 	}
@@ -179,20 +185,43 @@ BOOL MiniWebQuit(DWORD arg) {
 
 void onShutdown()
 {
-  // Good thing we're lucky. Now main can finish.
+  // Good to know. Now main can finish.
+}
+
+static void killIn(uint32_t timeout_ms)
+{
+	static timer_t kill_timer;
+	struct itimerspec its;
+	struct sigevent sev;
+
+	static int killing = 0;
+	if (killing) return;
+	killing = 1;
+
+	sev.sigev_notify = SIGEV_SIGNAL;
+	sev.sigev_signo = SIGKILL;
+	sev.sigev_value.sival_ptr = &kill_timer;
+
+	if (timer_create(CLOCK_REALTIME, &sev, &kill_timer)) {
+		printf("Cannot set shutdown timeout. Kill manually if hangs.\n");
+		return;
+	}
+
+	its.it_value.tv_sec = timeout_ms / 1000;
+	its.it_value.tv_nsec = 1000000 * (timeout_ms % 1000);
+	its.it_interval.tv_sec = 0;
+	its.it_interval.tv_nsec = 0;
+
+	timer_settime(kill_timer, 0, &its, NULL);
 }
 
 void MiniWebQuit(int arg) {
 	static int quitting = 0;
 	if (quitting) return;
 	quitting = 1;
-	printf("\nCaught signal (%d), attempting to shut down...\n", arg);
+	printf("\nCaught signal (%d). Shutting down...\n", arg);
 	Shutdown(onShutdown, 0);  // tell the server to shutdown but don't wait for it.
-	// since the server runs on the main thread, not much we can do in
-	// terms of using a timeout since main thread is blocked as long as
-	// we're here. If it doesn't exit, the user should kill it manually.
-	// Empirically, it always seem to exit correctly and quickly.
-	// This is bad design, but for now that's what we have.
+	killIn(SHUTDOWN_TIMEOUT_MS);
 }
 
 #endif
