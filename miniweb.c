@@ -17,7 +17,7 @@
 #endif
 #include "win32/win_compat.h"
 
-#ifndef WIN32
+#ifdef HAS_POSIX_TIMERS
 #include <signal.h>
 #include <time.h>
 #endif
@@ -188,6 +188,7 @@ void onShutdown()
   // Good to know. Now main can finish.
 }
 
+#ifdef HAS_POSIX_TIMERS
 static void killIn(uint32_t timeout_ms)
 {
 	static timer_t kill_timer;
@@ -214,6 +215,7 @@ static void killIn(uint32_t timeout_ms)
 
 	timer_settime(kill_timer, 0, &its, NULL);
 }
+#endif
 
 void MiniWebQuit(int arg) {
 	static int quitting = 0;
@@ -221,7 +223,9 @@ void MiniWebQuit(int arg) {
 	quitting = 1;
 	printf("\nCaught signal (%d). Shutting down...\n", arg);
 	Shutdown(onShutdown, 0);  // tell the server to shutdown but don't wait for it.
+#ifdef HAS_POSIX_TIMERS
 	killIn(SHUTDOWN_TIMEOUT_MS);
+#endif
 }
 
 #endif

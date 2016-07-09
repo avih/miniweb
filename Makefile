@@ -15,8 +15,17 @@ LDADD += -lws2_32 -lshell32
 OS="Win32"
 else
 #CFLAGS+= -fPIC
+
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+OS="Darwin"
+else
 LDADD += -lrt
 OS="Linux"
+CFLAGS+= -DHAS_POSIX_TIMERS
+endif
+
 endif
 
 ifndef DEBUG
