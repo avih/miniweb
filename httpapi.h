@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/types.h>
 #include "httppil.h"
 
 #define VER_MAJOR 0

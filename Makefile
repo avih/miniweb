@@ -1,5 +1,5 @@
 CC?=gcc
-CFLAGS=-O3 -Wunused-result
+CFLAGS?=-O3 -Wunused-result
 HTTPOBJ = httppil.o http.o httpxml.o httphandler.o httppost.o httpauth.o
 HEADERS = httpint.h httpapi.h httpxml.h
 ifndef TARGET

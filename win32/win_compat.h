@@ -23,17 +23,20 @@
 
 /**
  * - If not Windows or #ifdef CC_DISABLE_WIN_UTF8: all cc_ABC are pretty much ABC
- *   except cc_fseek which becomes fseeko, and cc_ftell which becomes ftello.
+ *   except that on windows cc_fseeko maps to fseek, and cc_ftello maps to ftell
+ *   since there are no native 'o' variants.
+ *
+ *         If windows and not disabled via CC_DISABLE_WIN_UTF8:
  *
  * - Use "argv = cc_get_argvutf8(argc, argv, &success);" to convert argv to utf8.
  *   On failure, argv remains the same. On success, use cc_free_argvutf8 when done.
- *   cc_*_argvutf8 don't need #ifdef WIN32, but are only effective on windows.
+ *   cc_*_argvutf8 don't need #ifdef WIN32, but are only effective on windows when
+ *   not disabled via CC_DISABLE_WIN_UTF8.
  *
  * - cc_USIZE(n) just multiples n (if WIN32) to accommodate longer strings as utf8.
  *
- * - All cc_<file-related> are 64 bits: off_t, ftell, fseek, stat, fstat
+ * - All cc_<file-related> use 64 bits sizes, including CC_OFF_T_MIN[/MAX].
  *   Note: use struct cc_stat_s for struct stat, and cc_[f]stat(..) for [f]stat(..)
- *   This includes CC_OFF_T_MIN[/MAX].
  *
  * - All char* arguments can be utf8 (or ansi): fopen, open, stat, fprintf,
  *   and FindFirst[/Next]File (win only - use cc_WIN32_FIND_DATA which has char*).
@@ -49,8 +52,6 @@
     #define CC_OFF_T_MIN  OFF_T_MIN
     #define CC_OFF_T_MAX  OFF_T_MAX
     #define cc_off_t    off_t
-    #define cc_fseek    fseeko
-    #define cc_ftell    ftello
     #define cc_fopen    fopen
     #define cc_open     open
     #define cc_fprintf  fprintf
@@ -63,9 +64,15 @@
     #define cc_free_argvutf8(argc, argv)  /* noop */
 
     #ifdef CC_WIN32
+        #define cc_fseeko fseek
+        #define cc_ftello ftell
+
         #define cc_FindFirstFile   FindFirstFile
         #define cc_FindNextFile    FindNextFile
         #define cc_WIN32_FIND_DATA WIN32_FIND_DATA
+    #else
+        #define cc_fseeko fseeko
+        #define cc_ftello ftello
     #endif
 #else
 
@@ -98,9 +105,9 @@
 #include <io.h>
 #include <fcntl.h>
 #define cc_off_t     __int64
-#define cc_fseek     _fseeki64
+#define cc_fseeko    _fseeki64
 // _ftelli64 is hard to link. _telli64 + _fileno is the same, easier to link
-#define cc_ftell(fd) _telli64(_fileno(fd))
+#define cc_ftello(fd) _telli64(_fileno(fd))
 
 #define CC_OFF_T_MIN _I64_MIN
 #define CC_OFF_T_MAX _I64_MAX
