@@ -336,7 +336,7 @@ static void _cc_wfd2ccfd(cc_WIN32_FIND_DATA *ofd, const WIN32_FIND_DATAW *wfd) {
     free(cfn);
 
     cafn = mp_to_utf8(wfd->cAlternateFileName);
-    strncpy(ofd->cAlternateFileName, cafn, _CAFN_SIZE - 1); ofd->cFileName[_CAFN_SIZE - 1] = 0;
+    strncpy(ofd->cAlternateFileName, cafn, _CAFN_SIZE - 1); ofd->cAlternateFileName[_CAFN_SIZE - 1] = 0;
     free(cafn);
 }
 
