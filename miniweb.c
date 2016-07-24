@@ -243,10 +243,8 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 	}
 }
 
-int main(int argc,char* argv[])
+int cc_main(int argc,char* argv[])
 {
-	int needs_argv_free = 0;
-	argv = cc_get_argvutf8(argc, argv, &needs_argv_free);
 	fprintf(stderr,"%s https://github.com/avih/miniweb (built on %s)\n"
 	               "Originally: (C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n",
 	               APP_NAME, __DATE__);
@@ -344,7 +342,6 @@ int main(int argc,char* argv[])
 		}
 		if (error > 0) {
 			printf("Error parsing command line options\n");
-			if (needs_argv_free) cc_free_argvutf8(argc, argv);
 			return -1;
 		}
 	}
@@ -378,7 +375,6 @@ int main(int argc,char* argv[])
 	// the only way for mwHttpLoop to exit is if hp->bKillWebserver, and
 	// it's set only from mwServerShutdown, and only Shutdown calls it.
 
-	if (needs_argv_free) cc_free_argvutf8(argc, argv);
 	return 0;
 }
 ////////////////////////////// END OF FILE //////////////////////////////

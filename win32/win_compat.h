@@ -58,6 +58,7 @@
     #define cc_stat_s   stat
     #define cc_stat     stat
     #define cc_fstat    fstat
+    #define cc_main     main
 
     #define cc_USIZE(n) (n)
     #define cc_get_argvutf8(argc, argv, pOK) ((*(pOK) = 0), (argv))
@@ -169,30 +170,20 @@ static char *mp_to_utf8(const wchar_t *s)
     return ret;
 }
 
-// own implementation of isatty
-static int mp_check_console(HANDLE wstream)
+static HANDLE cc_get_out_console_handle(FILE *f)
 {
-    if (wstream != INVALID_HANDLE_VALUE) {
-        unsigned int filetype = GetFileType(wstream);
+    DWORD dummy;
+    HANDLE h;
+    int fd = _fileno(f);
 
-        if (!((filetype == FILE_TYPE_UNKNOWN) &&
-            (GetLastError() != ERROR_SUCCESS)))
-        {
-            filetype &= ~(FILE_TYPE_REMOTE);
-
-            if (filetype == FILE_TYPE_CHAR) {
-                DWORD ConsoleMode;
-                int ret = GetConsoleMode(wstream, &ConsoleMode);
-
-                if (!(!ret && (GetLastError() == ERROR_INVALID_HANDLE))) {
-                    // This seems to be a console
-                    return 1;
-                }
-            }
-        }
+    if (_isatty(fd) &&
+        INVALID_HANDLE_VALUE != (h = (HANDLE)_get_osfhandle(fd)) &&
+        GetConsoleMode(h, &dummy))
+    {
+        return h;
+    } else {
+        return INVALID_HANDLE_VALUE;
     }
-
-    return 0;
 }
 
 static void write_console_text(HANDLE wstream, char *buf)
@@ -203,34 +194,28 @@ static void write_console_text(HANDLE wstream, char *buf)
     free(out);
 }
 
-// if stream is a tty, prints wide chars, else utf8.
+// if f is a tty, prints wide chars, else utf8.
 // originally used mp_write_console_ansi which also translates ansi sequences,
 // but we don't need it so use plain write_console_text instead.
-static int mp_vfprintf(FILE *stream, const char *format, va_list args)
+static int mp_vfprintf(FILE *f, const char *format, va_list args)
 {
-    int done = 0;
+    int rv = 0;
+    HANDLE h = cc_get_out_console_handle(f);
 
-    HANDLE wstream = INVALID_HANDLE_VALUE;
-
-    if (stream == stdout || stream == stderr) {
-        wstream = GetStdHandle(stream == stdout ?
-                               STD_OUTPUT_HANDLE : STD_ERROR_HANDLE);
-    }
-
-    if (mp_check_console(wstream)) {
+    if (h != INVALID_HANDLE_VALUE) {
         size_t len = vsnprintf(NULL, 0, format, args) + 1;
         char *buf = malloc(sizeof(char) * len);
 
         if (buf) {
-            done = vsnprintf(buf, len, format, args);
-            write_console_text(wstream, buf);
+            rv = vsnprintf(buf, len, format, args);
+            write_console_text(h, buf);
         }
         free(buf);
     } else {
-        done = vfprintf(stream, format, args);
+        rv = vfprintf(f, format, args);
     }
 
-    return done;
+    return rv;
 }
 // ------------------- end of mpv code --------------------------------
 
@@ -269,6 +254,17 @@ static void cc_free_argvutf8(int argc, char** argvu)
         free(argvu[i]);
     free(argvu);
 }
+
+#define cc_main(...)                             \
+/* int already here */ _cc_main(int, char**);    \
+int main(int argc, char **argv) {                \
+    int argvok = 0, rv;                          \
+    argv = cc_get_argvutf8(argc, argv, &argvok); \
+    rv = _cc_main(argc, argv);                   \
+    if (argvok) cc_free_argvutf8(argc, argv);    \
+    return rv;                                   \
+}                                                \
+int _cc_main(__VA_ARGS__)  /* user's main body should follow */
 
 static int cc_fprintf(FILE *stream, const char *format, ...)
 {
