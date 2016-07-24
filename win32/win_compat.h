@@ -160,13 +160,20 @@ static wchar_t *mp_from_utf8(const char *s)
     return ret;
 }
 
+// copies null-terminated srcW to dstU8 - upto bytesDst bytes (so possibly without \0 if no room)
+// if bytesDst is 0, returns a size big enough to contain the result with its \0
+static int _cc_WCTU8(char *dstU8, const wchar_t *srcW, int bytesDst)
+{
+  return WideCharToMultiByte(CP_UTF8, 0, srcW, -1, dstU8, bytesDst, NULL, NULL);
+}
+
 static char *mp_to_utf8(const wchar_t *s)
 {
-    int count = WideCharToMultiByte(CP_UTF8, 0, s, -1, NULL, 0, NULL, NULL);
+    int count = _cc_WCTU8(0, s, 0);
     if (count <= 0)
         return NULL;
     char *ret = malloc(sizeof(char) * count);
-    WideCharToMultiByte(CP_UTF8, 0, s, -1, ret, count, NULL, NULL);
+    _cc_WCTU8(ret, s, count);
     return ret;
 }
 
@@ -302,8 +309,8 @@ static int cc_open(const char *fname, int oflags) {
     return rv;
 }
 
-#define _CFN_SIZE cc_USIZE(MAX_PATH)
-#define _CAFN_SIZE cc_USIZE(14)
+#define member_size(type_name, member_name) sizeof(((type_name *)0)->member_name)
+
 /* Identical to WIN32_FIND_DATAA (two A) except bigger char* buffers for utf8 */
 typedef struct _cc_WIN32_FIND_DATA {
     DWORD    dwFileAttributes;
@@ -314,14 +321,12 @@ typedef struct _cc_WIN32_FIND_DATA {
     DWORD    nFileSizeLow;
     DWORD    dwReserved0;
     DWORD    dwReserved1;
-    char    cFileName[_CFN_SIZE];
-    char    cAlternateFileName[_CAFN_SIZE];
+    char     cFileName[cc_USIZE(member_size(WIN32_FIND_DATAA, cFileName))];
+    char     cAlternateFileName[cc_USIZE(member_size(WIN32_FIND_DATAA, cAlternateFileName))];
 } cc_WIN32_FIND_DATA;
 
-#define _cccpfd(a, b, attr) (a)->attr = (b)->attr;
+#define _cccpfd(a, b, attr) (a)->attr = (b)->attr
 static void _cc_wfd2ccfd(cc_WIN32_FIND_DATA *ofd, const WIN32_FIND_DATAW *wfd) {
-    char *cfn, *cafn;
-
     _cccpfd(ofd, wfd, dwFileAttributes);
     _cccpfd(ofd, wfd, ftCreationTime);
     _cccpfd(ofd, wfd, ftLastAccessTime);
@@ -331,13 +336,8 @@ static void _cc_wfd2ccfd(cc_WIN32_FIND_DATA *ofd, const WIN32_FIND_DATAW *wfd) {
     _cccpfd(ofd, wfd, dwReserved0);
     _cccpfd(ofd, wfd, dwReserved0);
 
-    cfn = mp_to_utf8(wfd->cFileName);
-    strncpy(ofd->cFileName, cfn, _CFN_SIZE - 1); ofd->cFileName[_CFN_SIZE - 1] = 0;
-    free(cfn);
-
-    cafn = mp_to_utf8(wfd->cAlternateFileName);
-    strncpy(ofd->cAlternateFileName, cafn, _CAFN_SIZE - 1); ofd->cAlternateFileName[_CAFN_SIZE - 1] = 0;
-    free(cafn);
+    _cc_WCTU8(ofd->cFileName, wfd->cFileName, sizeof(ofd->cFileName));
+    _cc_WCTU8(ofd->cAlternateFileName, wfd->cAlternateFileName, sizeof(ofd->cAlternateFileName));
 }
 
 static HANDLE cc_FindFirstFile(const char *path, cc_WIN32_FIND_DATA *ofd) {
