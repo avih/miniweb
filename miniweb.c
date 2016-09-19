@@ -148,19 +148,6 @@ int Shutdown(mwShutdownCallback cb, unsigned int timeout)
 	return rv;
 }
 
-char* GetLocalAddrString()
-{
-	// get local ip address
-	struct sockaddr_in sock;
-
-	char hostname[128];
-	struct hostent * lpHost;
-	gethostname(hostname, 128);
-	lpHost = gethostbyname(hostname);
-	memcpy(&(sock.sin_addr), (void*)lpHost->h_addr_list[0], lpHost->h_length);
-	return inet_ntoa(sock.sin_addr);
-}
-
 #define SHUTDOWN_TIMEOUT_MS 5000
 #ifdef WIN32  /* Windows - Console control handler on ctrl-c (new thread) */
 
@@ -350,7 +337,7 @@ int cc_main(int argc,char* argv[])
 
 	{
 		int n;
-		printf("Host: %s:%d\n", (ifcarg ? ifcarg : GetLocalAddrString()), httpParam.httpPort);
+		printf("Host: %s:%d\n", (ifcarg ? ifcarg : "0.0.0.0"), httpParam.httpPort);
 		printf("Web root: %s\n",httpParam.pchWebPath);
 		printf("Max clients (per IP): %d (%d)\n",httpParam.maxClients, httpParam.maxClientsPerIP);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
