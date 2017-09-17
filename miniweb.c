@@ -281,7 +281,7 @@ int cc_main(int argc,char* argv[])
 						       "		-M	: specifiy max clients per IP\n"
 						       "		-s	: specifiy download speed limit in KB/s [default: none]\n"
 						       "		-n	: disallow multi-part download [default: allow]\n"
-						       "		-d	: disallow directory listing [default ON]\n\n"
+						       "		-d	: disallow directory listing [default: allow]\n\n"
 						);
 					fflush(stderr);
                                         exit(1);
