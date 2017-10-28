@@ -230,6 +230,72 @@ void GetFullPath(char* buffer, char* argv0, char* path)
 	}
 }
 
+#ifdef WIN32
+#include <iphlpapi.h>
+
+// returns number of printed interfaces
+static int print_interfaces(const char *prefix, int port)
+{
+	MIB_IPADDRTABLE *iptable = NULL;
+	DWORD tablesize = 0;
+	int printed = 0;
+
+	if (ERROR_INSUFFICIENT_BUFFER != GetIpAddrTable(NULL, &tablesize, 1) ||
+	    !(iptable = (MIB_IPADDRTABLE*)malloc(tablesize)) ||
+	    NO_ERROR != GetIpAddrTable(iptable, &tablesize, 1))
+	{
+		goto done;
+	}
+
+	for (int i = 0; i < iptable->dwNumEntries; i++, printed++) {
+		IN_ADDR ip = {0};
+		ip.S_un.S_addr = iptable->table[i].dwAddr;
+		printf ("%s%s:%d\n", prefix, inet_ntoa(ip), port);
+	}
+
+done:
+	if (iptable)
+		free(iptable);
+	return printed;
+}
+
+#else
+
+#include <sys/types.h>
+#include <ifaddrs.h>
+
+// returns number of printed interfaces
+static int print_interfaces(const char *prefix, int port)
+{
+	struct ifaddrs *ifaddr, *ifa;
+	char host[NI_MAXHOST];
+	int printed = 0;
+
+	if (getifaddrs(&ifaddr) == -1)
+		return 0;
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_addr == NULL ||
+		    ifa->ifa_addr->sa_family != AF_INET ||  // ipv6??
+		    getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
+		                host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
+		{
+			continue;
+		}
+
+		printed++;
+		printf("%s%s:%d", prefix, host, port);
+		if (ifa->ifa_name)
+			printf(" (%s)", ifa->ifa_name);
+		printf("\n");
+	}
+
+	freeifaddrs(ifaddr);
+	return printed;
+}
+
+#endif
+
 int cc_main(int argc,char* argv[])
 {
 	fprintf(stderr,"%s https://github.com/avih/miniweb (built on %s)\n"
@@ -337,7 +403,13 @@ int cc_main(int argc,char* argv[])
 
 	{
 		int n;
-		printf("Host: %s:%d\n", (ifcarg ? ifcarg : "0.0.0.0"), httpParam.httpPort);
+		if (ifcarg) {
+			printf("Host: %s:%d\n", ifcarg, (int)httpParam.httpPort);
+		} else {
+			printf("Host: port %d on all interfaces:\n", (int)httpParam.httpPort);
+			if (!print_interfaces("  ", httpParam.httpPort))
+				printf("  0.0.0.0:%d (generic)\n", (int)httpParam.httpPort);
+		}
 		printf("Web root: %s\n",httpParam.pchWebPath);
 		printf("Max clients (per IP): %d (%d)\n",httpParam.maxClients, httpParam.maxClientsPerIP);
 		for (n=0;urlHandlerList[n].pchUrlPrefix;n++);
@@ -345,6 +417,7 @@ int cc_main(int argc,char* argv[])
 		if (httpParam.flags & FLAG_DIR_LISTING) printf("Dir listing enabled\n");
 		if (httpParam.flags & FLAG_DISABLE_RANGE) printf("Byte-range disabled\n");
 
+		fflush(stdout);
 		//register page variable substitution callback
 		//httpParam[i].pfnSubst=DefaultWebSubstCallback;
 
