@@ -238,25 +238,22 @@ static int print_interfaces(const char *prefix, int port)
 {
 	MIB_IPADDRTABLE *iptable = NULL;
 	DWORD tablesize = 0;
-	int printed = 0;
+	int i = 0;
 
-	if (ERROR_INSUFFICIENT_BUFFER != GetIpAddrTable(NULL, &tablesize, 1) ||
-	    !(iptable = (MIB_IPADDRTABLE*)malloc(tablesize)) ||
-	    NO_ERROR != GetIpAddrTable(iptable, &tablesize, 1))
+	if (ERROR_INSUFFICIENT_BUFFER == GetIpAddrTable(NULL, &tablesize, 1) &&
+	    (iptable = (MIB_IPADDRTABLE*)malloc(tablesize)) &&
+	    NO_ERROR == GetIpAddrTable(iptable, &tablesize, 1))
 	{
-		goto done;
+		for (i = 0; i < iptable->dwNumEntries; i++) {
+			IN_ADDR ip = {0};
+			ip.S_un.S_addr = iptable->table[i].dwAddr;
+			printf ("%s%s:%d\n", prefix, inet_ntoa(ip), port);
+		}
 	}
 
-	for (int i = 0; i < iptable->dwNumEntries; i++, printed++) {
-		IN_ADDR ip = {0};
-		ip.S_un.S_addr = iptable->table[i].dwAddr;
-		printf ("%s%s:%d\n", prefix, inet_ntoa(ip), port);
-	}
-
-done:
 	if (iptable)
 		free(iptable);
-	return printed;
+	return i;
 }
 
 #else
@@ -275,19 +272,15 @@ static int print_interfaces(const char *prefix, int port)
 		return 0;
 
 	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr == NULL ||
-		    ifa->ifa_addr->sa_family != AF_INET ||  // ipv6??
-		    getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
-		                host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
+		if (ifa->ifa_addr &&
+		    ifa->ifa_addr->sa_family == AF_INET &&  // ipv6??
+		    !getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
+		                 host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
 		{
-			continue;
+			printed++;
+			printf("%s%s:%d (%s)\n", prefix, host, port,
+			       ifa->ifa_name ? ifa->ifa_name : "???");
 		}
-
-		printed++;
-		printf("%s%s:%d", prefix, host, port);
-		if (ifa->ifa_name)
-			printf(" (%s)", ifa->ifa_name);
-		printf("\n");
 	}
 
 	freeifaddrs(ifaddr);
