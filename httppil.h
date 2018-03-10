@@ -18,7 +18,6 @@
 #ifdef WINCE
 #include <winsock2.h>
 #include <windows.h>
-#define snprintf _snprintf
 
 #elif defined(WIN32)
 #include <winsock2.h>
@@ -26,8 +25,9 @@
 #include <windows.h>
 #include <io.h>
 
+#if _MSC_VER < 1900
 #define snprintf _snprintf
-
+#endif
 #else
 #include <stdlib.h>
 #include <unistd.h>
