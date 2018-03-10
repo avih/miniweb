@@ -1,7 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2002
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "miniweb", "miniweb.vcxproj", "{06E5025D-53D7-4B39-8D4C-D06E39A3023A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugin", "plugin\plugin.vcxproj", "{5802AFF8-6E80-4974-A7BB-D2BB73021327}"
+	ProjectSection(ProjectDependencies) = postProject
+		{06E5025D-53D7-4B39-8D4C-D06E39A3023A} = {06E5025D-53D7-4B39-8D4C-D06E39A3023A}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,8 +20,15 @@ Global
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Debug|Win32.Build.0 = Debug|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.ActiveCfg = Release|Win32
 		{06E5025D-53D7-4B39-8D4C-D06E39A3023A}.Release|Win32.Build.0 = Release|Win32
+		{5802AFF8-6E80-4974-A7BB-D2BB73021327}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5802AFF8-6E80-4974-A7BB-D2BB73021327}.Debug|Win32.Build.0 = Debug|Win32
+		{5802AFF8-6E80-4974-A7BB-D2BB73021327}.Release|Win32.ActiveCfg = Release|Win32
+		{5802AFF8-6E80-4974-A7BB-D2BB73021327}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C5895650-EE96-4807-9DAB-A8173760D906}
 	EndGlobalSection
 EndGlobal
