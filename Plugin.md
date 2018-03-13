@@ -1,6 +1,7 @@
 # Miniweb plugin sytem
 To add a plugin just use a C dynamic library interface.
-See `plugin.c`
+See `PFNEVENTHANDLER` and `PFNEVENTHANDLER` in `loadplugin.h`
+or `httpapi.h` or example: `plugin/plugin.c`
 
 ## How to write plugin
 Compile your plugin in a separate binary.
@@ -12,14 +13,10 @@ The C interface:
 
 The second is optional.
 
-See `plugin`
-
-    nmake /F Makefile.mak plugin
-
 ## Usage
 From command line:
 
-    bin\miniweb.exe -c "myplugin:bin\plugin.dll:MyUrlHandler|MyUrlHandlerEvent"
+    miniweb.exe -c "myplugin:plugin.dll:MyUrlHandler|MyUrlHandlerEvent"
 
 This start the default `miniweb` but loads your plugin.
 You can have many `-c` arguments. See `miniweb -h`
@@ -29,7 +26,7 @@ The plugin is registered with prefix `myplugin` which means that you can access 
 ### func1
 An other simple plugin example:
 
-    bin\miniweb.exe -c "func:bin\plugin.dll:func1"
+    miniweb.exe -c "func1:plugin.dll:func1"
     
 Go to http://localhost/func?v=dQw4w9WgXcQ
 
