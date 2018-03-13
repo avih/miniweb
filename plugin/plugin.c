@@ -3,9 +3,9 @@
 extern "C" {
 #endif // __cplusplus
 
-#include "httpapi.h"
+#include <fcntl.h>  
 
-#define DLL_EXPORT __declspec(dllexport)
+#include "loadplugin.h"
 
 char* mwGetVarValue(HttpVariables* vars, const char *varname, const char *defval)
 {
@@ -20,7 +20,7 @@ char* mwGetVarValue(HttpVariables* vars, const char *varname, const char *defval
     return (char*)defval;
 }
 
-DLL_EXPORT int func1(UrlHandlerParam* hp)
+PLUGIN_VISIBILITY int func1(UrlHandlerParam* hp)
 {
     int ret = 0;
     int i;
@@ -33,26 +33,30 @@ static HttpParam httpParam;
 
 static int fdStream;
 
-DLL_EXPORT int StreamHandlerEvent(MW_EVENT msg, int argi, void* argp)
-{
-    switch (msg) {
-    case MW_INIT:
-        fdStream = _open("test.txt", _O_BINARY | _O_RDONLY);
-        break;
-    case MW_UNINIT:
-        _close(fdStream);
-        break;
-    }
-    return 0;
-}
-
-DLL_EXPORT int StreamHandler(UrlHandlerParam* param)
-{
-    param->dataBytes = _read(fdStream, param->pucBuffer, param->dataBytes);
-    param->fileType = HTTPFILETYPE_TEXT;
-    return FLAG_DATA_STREAM | FLAG_CONN_CLOSE;
-}
-
+//#ifdef __GNUC__
+//#   define _O_BINARY 0
+//#endif
+//
+//PLUGIN_VISIBILITY int StreamHandlerEvent(MW_EVENT msg, int argi, void* argp)
+//{
+//    switch (msg) {
+//    case MW_INIT:
+//        fdStream = open("test.txt", O_BINARY | O_RDONLY);
+//        break;
+//    case MW_UNINIT:
+//        _close(fdStream);
+//        break;
+//    }
+//    return 0;
+//}
+//
+//PLUGIN_VISIBILITY int StreamHandler(UrlHandlerParam* param)
+//{
+//    param->dataBytes = _read(fdStream, param->pucBuffer, param->dataBytes);
+//    param->fileType = HTTPFILETYPE_TEXT;
+//    return FLAG_DATA_STREAM | FLAG_CONN_CLOSE;
+//}
+//
 struct {
     int ethif;
     char ip[16];
@@ -60,7 +64,7 @@ struct {
     char tvmode[4];
 } cfgdata;
 
-DLL_EXPORT int MyUrlHandlerEvent(MW_EVENT msg, int argi, void* argp)
+PLUGIN_VISIBILITY int MyUrlHandlerEvent(MW_EVENT msg, int argi, void* argp)
 {
     switch (msg) {
     case MW_INIT:
@@ -76,7 +80,7 @@ DLL_EXPORT int MyUrlHandlerEvent(MW_EVENT msg, int argi, void* argp)
     return 0;	//0 on success, -1 on failure
 }
 
-DLL_EXPORT int MyUrlHandler(UrlHandlerParam* param)
+PLUGIN_VISIBILITY int MyUrlHandler(UrlHandlerParam* param)
 {
     static const char *html_head = "<html><body><h2 align='center'>STB Configuration</h2><hr>";
     static const char *html_form_start = "<form method='get' action='/myplugin'>";
@@ -135,7 +139,7 @@ DLL_EXPORT int MyUrlHandler(UrlHandlerParam* param)
         p += sprintf(p, html_tvmode[i], cfgdata.tvmode[i] ? " checked" : "");
     }
     p += sprintf(p, "%s%s%s", html_form_end, param->pxVars ? "<p>New settings applied</p>" : "", html_tail);
-    param->dataBytes = (int)p - (int)(param->pucBuffer);
+    param->dataBytes = (int)(p - (param->pucBuffer));
     param->fileType = HTTPFILETYPE_HTML;
     return FLAG_DATA_RAW;
 }
