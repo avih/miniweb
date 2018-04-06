@@ -280,7 +280,7 @@ int mwServerShutdown(HttpParam* hp, mwShutdownCallback cb, unsigned int timeout_
 int mwGetLocalFileName(HttpFilePath* hfp)
 {
 	char ch;
-	char *p = (char*)hfp->cFilePath;
+	unsigned char *p = hfp->cFilePath;
 	char *s = (char*)hfp->pchHttpPath;
 	char *upLevel = NULL;
 
@@ -295,9 +295,14 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 			*(++p)=0;
 		}
 	}
-	while ((ch=*s) && ch!='?' && (int)(p-hfp->cFilePath)<sizeof(hfp->cFilePath)-1) {
+	while ((ch=*s) && ch!='?' && (int)((char*)p-hfp->cFilePath)<sizeof(hfp->cFilePath)-1) {
 		if (ch=='%') {
-			*(p++) = _mwDecodeCharacter(++s);
+			int tmp = _mwDecodeTwoHexDigits(++s);
+			if (tmp <= 0) {  // invalid input or 0 output
+				fprintf(stderr, "Error: invalid %%HH sequence\n");
+				return -1;
+			}
+			*(p++) = tmp;
 			s += 2;
 		} else if (ch=='/') {
 			*p=SLASH;
@@ -325,7 +330,8 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 		hfp->fTailSlash=1;
 	}
 	*p=0;
-	return (int)(p - hfp->cFilePath);
+	DBG(" -> local file: '%s'\n", hfp->cFilePath);
+	return (int)((char*)p - hfp->cFilePath);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1652,7 +1658,8 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 	// check type of file requested
 	if (!ISFLAGSET(phsSocket, FLAG_DATA_FD)) {
 		hfp.pchHttpPath=filePath; //phsSocket->request.pucPath;
-		mwGetLocalFileName(&hfp);
+		if (mwGetLocalFileName(&hfp) <= 0)
+			return -1;
 #ifndef WINCE
 		if (cc_stat(hfp.cFilePath,&st) < 0) {
 #ifdef _7Z
@@ -2153,47 +2160,45 @@ char* _mwStrStrNoCase(char* pchHaystack, char* pchNeedle)
 // _mwDecodeCharacter
 // Convert and individual character
 ////////////////////////////////////////////////////////////////////////////
-char _mwDecodeCharacter(char* s)
+
+// returns 0-15 if successful, or -1 if not a hex digit
+static int fromHexChar (char c)
 {
-  	register unsigned char v;
-	if (!*s) return 0;
-	if (*s>='a' && *s<='f')
-		v = *s-('a'-'A'+7);
-	else if (*s>='A' && *s<='F')
-		v = *s-7;
-	else
-		v = *s;
-	if (*(++s)==0) return v;
-	v <<= 4;
-	if (*s>='a' && *s<='f')
-		v |= (*s-('a'-'A'+7)) & 0xf;
-	else if (*s>='A' && *s<='F')
-		v |= (*s-7) & 0xf;
-	else
-		v |= *s & 0xf;
-	return v;
-} // end of _mwDecodeCharacter
+    static const char *digits = "0123456789abcdef";
+    const char *h = c ? strchr(digits, tolower(c)) : NULL;
+    return h ? h - digits : -1;
+}
+
+// returns 0-255 on success, else -1 (if s ends prematurely or not hex digits)
+int _mwDecodeTwoHexDigits(char* s)
+{
+    int h = fromHexChar(s[0]),
+        l = s[0] ? fromHexChar(s[1]) : -1;
+    return h < 0 || l < 0 ? -1 : 16 * h + l;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 // _mwDecodeString
 // This function converts URLd characters back to ascii. For example
-// %3A is '.'
+// %2E is '.'
 ////////////////////////////////////////////////////////////////////////////
 void mwDecodeString(char* pchString)
 {
-  int bEnd=FALSE;
+  int bEnd=FALSE, tmp;
   char* pchInput=pchString;
-  char* pchOutput=pchString;
+  unsigned char* pchOutput=pchString;
 
   do {
     switch (*pchInput) {
     case '%':
-      if (*(pchInput+1)=='\0' || *(pchInput+2)=='\0') {
-        // something not right - terminate the string and abort
+      tmp = _mwDecodeTwoHexDigits(pchInput+1);
+      if (tmp <= 0) {
+        // invalid input or 0 output - terminate the string and abort
+        fprintf(stderr, "Error: invalid %%HH sequence\n");
         *pchOutput='\0';
         bEnd=TRUE;
       } else {
-        *pchOutput=_mwDecodeCharacter(pchInput+1);
+        *pchOutput = tmp;
         pchInput+=3;
       }
       break;
