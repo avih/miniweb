@@ -283,24 +283,32 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 	unsigned char *p = hfp->cFilePath;
 	char *s = (char*)hfp->pchHttpPath;
 	char *upLevel = NULL;
+	unsigned char *final0 = p + sizeof(hfp->cFilePath) - 1;
 
 	hfp->pchExt=NULL;
 	hfp->fTailSlash=0;
-	if (*s == '~') {
-		s++;
-	} else if (hfp->pchRootPath) {
-		p+=_mwStrCopy(hfp->cFilePath,hfp->pchRootPath);
-		if (*(p-1)!=SLASH) {
-			*p=SLASH;
-			*(++p)=0;
-		}
+
+	if (!hfp->pchRootPath || !*hfp->pchRootPath || strlen(hfp->pchRootPath) > final0 - p) {
+		DBG("missing, empty, or too long root path\n");
+		goto error_out;  // we don't support missing/empty root
 	}
-	while ((ch=*s) && ch!='?' && (int)((char*)p-hfp->cFilePath)<sizeof(hfp->cFilePath)-1) {
+	p+=_mwStrCopy(hfp->cFilePath,hfp->pchRootPath);
+
+	if (*(p-1)!=SLASH) {
+		if (p == final0) {
+			DBG("not enough space for root path trailing '/'\n");
+			goto error_out;
+		}
+		*p=SLASH;
+		*(++p)=0;
+	}
+
+	while ((ch=*s) && ch!='?' && p < final0) {
 		if (ch=='%') {
 			int tmp = _mwDecodeTwoHexDigits(++s);
-			if (tmp <= 0) {  // invalid input or 0 output
-				fprintf(stderr, "Error: invalid %%HH sequence\n");
-				return -1;
+			if (tmp <= 0) {
+				DBG("escape %%HH in URI: invalid, too short, or 0\n");
+				goto error_out;
 			}
 			*(p++) = tmp;
 			s += 2;
@@ -332,6 +340,10 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 	*p=0;
 	DBG(" -> local file: '%s'\n", hfp->cFilePath);
 	return (int)((char*)p - hfp->cFilePath);
+
+error_out:
+	fprintf(stderr, "Error: can't convert request URI to local file\n");
+	return -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////
