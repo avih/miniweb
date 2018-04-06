@@ -217,17 +217,23 @@ void MiniWebQuit(int arg) {
 
 #endif
 
-void GetFullPath(char* buffer, char* argv0, char* path)
+// returns 0 on success (result with '\0' fits in max_bytes), -1 otherwise
+int GetFullPath(char* buffer, char* argv0, char* path, int max_bytes)
 {
 	char* p = strrchr(argv0, '/');
 	if (!p) p = strrchr(argv0, '\\');
 	if (!p) {
+		if (strlen(path) >= max_bytes)
+			return -1;
 		strcpy(buffer, path);
 	} else {
 		int l = p - argv0 + 1;
+		if (l + strlen(path) >= max_bytes)
+			return -1;
 		memcpy(buffer, argv0, l);
 		strcpy(buffer + l, path);
 	}
+	return 0;
 }
 
 #ifdef WIN32
@@ -307,7 +313,7 @@ int cc_main(int argc,char* argv[])
 	mwInitParam(&httpParam);
 	httpParam.maxClients=32;
 	httpParam.httpPort = 80;
-	GetFullPath(httpParam.pchWebPath, argv[0], "htdocs");
+	httpParam.pchWebPath[0] = '\0';  // filled below if no -r argument is given
 #ifndef DISABLE_BASIC_WWWAUTH
 	httpParam.pxAuthHandler = authHandlerList;
 #endif
@@ -353,7 +359,11 @@ int cc_main(int argc,char* argv[])
 					if (httpParam.hlBindIP) ifcarg = argv[i];
 					break;
 				case 'r':
-					if ((++i)<argc) strncpy(httpParam.pchWebPath, argv[i], sizeof(httpParam.pchWebPath) - 1);
+					if ((++i) >= argc || !argv[i][0] || strlen(argv[i]) >= sizeof(httpParam.pchWebPath)) {
+						fprintf(stderr, "Error: invalid or too long path argument\n");
+						return -1;
+					}
+					strcpy(httpParam.pchWebPath, argv[i]);
 					break;
 				case 'l':
 					if ((++i)<argc) fpLog=freopen(argv[i],"w",stderr);
@@ -377,6 +387,14 @@ int cc_main(int argc,char* argv[])
 			}
 		}
 	}
+
+	if (!httpParam.pchWebPath[0]) {
+		if (GetFullPath(httpParam.pchWebPath, argv[0], "htdocs", sizeof(httpParam.pchWebPath))) {
+			fprintf(stderr, "Error: root path ends up too long\n");
+			return -1;
+		}
+	}
+
 	{
 		int i;
 		int error = 0;
