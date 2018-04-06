@@ -277,72 +277,106 @@ int mwServerShutdown(HttpParam* hp, mwShutdownCallback cb, unsigned int timeout_
 	return (hp->bWebserverRunning ? -1 : 0);
 }
 
+// stops on '?' or '\0', decodes '+' OR %HH, convert sequences of / and/or \ to
+// a single SLASH, prepend SLASH (coallesced) AND always append SLASH.
+// returns malloced converted result, or NULL on failure
+static char *absNormalizedRquestFile(const char *s)
+{
+	unsigned char *rv = s ? malloc(strlen(s) + 3) : NULL,  // SLASH str SLASH \0
+	              *o = rv;
+	if (!rv)
+		return NULL;
+
+	*o++ = SLASH;
+	while (*s) {
+		unsigned char c = *s;
+		// '?' and '+' are only considered directly (not decoded from %HH)
+		if (c == '?') {
+			break;
+		} else if (c == '+') {
+			c = ' ';
+		} else if (c == '%') {
+			int tmp = _mwDecodeTwoHexDigits(s + 1);  // fails also on early '\0'
+			if (tmp <= 0) {
+				DBG("escape %%HH in URI: invalid, too short, or 0\n");
+				goto error_out;
+			}
+			c = tmp;
+			s += 2;  // we will add one more below
+		}
+
+		if (c == '/' || c == '\\')
+			c = SLASH;
+
+		if (c != SLASH || (o > rv && *(o-1) != SLASH))
+			*o++ = c;  // coallesc SLASH'es
+		s++;
+	}
+	*o++ = SLASH;  // always appended
+	*o = '\0';
+	DBG("normalized request + / : '%s'\n", rv);
+	return rv;
+
+error_out:
+	if (rv)
+		free(rv);
+	return NULL;
+}
+
 int mwGetLocalFileName(HttpFilePath* hfp)
 {
-	char ch;
+	static const char dot_dir[] = {SLASH, '.', SLASH, '\0'};
+	static const char dotdot_dir[] = {SLASH, '.', '.', SLASH, '\0'};
+
+	unsigned char ch;
 	unsigned char *p = hfp->cFilePath;
-	char *s = (char*)hfp->pchHttpPath;
-	char *upLevel = NULL;
+	char *req = NULL;
+	int has_root_slash = 0, has_req_ext = 0;
 	unsigned char *final0 = p + sizeof(hfp->cFilePath) - 1;
 
 	hfp->pchExt=NULL;
 	hfp->fTailSlash=0;
 
 	if (!hfp->pchRootPath || !*hfp->pchRootPath || strlen(hfp->pchRootPath) > final0 - p) {
-		DBG("missing, empty, or too long root path\n");
-		goto error_out;  // we don't support missing/empty root
+		DBG("root path missing, empty, or too long\n");
+		goto error_out;
 	}
 	p+=_mwStrCopy(hfp->cFilePath,hfp->pchRootPath);
+	if (*(p-1) == '\\' || *(p-1) == '/')
+		has_root_slash = 1;
 
-	if (*(p-1)!=SLASH) {
-		if (p == final0) {
-			DBG("not enough space for root path trailing '/'\n");
-			goto error_out;
-		}
-		*p=SLASH;
-		*(++p)=0;
+	req = absNormalizedRquestFile(hfp->pchHttpPath);
+	if (!req || strstr(req, dot_dir) || strstr(req, dotdot_dir)) {
+		DBG("Request cannot be normalized or with dot dirs\n");
+		goto error_out;
 	}
+	req[strlen(req) - 1] = '\0';  // truncate artificially appended SLASH
 
-	while ((ch=*s) && ch!='?' && p < final0) {
-		if (ch=='%') {
-			int tmp = _mwDecodeTwoHexDigits(++s);
-			if (tmp <= 0) {
-				DBG("escape %%HH in URI: invalid, too short, or 0\n");
-				goto error_out;
-			}
-			*(p++) = tmp;
-			s += 2;
-		} else if (ch=='/') {
-			*p=SLASH;
-			upLevel=(++p);
-			while (*(++s)=='/');
-			continue;
-		} else if (ch=='+') {
-			*(p++)=' ';
-			s++;
-		} else if (ch=='.') {
-			if (upLevel && !memcmp(s+1, "./", 2)) {
-				s+=2;
-				p=upLevel;
-			} else {
-				*(p++)='.';
-				hfp->pchExt=p;
-				while (*(++s)=='.');	//avoid '..' appearing in filename for security issue
-			}
-		} else {
-			*(p++)=*(s++);
-		}
+	// req now starts with SLASH, and doesn't have . or .. components
+	has_req_ext = req[strlen(req) - 1] != SLASH && strrchr(req, '.');
+
+	if (strlen(req) - has_root_slash > final0 - p) {
+		DBG("converted request too long\n");
+		goto error_out;
 	}
-	if (*(p-1)==SLASH) {
+	p += _mwStrCopy(p, has_root_slash ? req + 1 : req);
+	free(req);
+	req = NULL;
+
+	if (*(p-1) == '\\' || *(p-1) == '/') {  // empty req + root path could end with either
 		p--;
 		hfp->fTailSlash=1;
 	}
 	*p=0;
-	DBG(" -> local file: '%s'\n", hfp->cFilePath);
+	if (has_req_ext)
+		hfp->pchExt = strrchr(hfp->cFilePath, '.') + 1;
+	DBG(" -> local file: '%s'%s\n", hfp->cFilePath, hfp->fTailSlash ? " and /" : "");
 	return (int)((char*)p - hfp->cFilePath);
 
 error_out:
-	fprintf(stderr, "Error: can't convert request URI to local file\n");
+	DBG("Rejecting request URI: too long or looks unsafe: '%s'\n", hfp->pchHttpPath);
+	if (req)
+		free(req);
 	return -1;
 }
 
@@ -2182,7 +2216,7 @@ static int fromHexChar (char c)
 }
 
 // returns 0-255 on success, else -1 (if s ends prematurely or not hex digits)
-int _mwDecodeTwoHexDigits(char* s)
+int _mwDecodeTwoHexDigits(const char* s)
 {
     int h = fromHexChar(s[0]),
         l = s[0] ? fromHexChar(s[1]) : -1;
