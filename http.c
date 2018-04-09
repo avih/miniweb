@@ -333,7 +333,7 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 	char *req;
 
 	hfp->pchExt=NULL;
-	hfp->fTailSlash=0;
+	hfp->isDirRequest=0;
 
 	if (!hfp->pchRootPath || !*hfp->pchRootPath || strlen(hfp->pchRootPath) > final0 - p) {
 		DBG("root path missing, empty, or too long\n");
@@ -352,13 +352,14 @@ int mwGetLocalFileName(HttpFilePath* hfp)
 	free(req);
 
 	if (*(p-1) == SLASH) {
-		hfp->fTailSlash = 1;
-		*--p = '\0';
+		hfp->isDirRequest = 1;
+		if (hfp->cFilePath[1])  // dir name of "/" remains "/"
+			*--p = '\0';  // /foo/bar/ -> /foo/bar
 	}
 	if ((hfp->pchExt = strrchr(hfp->cFilePath, '.')))
 		hfp->pchExt++;
 
-	DBG(" -> local path (%s): '%s'\n", (hfp->fTailSlash ? "dir" : "file"), hfp->cFilePath);
+	DBG("request -> local path (%s): '%s'\n", (hfp->isDirRequest ? "dir" : "file"), hfp->cFilePath);
 	return (int)((char*)p - hfp->cFilePath);
 }
 
@@ -1520,10 +1521,11 @@ int _mwListDirectory_internal(HttpSocket* phsSocket, char* dir, int isscript, in
 		int isdir = 0;
 		size_t bytes;
 		char ftype[512] = {0};
+		int has_slash = dir[0] && strstr("/\\", dir + strlen(dir) - 1);
 		if (!strcmp(cFileName, ".")) continue;
 		if (isroot && !strcmp(cFileName, "..")) continue;
 		DBG("Checking %s ...\n",cFileName);
-		snprintf(cFilePath, sizeof(cFilePath), "%s/%s",dir,cFileName);
+		snprintf(cFilePath, sizeof(cFilePath), "%s%s%s",dir,(has_slash ? "" : "/"), cFileName);
 		if (cc_stat(cFilePath,&st)) continue;
 
 		// setup ftype to hold the file type string
@@ -1789,7 +1791,7 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 
 		if (phsSocket->fd <= 0 && (hp->flags & FLAG_DIR_LISTING)) {
 			SETFLAG(phsSocket,FLAG_DATA_RAW);
-			if (!hfp.fTailSlash) {
+			if (!hfp.isDirRequest) {
 				p=phsSocket->request.pucPath;
 				while(*p) p++;				//seek to the end of the string
 				strcpy(p, "/");				//add a tailing slash

@@ -331,7 +331,7 @@ typedef struct {
 	const char* pchHttpPath;
 	char cFilePath[MAX_PATH];
 	char* pchExt;
-	int fTailSlash;
+	int isDirRequest;
 } HttpFilePath;
 
 ///////////////////////////////////////////////////////////////////////

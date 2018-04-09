@@ -157,12 +157,12 @@ int ReadDir(const char* pchDir, char* pchFileNameBuf)
 	}
 	if (pchDir) {
 		char *p;
-		int len;
+		int len = strlen(pchDir);
+		int has_slash = len && strstr("/\\", pchDir + len - 1);
 		if (!IsDir(pchDir)) return -1;
 		if (hFind) FindClose(hFind);
-		len = strlen(pchDir);
 		p = malloc(len + 5);
-		snprintf(p, len + 5, "%s\\*.*", pchDir);
+		snprintf(p, len + 5, "%s%s*.*", pchDir, has_slash ? "" : "\\");
 		hFind=cc_FindFirstFile(p,&finddata);
 		free(p);
 		if (hFind==INVALID_HANDLE_VALUE) {
