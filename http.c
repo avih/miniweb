@@ -277,107 +277,89 @@ int mwServerShutdown(HttpParam* hp, mwShutdownCallback cb, unsigned int timeout_
 	return (hp->bWebserverRunning ? -1 : 0);
 }
 
-// stops on '?' or '\0', decodes '+' OR %HH, convert sequences of / and/or \ to
-// a single SLASH, prepend SLASH (coallesced) AND always append SLASH.
-// returns malloced converted result, or NULL on failure
-static char *absNormalizedRquestFile(const char *s)
+// stop on '?' or '\0', prepend '/', unescape '+' and %HH, reject on invalid
+// chars or empty/meta dirs. if all is valid, also convert '/' to SLASH.
+static char *validated_request_path(const char *s)
 {
-	unsigned char *rv = s ? malloc(strlen(s) + 3) : NULL,  // SLASH str SLASH \0
+	unsigned char *rv = s ? malloc(strlen(s) + 3) : NULL,  // '/' s '/' '\0'
 	              *o = rv;
 	if (!rv)
 		return NULL;
 
-	*o++ = SLASH;
-	while (*s) {
-		unsigned char c = *s;
-		// '?' and '+' are only considered directly (not decoded from %HH)
-		if (c == '?') {
-			break;
-		} else if (c == '+') {
+	// we could implement in just one pass on s, but the logic becomes delicate.
+	// first pass: prepend '/', unescape, and validate chars and empty dirs
+	*o++ = '/';  // the path we get starts from the second char, assume '/'
+	for(; *s && *s != '?'; s++) {
+		int c = (unsigned char)*s;
+
+		if (c == '+') {
 			c = ' ';
 		} else if (c == '%') {
-			int tmp = _mwDecodeTwoHexDigits(s + 1);  // fails also on early '\0'
-			if (tmp <= 0) {
-				DBG("escape %%HH in URI: invalid, too short, or 0\n");
+			c = _mwDecodeTwoHexDigits(s + 1);
+			if (c <= 0)  // invalid %HH or too early '\0', or %00
 				goto error_out;
-			}
-			c = tmp;
-			s += 2;  // we will add one more below
+			s += 2;  // the loop adds another one
 		}
 
-		if (c == '/' || c == '\\')
-			c = SLASH;
+		// valid but reject: non printable, [?*\] and // dir (UTF8 unaffacted)
+		if (c < ' ' || strchr("?*\\", c) || ( c == '/' && c == *(o - 1)))
+			goto error_out;
 
-		if (c != SLASH || (o > rv && *(o-1) != SLASH))
-			*o++ = c;  // coallesc SLASH'es
-		s++;
+		*o++ = c;
 	}
-	*o++ = SLASH;  // always appended
+	*o++ = '/';  // temporarily for the meta-dir tests
 	*o = '\0';
-	DBG("normalized request + / : '%s'\n", rv);
+
+	if (strstr(rv, "/./") || strstr(rv, "/../"))
+		goto error_out;  // reject meta dirs
+	*(o - 1) = 0;  // remove the temporary '/'
+
+	if (SLASH != '/') {
+		for(o = rv; o = strchr(o, '/'); )
+			*o++ = SLASH;
+	}
+
 	return rv;
 
 error_out:
-	if (rv)
-		free(rv);
+	free(rv);
 	return NULL;
 }
 
 int mwGetLocalFileName(HttpFilePath* hfp)
 {
-	static const char dot_dir[] = {SLASH, '.', SLASH, '\0'};
-	static const char dotdot_dir[] = {SLASH, '.', '.', SLASH, '\0'};
-
-	unsigned char ch;
-	unsigned char *p = hfp->cFilePath;
-	char *req = NULL;
-	int has_root_slash = 0, has_req_ext = 0;
-	unsigned char *final0 = p + sizeof(hfp->cFilePath) - 1;
+	char *p = hfp->cFilePath;
+	char *final0 = p + sizeof(hfp->cFilePath) - 1;
+	char *req;
 
 	hfp->pchExt=NULL;
 	hfp->fTailSlash=0;
 
 	if (!hfp->pchRootPath || !*hfp->pchRootPath || strlen(hfp->pchRootPath) > final0 - p) {
 		DBG("root path missing, empty, or too long\n");
-		goto error_out;
+		return -1;
 	}
-	p+=_mwStrCopy(hfp->cFilePath,hfp->pchRootPath);
-	if (*(p-1) == '\\' || *(p-1) == '/')
-		has_root_slash = 1;
+	p+=_mwStrCopy(hfp->cFilePath, hfp->pchRootPath);
+	if (*(p-1) == SLASH)
+		p--; // appended validated request always starts with SLASH
 
-	req = absNormalizedRquestFile(hfp->pchHttpPath);
-	if (!req || strstr(req, dot_dir) || strstr(req, dotdot_dir)) {
-		DBG("Request cannot be normalized or with dot dirs\n");
-		goto error_out;
+	req = validated_request_path(hfp->pchHttpPath);
+	if (!req || strlen(req) > final0 - p) {
+		if (req) free(req);
+		return -1;
 	}
-	req[strlen(req) - 1] = '\0';  // truncate artificially appended SLASH
-
-	// req now starts with SLASH, and doesn't have . or .. components
-	has_req_ext = req[strlen(req) - 1] != SLASH && strrchr(req, '.');
-
-	if (strlen(req) - has_root_slash > final0 - p) {
-		DBG("converted request too long\n");
-		goto error_out;
-	}
-	p += _mwStrCopy(p, has_root_slash ? req + 1 : req);
+	p += _mwStrCopy(p, req);
 	free(req);
-	req = NULL;
 
-	if (*(p-1) == '\\' || *(p-1) == '/') {  // empty req + root path could end with either
-		p--;
-		hfp->fTailSlash=1;
+	if (*(p-1) == SLASH) {
+		hfp->fTailSlash = 1;
+		*--p = '\0';
 	}
-	*p=0;
-	if (has_req_ext)
-		hfp->pchExt = strrchr(hfp->cFilePath, '.') + 1;
-	DBG(" -> local file: '%s'%s\n", hfp->cFilePath, hfp->fTailSlash ? " and /" : "");
-	return (int)((char*)p - hfp->cFilePath);
+	if ((hfp->pchExt = strrchr(hfp->cFilePath, '.')))
+		hfp->pchExt++;
 
-error_out:
-	DBG("Rejecting request URI: too long or looks unsafe: '%s'\n", hfp->pchHttpPath);
-	if (req)
-		free(req);
-	return -1;
+	DBG(" -> local path (%s): '%s'\n", (hfp->fTailSlash ? "dir" : "file"), hfp->cFilePath);
+	return (int)((char*)p - hfp->cFilePath);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1704,8 +1686,10 @@ int _mwStartSendFile2(HttpParam* hp, HttpSocket* phsSocket, const char* rootPath
 	// check type of file requested
 	if (!ISFLAGSET(phsSocket, FLAG_DATA_FD)) {
 		hfp.pchHttpPath=filePath; //phsSocket->request.pucPath;
-		if (mwGetLocalFileName(&hfp) <= 0)
+		if (mwGetLocalFileName(&hfp) <= 0) {
+			SYSLOG(LOG_INFO,"[%d] Request path rejected: too long or failed sanity tests\n", phsSocket->socket);
 			return -1;
+		}
 #ifndef WINCE
 		if (cc_stat(hfp.cFilePath,&st) < 0) {
 #ifdef _7Z
