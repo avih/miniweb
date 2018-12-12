@@ -102,8 +102,10 @@ void add_handler_from_dll(UrlHandler** urlHandlerList, const char* arg)
             {
                 event_handler_name = strrchr(function_name, '|');
                 if (event_handler_name)
+                {
                     *event_handler_name++ = '\0';
-                ehf = (PFNEVENTHANDLER)GetSymbol(library, event_handler_name);
+                    ehf = (PFNEVENTHANDLER)GetSymbol(library, event_handler_name);
+                }
                 uhf = (PFNURLCALLBACK)GetSymbol(library, function_name);
                 if (uhf)
                     add_handler(urlHandlerList, prefix, uhf, ehf);
