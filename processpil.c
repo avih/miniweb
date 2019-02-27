@@ -7,7 +7,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
-#define snprintf _snprintf
+//#define snprintf _snprintf
 #else
 #include <unistd.h>
 #include <sys/time.h>

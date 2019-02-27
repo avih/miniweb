@@ -100,6 +100,7 @@ const char* contentTypeTable[]={
 	"application/x-mpegURL",
 	"application/sdp",
 	"application/binhex",
+	"image/svg+xml"
 };
 
 char* defaultPages[]={"index.htm","index.html","default.htm","main.xul"};
@@ -780,6 +781,7 @@ int _mwBuildHttpHeader(HttpParam* hp, HttpSocket *phsSocket, time_t contentDateT
 	if (phsSocket->response.statusCode == 301 || phsSocket->response.statusCode == 307) {
 		p += sprintf(p, "Location: %s\r\n", phsSocket->pucData);
 	}
+	p += sprintf(p, "Access-Control-Allow-Origin: *\r\n");
 	strcpy(p, "\r\n");
 	return (int)(p- buffer + 2);
 }
@@ -2249,6 +2251,7 @@ int mwGetContentType(const char *pchExtname)
 		case FILEEXT_3GP:	return HTTPFILETYPE_3GP;
 		case FILEEXT_ASF:	return HTTPFILETYPE_ASF;
 		case FILEEXT_SDP:	return HTTPFILETYPE_SDP;
+		case FILEEXT_SVG:	return HTTPFILETYPE_SVG;
 		}
 	} else if (pchExtname[4]=='\0' || pchExtname[4]=='?') {
 		memcpy(&dwExt, pchExtname, sizeof(dwExt));

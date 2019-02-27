@@ -18,7 +18,7 @@
 #ifdef WINCE
 #include <winsock2.h>
 #include <windows.h>
-#define snprintf _snprintf
+//#define snprintf _snprintf
 
 #elif defined(WIN32)
 #include <winsock2.h>
@@ -26,7 +26,7 @@
 #include <windows.h>
 #include <io.h>
 
-#define snprintf _snprintf
+//#define snprintf _snprintf
 
 #else
 #include <stdlib.h>
