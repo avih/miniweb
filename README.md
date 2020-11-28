@@ -1,6 +1,8 @@
 # miniweb-avih
 Small, cross-platform HTTP server
 
+*This project is not maintained, and should not be considered secure.*
+
 - This is a fork of http://miniweb.sourceforge.net/ , with the following enhancements:
   - Enhanced directory listing with sortable columns (requires js, else the normal listing).
   - Unicode support on windows - command line and directory listing.
