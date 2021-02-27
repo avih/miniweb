@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include "httppil.h"
 #include "httpapi.h"
+#include "loadplugin.h"
 #include "revision.h"
 #ifdef MEDIA_SERVER
 #include "mediaserver.h"
@@ -38,33 +39,6 @@ int uhFileStream(UrlHandlerParam* param);
 int uhAsyncDataTest(UrlHandlerParam* param);
 int uhRTSP(UrlHandlerParam* param);
 int uhSerial(UrlHandlerParam* param);
-
-UrlHandler urlHandlerList[]={
-	{"stats", uhStats, NULL},
-#ifdef ENABLE_SERIAL
-	{"serial", uhSerial, NULL},
-#endif
-#ifdef HAVE_THREAD
-	{"async", uhAsyncDataTest, NULL},
-#endif
-#ifdef MEDIA_SERVER
-	{"test.sdp", uhRTSP, NULL},
-	{"MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent},
-#endif
-#ifdef _7Z
-	{"7z", uh7Zip, NULL},
-#endif
-#ifdef _MPD
-	{"mpd", uhMpd, ehMpd},
-#endif
-#ifdef _VOD
-	{"vodstream", uhVodStream,NULL},
-	{"vodlib", uhLib,0},
-	{"vodplay", uhVod,ehVod},
-	{"stream", uhStream,NULL},
-#endif
-	{NULL},
-};
 
 #ifndef DISABLE_BASIC_WWWAUTH
 AuthHandler authHandlerList[]={
@@ -295,8 +269,34 @@ static int print_interfaces(const char *prefix, int port)
 
 #endif
 
+UrlHandler* urlHandlerList = NULL;
+
 int cc_main(int argc,char* argv[])
 {
+    add_handler(&urlHandlerList, "stats", uhStats, NULL);
+#ifdef ENABLE_SERIAL
+    add_handler(&urlHandlerList, "serial", uhSerial, NULL);
+#endif
+#ifdef HAVE_THREAD
+    add_handler(&urlHandlerList, "async", uhAsyncDataTest, NULL);
+#endif
+#ifdef MEDIA_SERVER
+    add_handler(&urlHandlerList, "test.sdp", uhRTSP, NULL);
+    add_handler(&urlHandlerList, "MediaServer/VideoItems/", uhMediaItemsTranscode, ehMediaItemsEvent);
+#endif
+#ifdef _7Z
+    add_handler(&urlHandlerList, "7z", uh7Zip, NULL);
+#endif
+#ifdef _MPD
+    add_handler(&urlHandlerList, "mpd", uhMpd, ehMpd);
+#endif
+#ifdef _VOD
+    add_handler(&urlHandlerList, "vodstream", uhVodStream, NULL);
+    add_handler(&urlHandlerList, "vodlib", uhLib, 0);
+    add_handler(&urlHandlerList, "vodplay", uhVod, ehVod);
+    add_handler(&urlHandlerList, "stream", uhStream, NULL);
+#endif
+
 	fprintf(stderr,"%s https://github.com/avih/miniweb (built on %s)\n"
 	               "Originally: (C)2005-2013 Written by Stanley Huang <stanleyhuangyc@gmail.com>\n\n",
 	               APP_NAME, __DATE__);
@@ -347,6 +347,9 @@ int cc_main(int argc,char* argv[])
 						       "		-s	: specifiy download speed limit in KB/s [default: none]\n"
 						       "		-n	: disallow multi-part download [default: allow]\n"
 						       "		-d	: disallow directory listing [default: allow]\n\n"
+                               "		-c	: register callback for urlHandler\n"
+                               "			: format is the following \"prefix:dll:urlhandler|eventhandler\"\n"
+                               "			: event handler is optional, prefix may be empty\n"
 						);
 					fflush(stderr);
                                         exit(1);
@@ -383,6 +386,13 @@ int cc_main(int argc,char* argv[])
 				case 'd':
 					httpParam.flags &= ~FLAG_DIR_LISTING;
 					break;
+                case 'c':
+                    if ((++i) < argc)
+                    {
+                        add_handler_from_dll(&urlHandlerList, argv[i]);
+                        httpParam.pxUrlHandler = urlHandlerList;
+                    }
+                    break;
 				}
 			}
 		}

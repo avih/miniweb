@@ -155,7 +155,7 @@ static wchar_t *mp_from_utf8(const char *s)
     int count = MultiByteToWideChar(CP_UTF8, 0, s, -1, NULL, 0);
     if (count <= 0)
         return NULL;
-    wchar_t *ret = malloc(sizeof(wchar_t) * (count + 1));
+    wchar_t *ret = (wchar_t*)malloc(sizeof(wchar_t) * (count + 1));
     MultiByteToWideChar(CP_UTF8, 0, s, -1, ret, count);
     return ret;
 }
@@ -172,7 +172,7 @@ static char *mp_to_utf8(const wchar_t *s)
     int count = _cc_WCTU8(0, s, 0);
     if (count <= 0)
         return NULL;
-    char *ret = malloc(sizeof(char) * count);
+    char *ret = (char*)malloc(sizeof(char) * count);
     _cc_WCTU8(ret, s, count);
     return ret;
 }
@@ -211,7 +211,7 @@ static int mp_vfprintf(FILE *f, const char *format, va_list args)
 
     if (h != INVALID_HANDLE_VALUE) {
         size_t len = vsnprintf(NULL, 0, format, args) + 1;
-        char *buf = malloc(sizeof(char) * len);
+        char *buf = (char*)malloc(sizeof(char) * len);
 
         if (buf) {
             rv = vsnprintf(buf, len, format, args);
@@ -240,7 +240,7 @@ static char **cc_get_argvutf8(int argc_validation, char **argv_orig, int *out_su
         return argv_orig;
     }
 
-    char **argvu = malloc(sizeof(char*) * (nArgs + 1));
+    char **argvu = (char**)malloc(sizeof(char*) * (nArgs + 1));
     int i;
     for (i = 0; i < nArgs; i++) {
         argvu[i] = mp_to_utf8(szArglist[i]);

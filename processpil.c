@@ -7,7 +7,9 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
+#if _MSC_VER < 1900
 #define snprintf _snprintf
+#endif
 #else
 #include <unistd.h>
 #include <sys/time.h>
