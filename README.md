@@ -21,6 +21,39 @@ See [License note](./miniweb-avih/LICENSE.md).
 based is at branch `svn-orig-rev-208` of this repository (the original project seems
 unmaintained since 2013.).
 
+
+## Building on Windows with msys2
+
+```shell
+pacman -S mingw-w64-x86_64-toolchain upx    # And press enter to install all
+msys2 -mingw64                              # Start msys2 with path to use mingw64
+make
+upx miniweb.exe                             # Optional, compress the exe file
+```
+
+## Adding a new MIME type
+
+In httpint.h:55 section, add your new file extension:
+```c
+#define FILEEXT_SVG DEFDWORD('S', 'V', 'G', 0)
+```
+
+In http.c:2269 section, add the mapping between the new file extension and the offset of the filetype:
+```c
+		case FILEEXT_SVG:	return HTTPFILETYPE_SVG;
+```
+
+In httpapi.h:56 section add the new offset at the end of enum:
+```c
+  HTTPFILETYPE_SVG,
+```
+
+In http.c:76 section add your new MIME type at the end of the table, to match exactly the same position as the entry in the above enum:
+```c
+	"image/svg+xml",
+```
+
+
 ### [Original project description below]
 
 ## MiniWeb
