@@ -10,7 +10,7 @@ DEFINES=
 
 ifdef WINDIR
 DEFINES+= -DWIN32
-LDADD += -lws2_32 -lshell32 -liphlpapi
+LDADD += -lws2_32 -lshell32 -liphlpapi -s
 OS="Win32"
 else
 #CFLAGS+= -fPIC

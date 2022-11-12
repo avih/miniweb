@@ -1,0 +1,41 @@
+name: CI
+on: [push,pull_request]
+
+jobs:
+  win:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include: [
+          {msystem: MINGW32, toolchain: mingw-w64-i686, version: x32 },
+          {msystem: MINGW64, toolchain: mingw-w64-x86_64, version: x64 },
+        ]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Install msys2 build environment
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: false
+        install: base-devel git ${{ matrix.toolchain }}-toolchain upx
+
+    - run: git config --global core.autocrlf input
+      shell: bash
+
+    - uses: actions/checkout@v2
+
+    - name: Build plugin
+      shell: msys2 {0}
+      run: |
+        make
+        upx miniweb.exe
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: miniweb_${{ matrix.version }}
+        path: |
+          ./miniweb.exe
