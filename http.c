@@ -1266,7 +1266,12 @@ int _mwProcessReadSocket(HttpParam* hp, HttpSocket* phsSocket)
 					phsSocket->request.pucPayload = malloc(phsSocket->bufferSize);
 					phsSocket->pucData = phsSocket->request.pucPayload;
 					// payload length already received
+					
+					// Fix heap overflow (CVE-2020-29596)
+					// We make sure that the length of phsSocket->dataLength doesn't exceed request.payloadSize
+					if (phsSocket->dataLength > phsSocket->request.payloadSize) phsSocket->dataLength = phsSocket->request.payloadSize;
 					phsSocket->dataLength -= phsSocket->request.headerSize;
+					
 					// copy already received payload to payload buffer
 					memcpy(phsSocket->request.pucPayload, phsSocket->buffer + phsSocket->request.headerSize, phsSocket->dataLength);
 					phsSocket->request.pucPayload[phsSocket->dataLength]=0;
